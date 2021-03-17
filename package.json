@@ -1,0 +1,26 @@
+{
+  "name": "dociter",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "./packages/*",
+    "./explorations/*"
+  ],
+  "scripts": {
+    "prepare": "husky install",
+    "precommit": "echo OK"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aarondail/dociter.git"
+  },
+  "author": "Aaron Dail",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aarondail/dociter/issues"
+  },
+  "homepage": "https://github.com/aarondail/dociter#readme",
+  "devDependencies": {
+    "husky": "^5.1.3"
+  }
+}
