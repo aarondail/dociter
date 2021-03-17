@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "prepare": "husky install",
-    "precommit": "echo OK"
+    "pre-commit": "npx lerna run --concurrency 1 --stream precommit --since HEAD --exclude-dependents"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/aarondail/dociter#readme",
   "devDependencies": {
-    "husky": "^5.1.3"
+    "husky": "^5.1.3",
+    "lerna": "^4.0.0"
   }
 }
