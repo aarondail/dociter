@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "prepare": "husky install",
-    "pre-commit": "npx lerna run --concurrency 1 --stream precommit --since HEAD --exclude-dependents"
+    "pre-commit": "npx lerna run --concurrency 1 --stream pre-commit --since HEAD --exclude-dependents"
   },
   "repository": {
     "type": "git",
