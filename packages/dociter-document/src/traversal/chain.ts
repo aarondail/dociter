@@ -1,0 +1,144 @@
+import * as IterTools from "iter-tools";
+
+import * as Models from "../models";
+
+import { Node } from "./node";
+import { Path, PathPart } from "./path";
+import { PathWalking } from "./pathWalking";
+
+// -----------------------------------------------------------------------------
+// This file defines Chain types and functions which are like Paths but with the
+// corresponding Nodes from the Document for each PathPart resolved.
+//
+// The first link (if you will) in a Chain is always the Document.
+// -----------------------------------------------------------------------------
+
+export type Chain = readonly [ChainLinkFirst, ...ChainLinkNotFirst[]];
+
+/**
+ * This type represents a Node that has been resolved for a PathPart.
+ */
+export type ChainLink = ChainLinkFirst | ChainLinkNotFirst;
+
+/**
+ * The first link in any change should be the document. In this case it does
+ * not have a PathPart.
+ */
+export interface ChainLinkFirst {
+  readonly pathPart: undefined;
+  readonly node: Models.Document;
+}
+
+export interface ChainLinkNotFirst<T extends Node = Node> {
+  readonly pathPart: PathPart;
+  readonly node: T;
+}
+
+export const ChainLink = (() => {
+  const build = (pathPart: PathPart, node: Node): ChainLinkNotFirst => ({
+    pathPart,
+    node,
+  });
+
+  return {
+    newNonFirstLink: build,
+    document: (d: Models.Document): ChainLinkFirst => ({
+      pathPart: undefined,
+      node: d,
+    }),
+    block: (b: Models.Block, index: number) => build(PathPart.block(index), b),
+    content: (i: Models.Inline, index: number) => build(PathPart.content(index), i),
+    codePoint: (cp: Models.CodePoint, index: number) => build(PathPart.codePoint(index), cp),
+  };
+})();
+
+export const Chain = {
+  append(chain: Chain, newLink: ChainLinkNotFirst): Chain {
+    // Assuming chain is ok, this is ok too
+    return ([...chain, newLink] as unknown) as Chain;
+  },
+
+  contains(chain: Chain, node: Node): boolean {
+    return chain.find((link) => link.node === node) !== undefined;
+  },
+
+  /**
+   * This drops the last link in the chain, unless there is only one element,
+   * the document.  Aka the ChainLinkFirst.  This can't be
+   * dropped safely because it would not adhere to the type definition for
+   * Chain.
+   */
+  dropTipIfPossible(chain: Chain): Chain | undefined {
+    if (chain.length > 1) {
+      return (chain.slice(0, chain.length - 1) as unknown) as Chain;
+    }
+    return undefined;
+  },
+
+  getGrandParentToTipIfPossible(chain: Chain): [ChainLink, ChainLinkNotFirst, ChainLinkNotFirst] | undefined {
+    const len = chain.length;
+    if (len < 3) {
+      return undefined;
+    }
+    return [chain[len - 3], chain[len - 2] as ChainLinkNotFirst, chain[len - 1] as ChainLinkNotFirst];
+  },
+
+  getPath(chain: Chain): Path {
+    return (
+      chain
+        // Skip the document
+        .slice(1)
+        .map((x) => (x as ChainLinkNotFirst).pathPart)
+    );
+  },
+
+  getParentAndTipIfPossible(chain: Chain): [ChainLink, ChainLinkNotFirst] | undefined {
+    const len = chain.length;
+    if (len < 2) {
+      return undefined;
+    }
+    return [chain[len - 2], chain[len - 1] as ChainLinkNotFirst];
+  },
+
+  getTip(chain: Chain): Node {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return IterTools.takeLast(chain)!.node;
+  },
+
+  from(document: Models.Document, path: Path): Chain | undefined {
+    const results: ChainLink[] = [ChainLink.document(document)];
+    let currentNode: Node = document;
+    const pathParts = [...path];
+    while (pathParts.length > 0) {
+      const pathPart = pathParts.shift();
+      if (!pathPart) {
+        return undefined;
+      }
+      const childNode = PathWalking.walkToChild(currentNode, pathPart);
+
+      if (childNode === undefined) {
+        return undefined;
+      }
+      results.push(ChainLink.newNonFirstLink(pathPart, childNode));
+      currentNode = childNode;
+    }
+    // This is ok since we know the first element is a first link and the
+    // others are non first links
+    return (results as unknown) as Chain;
+  },
+
+  /**
+   * This replaces the last link in the chain, unless there is only one
+   * element, the document.  Aka the ChainLinkFirst.  This can't
+   * be replaced safely (at least not with a non first link) because it would
+   * not adhere to the type definition for Chain.
+   */
+  replaceTipIfPossible(Chain: Chain, newElement: ChainLinkNotFirst): Chain | undefined {
+    if (Chain.length < 2) {
+      return undefined;
+    }
+    const result = Chain.slice(0, Chain.length - 1);
+    result.push(newElement);
+    return (result as unknown) as Chain;
+  },
+};
