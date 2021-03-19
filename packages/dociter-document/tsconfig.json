@@ -12,9 +12,9 @@
     "composite": true,
     "strict": true,        
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
   },
   "include": [ "src/**/*" ],
-  "exclude": ["src/**/*.test.*"]
 }
