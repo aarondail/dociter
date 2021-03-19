@@ -37,19 +37,19 @@ export const Node = {
   },
 
   isHeaderBlock(node: Node): node is Models.HeaderBlock {
-    return (node as any).kind === Models.BlockKind.HEADER;
+    return (node as any).kind === Models.BlockKind.Header;
   },
 
   isParagraphBlock(node: Node): node is Models.ParagraphBlock {
-    return (node as any).kind === Models.BlockKind.PARAGRAPH;
+    return (node as any).kind === Models.BlockKind.Paragraph;
   },
 
   isInlineText(node: Node): node is Models.InlineText {
-    return (node as any).kind === Models.InlineKind.TEXT;
+    return (node as any).kind === Models.InlineKind.Text;
   },
 
   isInlineUrlLink(node: Node): node is Models.InlineUrlLink {
-    return (node as any).kind === Models.InlineKind.URL_LINK;
+    return (node as any).kind === Models.InlineKind.UrlLink;
   },
 
   isInline(node: Node): node is Models.Inline {
@@ -58,25 +58,25 @@ export const Node = {
 
   containsText(node: Node): node is NodeThatContainText {
     const k: unknown = (node as any).kind;
-    return k === Models.InlineKind.TEXT || k === Models.InlineKind.URL_LINK;
+    return k === Models.InlineKind.Text || k === Models.InlineKind.UrlLink;
   },
 
   containsInlineContent(node: Node): node is NodeThatContainInlineContent {
     const k: unknown = (node as any).kind;
-    return k === Models.BlockKind.HEADER || k === Models.BlockKind.PARAGRAPH;
+    return k === Models.BlockKind.Header || k === Models.BlockKind.Paragraph;
   },
 
   switch<T>(node: Node, handlers: NodeHandlersForSwitch<T>): T {
     const k: unknown = (node as any).kind;
     if (typeof node === "string") {
       return handlers.onCodePoint(node);
-    } else if (k === Models.BlockKind.HEADER) {
+    } else if (k === Models.BlockKind.Header) {
       return handlers.onHeaderBlock(node as any);
-    } else if (k === Models.BlockKind.PARAGRAPH) {
+    } else if (k === Models.BlockKind.Paragraph) {
       return handlers.onParagraphBlock(node as any);
-    } else if (k === Models.InlineKind.TEXT) {
+    } else if (k === Models.InlineKind.Text) {
       return handlers.onInlineText(node as any);
-    } else if (k === Models.InlineKind.URL_LINK) {
+    } else if (k === Models.InlineKind.UrlLink) {
       return handlers.onInlineUrlLink(node as any);
     } else {
       return handlers.onDocument(node as any);

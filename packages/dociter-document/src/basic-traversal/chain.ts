@@ -100,9 +100,12 @@ export const Chain = {
     return [chain[len - 2], chain[len - 1] as ChainLinkNotFirst];
   },
 
-  getTip(chain: Chain): Node {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return IterTools.takeLast(chain)!.node;
+  getTip(chain: Chain): ChainLink {
+    return IterTools.arrayLast((chain as unknown) as unknown[]) as ChainLink;
+  },
+
+  getTipNode(chain: Chain): Node {
+    return Chain.getTip(chain).node;
   },
 
   from(document: Models.Document, path: Path): Chain | undefined {
@@ -133,12 +136,12 @@ export const Chain = {
    * be replaced safely (at least not with a non first link) because it would
    * not adhere to the type definition for Chain.
    */
-  replaceTipIfPossible(Chain: Chain, newElement: ChainLinkNotFirst): Chain | undefined {
+  replaceTipIfPossible(Chain: Chain, newLink: ChainLinkNotFirst): Chain | undefined {
     if (Chain.length < 2) {
       return undefined;
     }
     const result = Chain.slice(0, Chain.length - 1);
-    result.push(newElement);
+    result.push(newLink);
     return (result as unknown) as Chain;
   },
 };

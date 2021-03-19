@@ -1,8 +1,8 @@
 import { Text } from "./text";
 
 export enum InlineKind {
-  TEXT = "TEXT",
-  URL_LINK = "URL_LINK",
+  Text = "TEXT",
+  UrlLink = "URL_LINK",
 }
 
 export interface TextModifiers {
@@ -16,7 +16,7 @@ export interface TextModifiers {
 }
 
 export interface InlineText {
-  readonly kind: InlineKind.TEXT;
+  readonly kind: InlineKind.Text;
   readonly text: Text;
   readonly modifiers?: Partial<TextModifiers>;
 }
@@ -24,7 +24,7 @@ export interface InlineText {
 export const InlineText = {
   new(text: string | Text, modifiers?: Partial<TextModifiers>): InlineText {
     return {
-      kind: InlineKind.TEXT,
+      kind: InlineKind.Text,
       text: typeof text === "string" ? Text.fromString(text) : text,
       modifiers,
     };
@@ -38,7 +38,7 @@ export const InlineText = {
 };
 
 export interface InlineUrlLink {
-  readonly kind: InlineKind.URL_LINK;
+  readonly kind: InlineKind.UrlLink;
   readonly text: Text;
   readonly url: string;
 }
@@ -46,7 +46,7 @@ export interface InlineUrlLink {
 export const InlineUrlLink = {
   new(url: string, text: string | Text): InlineUrlLink {
     return {
-      kind: InlineKind.URL_LINK,
+      kind: InlineKind.UrlLink,
       text: typeof text === "string" ? Text.fromString(text) : text,
       url,
     };

@@ -1,4 +1,4 @@
-import { Path, PathComparison } from "../../src/traversal/path";
+import { Path, PathComparison } from "../../src/basic-traversal/path";
 
 describe("Path", () => {
   test("compareTo", () => {
@@ -6,13 +6,13 @@ describe("Path", () => {
     const p = Path.parse;
     const cmp = (a: string, b: string) => Path.compareTo(p(a), p(b));
     const {
-      EQUAL,
-      EARLIER_SIBLING,
-      LATER_SIBLING,
-      EARLIER_BRANCH,
-      LATER_BRANCH,
-      DESCENDENT,
-      ANCESTOR,
+      Equal: EQUAL,
+      EarlierSibling: EARLIER_SIBLING,
+      LaterSibling: LATER_SIBLING,
+      EarlierBranch: EARLIER_BRANCH,
+      LaterBranch: LATER_BRANCH,
+      Descendent: DESCENDENT,
+      Ancestor: ANCESTOR,
     } = PathComparison;
 
     // ANCESTOR/DESCENDANT

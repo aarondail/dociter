@@ -1,7 +1,5 @@
 import * as IterTools from "iter-tools";
 
-import { Node } from "./node";
-
 // -----------------------------------------------------------------------------
 // This file defines Path types and functions which are used to locate Nodes in
 // a Document.
@@ -9,20 +7,20 @@ import { Node } from "./node";
 
 export type Path = readonly PathPart[];
 export enum PathPartLabel {
-  BLOCK = "block",
-  CONTENT = "content",
-  CODE_POINT = "cp",
+  Block = "block",
+  Content = "content",
+  CodePoint = "cp",
 }
 export type PathPart = readonly [PathPartLabel, number];
 
 export type PathString = string;
 
 export const PathPart = {
-  block: (index: number): PathPart => [PathPartLabel.BLOCK, index],
+  block: (index: number): PathPart => [PathPartLabel.Block, index],
 
-  content: (index: number): PathPart => [PathPartLabel.CONTENT, index],
+  content: (index: number): PathPart => [PathPartLabel.Content, index],
 
-  codePoint: (index: number): PathPart => [PathPartLabel.CODE_POINT, index],
+  codePoint: (index: number): PathPart => [PathPartLabel.CodePoint, index],
 
   getLabel(pathPart: PathPart): PathPartLabel {
     return pathPart[0];
@@ -40,7 +38,7 @@ export const PathPart = {
 export const Path = {
   compareTo(from: Path, to: Path): PathComparison {
     if (from.length === 0 && to.length === 0) {
-      return PathComparison.CANT_COMPARE;
+      return PathComparison.Incomparable;
     }
     // We compare the chain from the start until we find a divergence
     const maxLen = Math.max(from.length, to.length);
@@ -50,11 +48,11 @@ export const Path = {
       const b = to[i];
       if (!a && !b) {
         // This shouldn't happen...
-        return PathComparison.CANT_COMPARE;
+        return PathComparison.Incomparable;
       } else if (!a) {
-        return PathComparison.DESCENDENT;
+        return PathComparison.Descendent;
       } else if (!b) {
-        return PathComparison.ANCESTOR;
+        return PathComparison.Ancestor;
       } else if (PathPart.isEqual(a, b)) {
         continue;
       } else {
@@ -65,18 +63,18 @@ export const Path = {
         if (aLabel !== bLabel) {
           // We don't expect this to happen at this point. All Elements
           // have children where the labels are the same.
-          return PathComparison.CANT_COMPARE;
+          return PathComparison.Incomparable;
         } else if (i < maxLen - 1) {
           // OK we are still in the middle of the paths
           // This also covers the cases where the two paths have unequal lengths
-          return aIndex < bIndex ? PathComparison.EARLIER_BRANCH : PathComparison.LATER_BRANCH;
+          return aIndex < bIndex ? PathComparison.EarlierBranch : PathComparison.LaterBranch;
         } else {
           // Same length and we must be at the end
-          return aIndex < bIndex ? PathComparison.EARLIER_SIBLING : PathComparison.LATER_SIBLING;
+          return aIndex < bIndex ? PathComparison.EarlierSibling : PathComparison.LaterSibling;
         }
       }
     }
-    return PathComparison.EQUAL;
+    return PathComparison.Equal;
   },
 
   isEqual(left: Path, right: Path): boolean {
@@ -120,12 +118,12 @@ export const Path = {
 };
 
 export enum PathComparison {
-  EQUAL = "EQUAL",
-  ANCESTOR = "ANCESTOR",
-  DESCENDENT = "DESCENDENT",
-  EARLIER_SIBLING = "EARLIER_SIBLING",
-  LATER_SIBLING = "LATER_SIBLING",
-  EARLIER_BRANCH = "EARLIER_BRANCH",
-  LATER_BRANCH = "LATER_BRANCH",
-  CANT_COMPARE = "CANT_COMPARE",
+  Equal = "EQUAL",
+  Ancestor = "ANCESTOR",
+  Descendent = "DESCENDENT",
+  EarlierSibling = "EARLIER_SIBLING",
+  LaterSibling = "LATER_SIBLING",
+  EarlierBranch = "EARLIER_BRANCH",
+  LaterBranch = "LATER_BRANCH",
+  Incomparable = "INCOMPARABLE",
 }

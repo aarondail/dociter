@@ -1,40 +1,40 @@
 import { Inline } from "./inlines";
 
 export enum BlockKind {
-  HEADER = "HEADER",
-  PARAGRAPH = "PARAGRAPH",
+  Header = "HEADER",
+  Paragraph = "PARAGRAPH",
 }
 
 export enum HeaderLevel {
-  ONE = "ONE",
-  TWO = "TWO",
-  THREE = "THREE",
+  One = "ONE",
+  Two = "TWO",
+  Three = "THREE",
 }
 
 export interface HeaderBlock {
-  readonly kind: BlockKind.HEADER;
+  readonly kind: BlockKind.Header;
   readonly level: HeaderLevel;
   readonly content: readonly Inline[];
 }
 
 export interface ParagraphBlock {
-  readonly kind: BlockKind.PARAGRAPH;
+  readonly kind: BlockKind.Paragraph;
   readonly content: readonly Inline[];
 }
 
 export type Block = HeaderBlock | ParagraphBlock;
 
 export const Block = {
-  header(level: HeaderLevel = HeaderLevel.ONE, ...content: Inline[]): HeaderBlock {
+  header(level: HeaderLevel = HeaderLevel.One, ...content: Inline[]): HeaderBlock {
     return {
-      kind: BlockKind.HEADER,
+      kind: BlockKind.Header,
       content,
       level: level,
     };
   },
   paragraph(...content: Inline[]): ParagraphBlock {
     return {
-      kind: BlockKind.PARAGRAPH,
+      kind: BlockKind.Paragraph,
       content,
     };
   },

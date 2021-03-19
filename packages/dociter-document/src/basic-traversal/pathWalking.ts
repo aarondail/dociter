@@ -30,28 +30,28 @@ export const PathWalking = {
 
     return Node.switch<T | undefined>(parentNode, {
       onDocument: (d: Models.Document) =>
-        unpack(pathPart, PathPartLabel.BLOCK, (idx) => handlers.onDocument(d, PathPartLabel.BLOCK, idx)),
+        unpack(pathPart, PathPartLabel.Block, (idx) => handlers.onDocument(d, PathPartLabel.Block, idx)),
       onCodePoint: () =>
         // There is nothing further we can unpack into here.  There are no "parts" of a CodePoint...
         undefined,
       onHeaderBlock: (b: Models.HeaderBlock) =>
-        unpack(pathPart, PathPartLabel.CONTENT, (idx) => handlers.onHeaderBlock(b, PathPartLabel.CONTENT, idx)),
+        unpack(pathPart, PathPartLabel.Content, (idx) => handlers.onHeaderBlock(b, PathPartLabel.Content, idx)),
       onParagraphBlock: (b: Models.ParagraphBlock) =>
-        unpack(pathPart, PathPartLabel.CONTENT, (idx) => handlers.onParagraphBlock(b, PathPartLabel.CONTENT, idx)),
+        unpack(pathPart, PathPartLabel.Content, (idx) => handlers.onParagraphBlock(b, PathPartLabel.Content, idx)),
       onInlineUrlLink: (e: Models.InlineUrlLink) =>
-        unpack(pathPart, PathPartLabel.CODE_POINT, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.CODE_POINT, idx)),
+        unpack(pathPart, PathPartLabel.CodePoint, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.CodePoint, idx)),
       onInlineText: (e: Models.InlineText) =>
-        unpack(pathPart, PathPartLabel.CODE_POINT, (idx) => handlers.onInlineText(e, PathPartLabel.CODE_POINT, idx)),
+        unpack(pathPart, PathPartLabel.CodePoint, (idx) => handlers.onInlineText(e, PathPartLabel.CodePoint, idx)),
     });
   },
 };
 
 export type PathWalkingHandlers<T> = {
-  onDocument: (d: Models.Document, pathLabel: PathPartLabel.BLOCK, pathIndex: number) => T;
-  onHeaderBlock: (b: Models.HeaderBlock, pathLabel: PathPartLabel.CONTENT, pathIndex: number) => T;
-  onParagraphBlock: (b: Models.ParagraphBlock, pathLabel: PathPartLabel.CONTENT, pathIndex: number) => T;
-  onInlineText: (e: Models.InlineText, pathLabel: PathPartLabel.CODE_POINT, pathIndex: number) => T;
-  onInlineUrlLink: (e: Models.InlineUrlLink, pathLabel: PathPartLabel.CODE_POINT, pathIndex: number) => T;
+  onDocument: (d: Models.Document, pathLabel: PathPartLabel.Block, pathIndex: number) => T;
+  onHeaderBlock: (b: Models.HeaderBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
+  onParagraphBlock: (b: Models.ParagraphBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
+  onInlineText: (e: Models.InlineText, pathLabel: PathPartLabel.CodePoint, pathIndex: number) => T;
+  onInlineUrlLink: (e: Models.InlineUrlLink, pathLabel: PathPartLabel.CodePoint, pathIndex: number) => T;
   // Note that code points never have any children so they can't be "walked" into
 };
 
