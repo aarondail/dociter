@@ -1,10 +1,13 @@
 node_modules
 
 # testing
-/coverage
+coverage
 
 # production
-/build
+build
+
+#typescript
+tsconfig.tsbuildinfo
 
 # misc
 .DS_Store
