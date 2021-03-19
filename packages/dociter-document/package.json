@@ -9,8 +9,8 @@
     "build:w": "tsc --build --watch",
     "test": "jest",
     "test:w": "jest --watch",
-    "format": "prettier --write src/**/*.ts{,x}",
-    "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "tsc --noEmit && eslint src/**/*.ts",
     "pre-commit": "lint-staged"
   },
   "devDependencies": {
