@@ -15,7 +15,7 @@ export interface EditorState {
 //   // readonly inversePatches: immer.Patch[];
 // }
 
-export class DocumentEditor {
+export class Editor {
   private future: EditorState[];
   private history: EditorState[];
   private state: EditorState;

@@ -1,13 +1,11 @@
-import lodash from "lodash";
-
-import { Cursor, CursorNavigator } from "../../cursor";
-import * as Models from "../../models";
+import { CursorNavigator } from "../../cursor";
+import { EditorState } from "../editor";
 
 import { OperationError, OperationErrorCode } from "./error";
 
-export function getCursorNavigatorAndValidate(document: Models.Document, cursor: Cursor): CursorNavigator {
-  const nav = new CursorNavigator(document);
-  if (!nav.navigateTo(cursor)) {
+export function getCursorNavigatorAndValidate(state: EditorState): CursorNavigator {
+  const nav = new CursorNavigator(state.document);
+  if (!nav.navigateTo(state.cursor)) {
     throw new OperationError(OperationErrorCode.INVALID_CURSOR_POSITION);
   }
   return nav;
