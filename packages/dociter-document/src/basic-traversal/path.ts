@@ -61,7 +61,7 @@ export const Path = {
         const bLabel = PathPart.getLabel(b);
         const bIndex = PathPart.getIndex(b);
         if (aLabel !== bLabel) {
-          // We don't expect this to happen at this point. All Elements
+          // We don't expect this to happen at this point. All Nodes
           // have children where the labels are the same.
           return PathComparison.Incomparable;
         } else if (i < maxLen - 1) {

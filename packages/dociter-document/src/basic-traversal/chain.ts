@@ -63,7 +63,7 @@ export const Chain = {
   },
 
   /**
-   * This drops the last link in the chain, unless there is only one element,
+   * This drops the last link in the chain, unless there is only one node,
    * the document.  Aka the ChainLinkFirst.  This can't be
    * dropped safely because it would not adhere to the type definition for
    * Chain.
@@ -125,16 +125,16 @@ export const Chain = {
       results.push(ChainLink.newNonFirstLink(pathPart, childNode));
       currentNode = childNode;
     }
-    // This is ok since we know the first element is a first link and the
+    // This is ok since we know the first node is a first link and the
     // others are non first links
     return (results as unknown) as Chain;
   },
 
   /**
-   * This replaces the last link in the chain, unless there is only one
-   * element, the document.  Aka the ChainLinkFirst.  This can't
-   * be replaced safely (at least not with a non first link) because it would
-   * not adhere to the type definition for Chain.
+   * This replaces the last link in the chain, unless there is only one node,
+   * the document. Aka the ChainLinkFirst. This can't be replaced safely (at
+   * least not with a non first link) because it would not adhere to the type
+   * definition for Chain.
    */
   replaceTipIfPossible(Chain: Chain, newLink: ChainLinkNotFirst): Chain | undefined {
     if (Chain.length < 2) {

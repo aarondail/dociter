@@ -8,13 +8,13 @@ import { Path, PathPart, PathString } from "./path";
 import { PathWalking } from "./pathWalking";
 
 /**
- * This class helps with navigating between elements of a document. It does not
+ * This class helps with navigating between nodes of a document. It does not
  * understand (text) cursor navigation which is more complicated than just
  * moving between code points. For that see the DocumentCursorNavigator class.
  *
- * The DocumentElementNavigator maintains its own state, and methods on the
- * class mutate that state. That said, any data returned from the class won't
- * be mutated by future method calls (as the typescript type definitions say).
+ * The NodeNavigator maintains its own state, and methods on the class mutate
+ * that state. That said, any data returned from the class won't be mutated by
+ * future method calls (as the typescript type definitions say).
  *
  * For the DFS related methods in this class, see the image on this page to get
  * a clear idea of the order in which the DFS visits nodes:
@@ -123,7 +123,7 @@ export class NodeNavigator {
    */
   public navigateBackwardsInDfs(options?: { readonly skipDescendants?: boolean }): boolean {
     // In some cases you want to skip navigating through any descendants of the
-    // current element
+    // current node
     if (!options?.skipDescendants) {
       const children = Node.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
@@ -147,7 +147,7 @@ export class NodeNavigator {
 
   public navigateForwardsInDfs(options?: { readonly skipDescendants?: boolean }): boolean {
     // In some cases you want to skip navigating through any descendants of the
-    // current element
+    // current node
     if (!options?.skipDescendants) {
       const children = Node.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
@@ -228,8 +228,8 @@ export class NodeNavigator {
   }
 
   /**
-   * This navigates to a sibling after the current element, if there is one.
-   * This will not jump to a different parent element.
+   * This navigates to a sibling after the current node, if there is one.
+   * This will not jump to a different parent node.
    */
   public navigateToNextSibling(): boolean {
     const result = Chain.getParentAndTipIfPossible(this.currentChain);
@@ -260,8 +260,8 @@ export class NodeNavigator {
   }
 
   /**
-   * This navigates to a sibling before the current element, if there is one.
-   * This will not jump to a different parent element.
+   * This navigates to a sibling before the current node, if there is one.
+   * This will not jump to a different parent node.
    */
   public navigateToPrecedingSibling(): boolean {
     const result = Chain.getParentAndTipIfPossible(this.currentChain);
@@ -353,7 +353,7 @@ const navigateToSiblingHelpers = (() => {
       onInlineUrlLink: (b, _, idx) => p.codePoint(b.text[idx + operand], idx + operand),
     } as NodeHandlersForSwitch<ChainLinkNotFirst | undefined>);
 
-  const createConfigJustFindingElement = (operand: number) =>
+  const createConfigJustFindingNode = (operand: number) =>
     ({
       // @ts-expect-error
       onDocument: (d, _, idx) => d.blocks[idx + operand],
@@ -369,8 +369,8 @@ const navigateToSiblingHelpers = (() => {
 
   const precedingConfigForLinks = createConfigForBuildingLinks(-1);
   const nextConfigForLinks = createConfigForBuildingLinks(1);
-  const precedingConfigForFinding = createConfigJustFindingElement(-1);
-  const nextConfigForFinding = createConfigJustFindingElement(1);
+  const precedingConfigForFinding = createConfigJustFindingNode(-1);
+  const nextConfigForFinding = createConfigJustFindingNode(1);
 
   const nodeOrLinkToNode = (a: Node | ChainLink): Node => {
     if ((a as any).node !== undefined) {

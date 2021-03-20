@@ -1,15 +1,13 @@
 import { NodeNavigator } from "../../src/basic-traversal/nodeNavigator";
-import { Path, PathPartLabel } from "../../src/basic-traversal/path";
+import { PathPartLabel } from "../../src/basic-traversal/path";
 import * as Models from "../../src/models";
-import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
+import { debugPath, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
   header(Models.HeaderLevel.One, inlineText("Header1")),
   paragraph(inlineText("Here is some text"), inlineText("MORE"), inlineText("last")),
   paragraph(inlineText("Paragraph 2"), inlineUrlLink("http://google.com", "GOOG"), inlineText("final sentence"))
 );
-
-const debugPath = (nav: NodeNavigator) => Path.toString(nav.path);
 
 test("navigateTo", () => {
   const nav = new NodeNavigator(testDoc1);
