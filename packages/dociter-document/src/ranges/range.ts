@@ -1,51 +1,59 @@
+import { Chain, Node, NodeNavigator, Path } from "../basic-traversal";
 import * as Models from "../models";
 
-import { Chain } from "./chain";
-import { Node } from "./node";
-import { NodeNavigator } from "./nodeNavigator";
-import { Path } from "./path";
-
-export const Ranges = {
+export interface Range {
+  readonly from: Path;
   /**
-   * This gets all elements in the range of the two given paths.
-   *
-   * Note that this requires to to be after the path of the navigator (in a
-   * DFS), not before it.
+   * This should always be after the from, in terms of the DFS the
+   * NodeNavigator does.
    */
-  getAllNodesInRange(document: Models.Document, from: Path, to: Path): readonly Chain[] | undefined {
+  readonly to: Path;
+}
+
+export const Range = {
+  /**
+   * This collects all chains in the range.
+   */
+  getChains(document: Models.Document, range: Range): readonly Chain[] {
+    const results: Chain[] = [];
+    Range.walk(document, range, (c) => results.push(c));
+    return results;
+  },
+
+  /**
+   * This walks through all nodes in the range.
+   */
+  walk(document: Models.Document, { from, to }: Range, callback: (chain: Chain) => void): void {
     const nav = new NodeNavigator(document);
     if (!nav.navigateTo(from)) {
-      return [];
+      return;
     }
 
-    const results = [];
-    results.push(nav.chain);
+    callback(nav.chain);
     if (Path.isEqual(from, to)) {
-      return results;
+      return;
     }
     // eslint-disable-next-line no-constant-condition
     while (true) {
       if (!nav.navigateForwardsInDfs()) {
-        return [];
+        return;
       }
+      callback(nav.chain);
       if (Path.isEqual(nav.path, to)) {
-        results.push(nav.chain);
-        return results;
+        return;
       }
-
-      results.push(nav.chain);
     }
   },
 
   /**
-   * This gets elements in the range of the two paths given but if there is a
-   * ancestor element and all descendants are included in the range it will
-   * exclude the descendants from the result.
+   * This gets chains in the range but tries to eliminate chains that are
+   * redundant with other shorter chains in the range.
    *
-   * Note that this requires to to be after the path of the navigator (in a
-   * DFS), not before it.
+   * E.g., if the range covers, say all code points in a InlineText, just the
+   * chain for the InlineText would be returned, rather than for all the code
+   * points (as well as for the InlineText).
    */
-  getMostAncestorialNodesCoveringRange(document: Models.Document, from: Path, to: Path): Chain[] {
+  getShortestChainsCoveringRange(document: Models.Document, from: Path, to: Path): Chain[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.

@@ -2,7 +2,7 @@
 
 import { Chain, Node, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { CursorAffinity, CursorNavigator } from "../src/cursor";
-import { EditorState } from "../src/editor";
+import { Editor, EditorState } from "../src/editor";
 import * as Models from "../src/models";
 
 export const doc = (...blocks: readonly Models.Block[]): Models.Document => Models.Document.new("title", ...blocks);
@@ -133,5 +133,15 @@ ${JSON.stringify(state.document.blocks, undefined, 4)}
     }
   };
 
-  return { debugEditorStateSimple, debugBlockSimple };
+  const debugCurrentBlock = (editor: Editor | EditorState): string => {
+    let path = "block:";
+    path += editor.cursor.at?.[0][1];
+    //   case DocumentInteractionLocationKind.SELECTION:
+    //     path += editor.interloc.selection?.[0][0][1];
+    //     break;
+    // }
+    return debugBlockSimple(editor.document, path);
+  };
+
+  return { debugEditorStateSimple, debugCurrentBlock };
 })();

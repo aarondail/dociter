@@ -38,10 +38,6 @@ export const PathPart = {
     return left[0] === right[0] && left[1] === right[1];
   },
 
-  /**
-   * Walk (if you will) from the passed node to one of its children as
-   * described by the passed path part.
-   */
   resolveToChild(parentNode: Node, pathPart: PathPart): Node | undefined {
     // Technically since labels don't factor into the code below we could just call:
     // getChildren()[getIndex(pathPart)]...

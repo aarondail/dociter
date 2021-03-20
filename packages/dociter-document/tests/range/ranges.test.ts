@@ -1,5 +1,6 @@
-import { Chain, Path, Ranges } from "../../src/basic-traversal";
+import { Chain, Path } from "../../src/basic-traversal";
 import * as Models from "../../src/models";
+import { Range } from "../../src/ranges";
 import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
@@ -14,7 +15,7 @@ test("getMostAncestorialElementsInRange", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const p = Path.parse;
     const f = (results: readonly Chain[]) => results.map((chain) => Path.toString(Chain.getPath(chain)));
-    const r = Ranges.getMostAncestorialNodesCoveringRange(testDoc1, p(s1), p(s2));
+    const r = Range.getShortestChainsCoveringRange(testDoc1, p(s1), p(s2));
     if (r) {
       return f(r);
     }

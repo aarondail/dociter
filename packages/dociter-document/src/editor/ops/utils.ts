@@ -3,6 +3,13 @@ import { EditorState } from "../editor";
 
 import { OperationError, OperationErrorCode } from "./error";
 
+export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
+  if (a !== undefined) {
+    return callback(a);
+  }
+  return undefined;
+}
+
 export function getCursorNavigatorAndValidate(state: EditorState): CursorNavigator {
   const nav = new CursorNavigator(state.document);
   if (!nav.navigateTo(state.cursor)) {

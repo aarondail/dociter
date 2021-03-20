@@ -6,18 +6,13 @@ import * as Models from "../models";
 export interface EditorState {
   readonly document: Models.Document;
   readonly cursor: Cursor;
-  // selection?
-  // seletionMode?
+  // readonly selection?;
+  // readonly seletionMode?;
 }
 
-// interface HistoryEntry {
-//   // readonly patches: immer.Patch[];
-//   // readonly inversePatches: immer.Patch[];
-// }
-
 export class Editor {
-  private future: EditorState[];
-  private history: EditorState[];
+  private futureList: EditorState[];
+  private historyList: EditorState[];
   private state: EditorState;
 
   public constructor(initialDocument: Models.Document, initialCursor?: Cursor) {
@@ -25,8 +20,8 @@ export class Editor {
       document: initialDocument,
       cursor: initialCursor || Cursor.new([], CursorAffinity.Before),
     };
-    this.history = [];
-    this.future = [];
+    this.historyList = [];
+    this.futureList = [];
   }
 
   public get cursor(): Cursor {
@@ -35,6 +30,10 @@ export class Editor {
 
   public get document(): Models.Document {
     return this.state.document;
+  }
+
+  public get history(): readonly EditorState[] {
+    return this.historyList;
   }
 
   // public getNavigatorAtCursor(): DocumentElementNavigator {
@@ -49,30 +48,9 @@ export class Editor {
   //   return n;
   // }
 
-  // public get changes(): readonly immer.Patch[][] {
-  //   return this.history.map((e) => e.patches);
-  // }
-
-  // public debugState(): string {
-  //   return debugStateHelpers.debugStateSimple(this.state);
-  // }
-
-  // public debugCurrentBlock(): string {
-  //   let path = "block:";
-  //   switch (this.state.interloc.kind) {
-  //     case DocumentInteractionLocationKind.CURSOR:
-  //       path += this.state.interloc.at?.[0][1];
-  //       break;
-  //     case DocumentInteractionLocationKind.SELECTION:
-  //       path += this.state.interloc.selection?.[0][0][1];
-  //       break;
-  //   }
-  //   return debugStateHelpers.debugBlockSimple(this.state.document, path);
-  // }
-
   public resetHistory(): void {
-    this.history = [];
-    this.future = [];
+    this.historyList = [];
+    this.futureList = [];
   }
 
   public update(operation: (draft: immer.Draft<EditorState>) => void): void {
@@ -81,9 +59,9 @@ export class Editor {
     if (newState === this.state) {
       return;
     }
-    this.history.push(this.state);
+    this.historyList.push(this.state);
     this.state = newState;
     // Reset future
-    this.future.splice(0, this.future.length);
+    this.futureList.splice(0, this.futureList.length);
   }
 }
