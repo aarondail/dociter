@@ -5,7 +5,6 @@ import * as Models from "../models";
 import { Chain, ChainLink, ChainLinkNotFirst } from "./chain";
 import { Node, NodeHandlersForSwitch } from "./node";
 import { Path, PathPart, PathString } from "./path";
-import { PathWalking } from "./pathWalking";
 
 /**
  * This class helps with navigating between nodes of a document. It does not
@@ -380,16 +379,16 @@ const navigateToSiblingHelpers = (() => {
   };
 
   const preceding = (parent: Node | ChainLink, childPath: PathPart): Node | undefined =>
-    PathWalking.walk(nodeOrLinkToNode(parent), childPath, precedingConfigForFinding);
+    PathPart.resolve(nodeOrLinkToNode(parent), childPath, precedingConfigForFinding);
 
   const next = (parent: Node | ChainLink, childPath: PathPart): Node | undefined =>
-    PathWalking.walk(nodeOrLinkToNode(parent), childPath, nextConfigForFinding);
+    PathPart.resolve(nodeOrLinkToNode(parent), childPath, nextConfigForFinding);
 
   const precedingLink = (parent: Node | ChainLink, childPath: PathPart): ChainLinkNotFirst | undefined =>
-    PathWalking.walk(nodeOrLinkToNode(parent), childPath, precedingConfigForLinks);
+    PathPart.resolve(nodeOrLinkToNode(parent), childPath, precedingConfigForLinks);
 
   const nextLink = (parent: Node | ChainLink, childPath: PathPart): ChainLinkNotFirst | undefined =>
-    PathWalking.walk(nodeOrLinkToNode(parent), childPath, nextConfigForLinks);
+    PathPart.resolve(nodeOrLinkToNode(parent), childPath, nextConfigForLinks);
 
   return { preceding, next, precedingLink, nextLink };
 })();

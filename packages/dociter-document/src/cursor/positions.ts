@@ -1,8 +1,6 @@
 import { Node, NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
 
-import { CursorAffinity } from "./cursor";
-
 // -----------------------------------------------------------------------------
 // There are three or so places where a cursor may be placed GENERALLY:
 // 1. Between, before, and after code points.

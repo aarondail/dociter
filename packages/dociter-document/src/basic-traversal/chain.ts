@@ -4,7 +4,6 @@ import * as Models from "../models";
 
 import { Node } from "./node";
 import { Path, PathPart } from "./path";
-import { PathWalking } from "./pathWalking";
 
 // -----------------------------------------------------------------------------
 // This file defines Chain types and functions which are like Paths but with the
@@ -117,7 +116,7 @@ export const Chain = {
       if (!pathPart) {
         return undefined;
       }
-      const childNode = PathWalking.walkToChild(currentNode, pathPart);
+      const childNode = PathPart.resolveToChild(currentNode, pathPart);
 
       if (childNode === undefined) {
         return undefined;
