@@ -10,7 +10,7 @@ import { PathWalking } from "./pathWalking";
 /**
  * This class helps with navigating between nodes of a document. It does not
  * understand (text) cursor navigation which is more complicated than just
- * moving between code points. For that see the DocumentCursorNavigator class.
+ * moving between code points. For that see the CursorNavigator class.
  *
  * The NodeNavigator maintains its own state, and methods on the class mutate
  * that state. That said, any data returned from the class won't be mutated by

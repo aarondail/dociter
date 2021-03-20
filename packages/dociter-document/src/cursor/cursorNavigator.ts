@@ -1,5 +1,5 @@
-import * as Models from "../models";
 import { Chain, ChainLink, Node, NodeNavigator, Path, PathString } from "../basic-traversal";
+import * as Models from "../models";
 
 import { Cursor, CursorAffinity } from "./cursor";
 import { PositionClassification } from "./positions";
