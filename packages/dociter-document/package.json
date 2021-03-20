@@ -36,6 +36,7 @@
     ]
   },
   "dependencies": {
+    "immer": "^9.0.0",
     "iter-tools": "^7.0.2",
     "lodash": "^4.17.21"
   }

@@ -1,0 +1,48 @@
+import * as immer from "immer";
+
+import { DocumentCursorNavigator } from "./cursorNavigator";
+import * as Elements from "./elements";
+import { DocumentCursorAffinity, DocumentInteractionLocationKind } from "./interactionLocation";
+import { OperationError, OperationErrorCode } from "./opsError";
+import { getCursorNavigatorAndValidate } from "./opsUtils";
+
+import { EditorState } from "../editor";
+
+const castDraft = immer.castDraft;
+
+  export function moveBack(state: immer.Draft<EditorState>): void {
+    const nav = getCursorNavigatorAndValidate(state);
+    if (nav.navigateToPrecedingCursorPosition()) {
+      state.interloc = castDraft(nav.cursor);
+    }
+  }
+
+  moveForward(state: immer.Draft<DocumentEditorState>): void {
+    const c = state.interloc;
+
+    switch (c.kind) {
+      case DocumentInteractionLocationKind.CURSOR: {
+        const nav = getCursorNavigatorAndValidate(state.document, c);
+        if (nav.navigateToNextCursorPosition()) {
+          state.interloc = castDraft(nav.cursor);
+        }
+        break;
+      }
+      case DocumentInteractionLocationKind.SELECTION: {
+        throw new OperationError(OperationErrorCode.NOT_IMPLEMENTED);
+      }
+    }
+  },
+
+  jumpTo: (
+    path: Elements.DocumentElementPathString | Elements.DocumentElementPath,
+    affinity: DocumentCursorAffinity
+  ) => (state: immer.Draft<DocumentEditorState>): void => {
+    const nav = new DocumentCursorNavigator(state.document);
+    if (nav.navigateTo(path, affinity)) {
+      state.interloc = castDraft(nav.cursor);
+    } else {
+      throw new OperationError(OperationErrorCode.INVALID_OPERATION_ARGUMENT);
+    }
+  },
+};
