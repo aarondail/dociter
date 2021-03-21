@@ -56,12 +56,12 @@ export const Node = {
     return Node.isInlineText(node) || Node.isInlineUrlLink(node);
   },
 
-  containsText(node: Node): node is NodeThatContainText {
+  containsText(node: Node): node is NodeThatContainsText {
     const k: unknown = (node as any).kind;
     return k === Models.InlineKind.Text || k === Models.InlineKind.UrlLink;
   },
 
-  containsInlineContent(node: Node): node is NodeThatContainInlineContent {
+  containsInlineContent(node: Node): node is NodeThatContainsInlineContent {
     const k: unknown = (node as any).kind;
     return k === Models.BlockKind.Header || k === Models.BlockKind.Paragraph;
   },
@@ -101,10 +101,10 @@ export type NodeHandlersForSwitch<T> = {
 /**
  * Helper type that lists the Node types that have text / code points.
  */
-export type NodeThatContainText = Models.InlineText | Models.InlineUrlLink;
+export type NodeThatContainsText = Models.InlineText | Models.InlineUrlLink;
 
 /**
  * Helper type that lists the Node types that can have Inlines in their content
  * property.
  */
-export type NodeThatContainInlineContent = Models.HeaderBlock | Models.ParagraphBlock;
+export type NodeThatContainsInlineContent = Models.HeaderBlock | Models.ParagraphBlock;
