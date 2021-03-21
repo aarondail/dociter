@@ -1,7 +1,7 @@
-import { CursorAffinity } from "../../../src/cursor";
-import { Editor, Ops } from "../../../src/editor";
-import * as Models from "../../../src/models";
-import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../../utils";
+import { CursorAffinity } from "../../src/cursor";
+import { Editor, Ops } from "../../src/editor";
+import * as Models from "../../src/models";
+import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Neutral, After } = CursorAffinity;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;

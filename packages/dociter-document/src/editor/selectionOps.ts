@@ -1,10 +1,10 @@
 import * as immer from "immer";
 
-import { NodeNavigator, Path, PathString } from "../../basic-traversal";
-import { Cursor, CursorAffinity, CursorNavigator } from "../../cursor";
-import { Range } from "../../ranges";
-import { EditorState, SelectionAnchor } from "../editor";
+import { NodeNavigator, Path, PathString } from "../basic-traversal";
+import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
+import { Range } from "../ranges";
 
+import { EditorState, SelectionAnchor } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 
 const castDraft = immer.castDraft;

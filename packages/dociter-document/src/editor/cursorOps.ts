@@ -1,7 +1,7 @@
 import * as immer from "immer";
 
-import { Path, PathString } from "../../basic-traversal";
-import { CursorAffinity, CursorNavigator } from "../../cursor";
+import { Path, PathString } from "../basic-traversal";
+import { CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
 
 import { OperationError, OperationErrorCode } from "./error";

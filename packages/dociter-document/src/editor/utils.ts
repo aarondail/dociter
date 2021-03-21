@@ -1,4 +1,4 @@
-import { CursorNavigator } from "../../cursor";
+import { CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
 
 import { OperationError, OperationErrorCode } from "./error";

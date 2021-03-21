@@ -1,3 +1,11 @@
 export * from "./editor";
-export * as Ops from "./ops";
-export { OperationError, OperationErrorCode } from "./ops";
+export * from "./error";
+
+import * as CursorOps from "./cursorOps";
+import * as DeletionOps from "./deletionOps";
+import * as SelectionOps from "./selectionOps";
+export const Ops = {
+  ...CursorOps,
+  ...DeletionOps,
+  ...SelectionOps,
+};

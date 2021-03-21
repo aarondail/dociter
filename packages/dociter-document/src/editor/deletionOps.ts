@@ -1,10 +1,10 @@
 import * as immer from "immer";
 
-import { Chain, ChainLink, ChainLinkNotFirst, Node, PathPart } from "../../basic-traversal";
-import { CursorAffinity, CursorNavigator, PositionClassification } from "../../cursor";
-import { Range } from "../../ranges";
-import { EditorState } from "../editor";
+import { Chain, ChainLink, ChainLinkNotFirst, Node, PathPart } from "../basic-traversal";
+import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
+import { Range } from "../ranges";
 
+import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
