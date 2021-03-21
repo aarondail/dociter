@@ -15,7 +15,7 @@ test("getMostAncestorialElementsInRange", () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const p = Path.parse;
     const f = (results: readonly Chain[]) => results.map((chain) => Path.toString(Chain.getPath(chain)));
-    const r = Range.getShortestChainsCoveringRange(testDoc1, p(s1), p(s2));
+    const r = Range.getChainsCoveringRange(testDoc1, Range.new(p(s1), p(s2)));
     if (r) {
       return f(r);
     }

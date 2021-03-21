@@ -11,6 +11,10 @@ export interface Range {
 }
 
 export const Range = {
+  new(from: Path, to: Path): Range {
+    return { from, to };
+  },
+
   /**
    * This collects all chains in the range.
    */
@@ -21,31 +25,6 @@ export const Range = {
   },
 
   /**
-   * This walks through all nodes in the range.
-   */
-  walk(document: Models.Document, { from, to }: Range, callback: (chain: Chain) => void): void {
-    const nav = new NodeNavigator(document);
-    if (!nav.navigateTo(from)) {
-      return;
-    }
-
-    callback(nav.chain);
-    if (Path.isEqual(from, to)) {
-      return;
-    }
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      if (!nav.navigateForwardsInDfs()) {
-        return;
-      }
-      callback(nav.chain);
-      if (Path.isEqual(nav.path, to)) {
-        return;
-      }
-    }
-  },
-
-  /**
    * This gets chains in the range but tries to eliminate chains that are
    * redundant with other shorter chains in the range.
    *
@@ -53,7 +32,7 @@ export const Range = {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  getShortestChainsCoveringRange(document: Models.Document, from: Path, to: Path): Chain[] {
+  getChainsCoveringRange(document: Models.Document, { from, to }: Range): Chain[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
@@ -238,5 +217,30 @@ export const Range = {
 
     // And we are finally done
     return results;
+  },
+
+  /**
+   * This walks through all nodes in the range.
+   */
+  walk(document: Models.Document, { from, to }: Range, callback: (chain: Chain) => void): void {
+    const nav = new NodeNavigator(document);
+    if (!nav.navigateTo(from)) {
+      return;
+    }
+
+    callback(nav.chain);
+    if (Path.isEqual(from, to)) {
+      return;
+    }
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (!nav.navigateForwardsInDfs()) {
+        return;
+      }
+      callback(nav.chain);
+      if (Path.isEqual(nav.path, to)) {
+        return;
+      }
+    }
   },
 };

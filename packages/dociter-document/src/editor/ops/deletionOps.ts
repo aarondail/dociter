@@ -1,9 +1,12 @@
 import * as immer from "immer";
 
 import { Chain, ChainLink, ChainLinkNotFirst, Node, PathPart } from "../../basic-traversal";
-import { CursorAffinity, PositionClassification } from "../../cursor";
+import { CursorAffinity, CursorNavigator, PositionClassification } from "../../cursor";
+import { Range } from "../../ranges";
 import { EditorState } from "../editor";
 
+import { OperationError, OperationErrorCode } from "./error";
+import { clearSelection } from "./selectionOps";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
@@ -67,32 +70,29 @@ export function deleteBackwards(state: immer.Draft<EditorState>): void {
       break;
   }
   state.cursor = castDraft(nav.cursor);
+  clearSelection(state);
 }
 
-// deleteSelection(state: immer.Draft<EditorState>): void {
-//   const c = state.interloc;
+export function deleteSelection(state: immer.Draft<EditorState>): void {
+  if (!state.selection || !state.selectionAnchor) {
+    throw new OperationError(OperationErrorCode.SelectionRequired);
+  }
 
-//   if (c.kind === DocumentInteractionLocationKind.CURSOR) {
-//     throw new OperationError(OperationErrorCode.OPERATION_NOT_POSSIBLE_ON_CURSOR);
-//   }
+  // This navigator is positioned on the place we will leave the selection after the deletion
+  const nav = new CursorNavigator(state.document);
+  nav.navigateTo(state.selection.from, CursorAffinity.Before);
 
-//   // This navigator is positioned on the place we will leave the selection after the deletion
-//   const nav = new DocumentElementNavigator(state.document);
-//   nav.navigateTo(c.selection[0]);
-//   nav.navigateBackwardsInDfs();
+  const elementsToDelete = Range.getChainsCoveringRange(state.document, state.selection);
+  elementsToDelete.reverse();
+  for (const chain of elementsToDelete) {
+    ifLet(Chain.getParentAndTipIfPossible(chain), ([parent, tip]) => {
+      deleteChild(parent, tip);
+    });
+  }
 
-//   const elementsToDelete = getMostAncestorialElementsInRange(state.document, c.selection[0], c.selection[1]);
-//   elementsToDelete.reverse();
-//   for (const chain of elementsToDelete) {
-//     ifLet(getParentAndTipIfPossible(chain), ([parent, tip]) => {
-//       deleteChild(parent, tip);
-//     });
-//   }
-
-//   state.interloc = castDraft(DocumentSelection.new(nav.path, nav.path, DocumentSelectionAnchor.START));
-// },
-
-// TODO deleteForward (for windows) (and linux?)
+  state.cursor = castDraft(nav.cursor);
+  clearSelection(state);
+}
 
 function deleteChild(parent: ChainLink, tip: ChainLinkNotFirst): void {
   const kids = Node.getChildren(parent.node);

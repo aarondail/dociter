@@ -13,7 +13,7 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
 export function getCursorNavigatorAndValidate(state: EditorState): CursorNavigator {
   const nav = new CursorNavigator(state.document);
   if (!nav.navigateTo(state.cursor)) {
-    throw new OperationError(OperationErrorCode.INVALID_CURSOR_POSITION);
+    throw new OperationError(OperationErrorCode.InvalidCursorPosition);
   }
   return nav;
 }
