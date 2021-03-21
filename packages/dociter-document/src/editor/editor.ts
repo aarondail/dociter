@@ -45,9 +45,24 @@ export class Editor {
     return this.historyList;
   }
 
+  public redo(): void {
+    const futureButNowState = this.futureList.pop();
+    if (futureButNowState) {
+      this.historyList.push(this.state);
+      this.state = futureButNowState;
+    }
+  }
   public resetHistory(): void {
     this.historyList = [];
     this.futureList = [];
+  }
+
+  public undo(): void {
+    const oldButNewState = this.historyList.pop();
+    if (oldButNewState) {
+      this.futureList.push(this.state);
+      this.state = oldButNewState;
+    }
   }
 
   public update(operation: (draft: immer.Draft<EditorState>) => void): void {
