@@ -177,7 +177,7 @@ function App(): JSX.Element {
       <br /> */}
       <div style={{ ...commonStyle, fontFamily: "'Source Serif SmText'" }}>{elements}</div>
       <br />
-      <div style={{ ...commonStyle, fontSize: "17.5px", lineHeight: "1.35em" }}>{elements}</div>
+      <div style={{ ...commonStyle, fontSize: "17px", lineHeight: "1.35em" }}>{elements}</div>
       {/* <br />
       <div style={{ ...commonStyle, fontWeight: 600 }}>{elements}</div>
       <br />
