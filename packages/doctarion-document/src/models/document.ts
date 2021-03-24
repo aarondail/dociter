@@ -8,7 +8,7 @@ export interface Document {
 }
 
 export const Document = {
-  new(title: string, ...blocks: readonly Block[]): Document {
+  new: (title: string, ...blocks: readonly Block[]): Document => {
     return {
       title,
       blocks: blocks ?? [],

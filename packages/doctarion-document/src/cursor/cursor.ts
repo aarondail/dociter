@@ -18,7 +18,7 @@ export interface Cursor {
 }
 
 export const Cursor = {
-  new(at: Path, affinity: CursorAffinity = CursorAffinity.Before): Cursor {
+  new: (at: Path, affinity: CursorAffinity = CursorAffinity.Before): Cursor => {
     return {
       at,
       affinity,

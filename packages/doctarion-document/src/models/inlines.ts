@@ -22,7 +22,7 @@ export interface InlineText {
 }
 
 export const InlineText = {
-  new(text: string | Text, modifiers?: Partial<TextModifiers>): InlineText {
+  new: (text: string | Text, modifiers?: Partial<TextModifiers>): InlineText => {
     return {
       kind: InlineKind.Text,
       text: typeof text === "string" ? Text.fromString(text) : text,
@@ -44,7 +44,7 @@ export interface InlineUrlLink {
 }
 
 export const InlineUrlLink = {
-  new(url: string, text: string | Text): InlineUrlLink {
+  new: (url: string, text: string | Text): InlineUrlLink => {
     return {
       kind: InlineKind.UrlLink,
       text: typeof text === "string" ? Text.fromString(text) : text,

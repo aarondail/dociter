@@ -11,7 +11,7 @@ export interface Range {
 }
 
 export const Range = {
-  new(from: Path, to: Path): Range {
+  new: (from: Path, to: Path): Range => {
     return { from, to };
   },
 
