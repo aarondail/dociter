@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ESNext",
     "lib": [
       "dom",
       "dom.iterable",
@@ -24,6 +24,6 @@
     "src"
   ],
   "references": [
-    { "path": "../../packages/dociter-document" }
+    { "path": "../../packages/doctarion-document" }
   ]
 }
