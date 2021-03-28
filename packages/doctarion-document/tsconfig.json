@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "ES2019",
+    "target": "ESNext",
     "module": "ESNext",
     "lib": ["ESNext"],
     "declaration": true,
@@ -16,5 +16,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
   },
-  "include": [ "src/**/*" ]
+  "include": [ "src/**/*" ],
+  "references": [
+    { "path": "../doctarion-utils" }
+  ]
 }

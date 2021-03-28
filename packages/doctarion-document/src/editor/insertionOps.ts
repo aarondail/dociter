@@ -7,11 +7,15 @@ import * as Models from "../models";
 import { deleteSelection } from "./deletionOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
+import { EditorServices } from "./services";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const insertText = (text: string | Models.Text) => (state: immer.Draft<EditorState>): void => {
+export const insertText = (text: string | Models.Text) => (
+  state: immer.Draft<EditorState>,
+  services: EditorServices
+): void => {
   const codePoints = typeof text === "string" ? Models.Text.fromString(text) : text;
 
   if (state.selection) {
@@ -46,11 +50,15 @@ export const insertText = (text: string | Models.Text) => (state: immer.Draft<Ed
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
         state.cursor = castDraft(nav.cursor);
       } else if (Node.containsInlineContent(node)) {
-        node.content.push(castDraft(Models.InlineText.new(codePoints)));
+        const newParagraph = Models.InlineText.new(codePoints);
+        node.content.push(castDraft(newParagraph));
+        services.ids.assignId(newParagraph);
         nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
         state.cursor = castDraft(nav.cursor);
       } else if (Node.isDocument(node)) {
-        node.blocks.push(castDraft(Models.Block.paragraph(Models.InlineText.new(codePoints))));
+        const newInline = Models.Block.paragraph(Models.InlineText.new(codePoints));
+        node.blocks.push(castDraft(newInline));
+        services.ids.assignId(newInline);
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
         state.cursor = castDraft(nav.cursor);
       } else {
@@ -61,11 +69,9 @@ export const insertText = (text: string | Models.Text) => (state: immer.Draft<Ed
     case PositionClassification.BeforeInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (Node.containsInlineContent(parent.node)) {
-          castDraft(parent.node.content).splice(
-            PathPart.getIndex(tip.pathPart),
-            0,
-            castDraft(Models.InlineText.new(codePoints))
-          );
+          const newInline = Models.InlineText.new(codePoints);
+          castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
+          services.ids.assignId(newInline);
           nav = refreshNavigator(nav);
           nav.navigateToLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
@@ -78,11 +84,9 @@ export const insertText = (text: string | Models.Text) => (state: immer.Draft<Ed
     case PositionClassification.AfterInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (Node.containsInlineContent(parent.node)) {
-          castDraft(parent.node.content).splice(
-            PathPart.getIndex(tip.pathPart) + 1,
-            0,
-            castDraft(Models.InlineText.new(codePoints))
-          );
+          const newInline = Models.InlineText.new(codePoints);
+          castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
+          services.ids.assignId(newInline);
           nav.navigateToNextSiblingLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
         } else {
@@ -95,7 +99,10 @@ export const insertText = (text: string | Models.Text) => (state: immer.Draft<Ed
   }
 };
 
-export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (state: immer.Draft<EditorState>): void => {
+export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
+  state: immer.Draft<EditorState>,
+  services: EditorServices
+): void => {
   if (state.selection) {
     deleteSelection(state);
   }
@@ -189,6 +196,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (state: im
     // And insert url link
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     castDraft(destinationBlock.content).splice(destinationInsertIndex, 0, castDraft(inlineUrlLink));
+    services.ids.assignId(inlineUrlLink);
 
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);

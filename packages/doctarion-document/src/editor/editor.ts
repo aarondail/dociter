@@ -1,8 +1,13 @@
 import * as immer from "immer";
+import lodash from "lodash";
 
+import { NodeNavigator } from "../basic-traversal";
 import { Cursor, CursorAffinity } from "../cursor";
 import * as Models from "../models";
 import { Range } from "../ranges";
+
+import { moveBack, moveForward } from "./cursorOps";
+import { EditorNodeIdService, EditorNodeLayoutService, EditorServices } from "./services";
 
 export enum SelectionAnchor {
   Start = "START",
@@ -22,15 +27,44 @@ export interface EditorState {
 export class Editor {
   private futureList: EditorState[];
   private historyList: EditorState[];
+  private services: EditorServices;
   private state: EditorState;
 
   public constructor(initialDocument: Models.Document, initialCursor?: Cursor) {
     this.state = {
-      document: initialDocument,
+      // Clone because we are going to assign ids which techncially is a
+      // mutation
+      document: lodash.cloneDeep(initialDocument),
       cursor: initialCursor || Cursor.new([], CursorAffinity.Before),
     };
     this.historyList = [];
     this.futureList = [];
+    this.services = {
+      ids: new EditorNodeIdService(),
+      layout: new EditorNodeLayoutService(),
+    };
+
+    // Assign initial ids... note this must happen before the calls to update
+    // because after that the objects in the state are no longer extensible (and
+    // we can't assign ids to them). I think this is something immer does.
+    const n = new NodeNavigator(this.state.document);
+    if (n.navigateToStartOfDfs()) {
+      this.services.ids.assignId(n.tip.node);
+      while (n.navigateForwardsInDfs()) {
+        this.services.ids.assignId(n.tip.node);
+      }
+    }
+
+    if (initialCursor === undefined) {
+      // Adjust the cursor so its on a valid position
+      try {
+        this.update(moveForward);
+        this.update(moveBack);
+      } catch {
+        // Intentionally ignore problems
+        // Maybe we should throw?
+      }
+    }
   }
 
   public get cursor(): Cursor {
@@ -65,8 +99,8 @@ export class Editor {
     }
   }
 
-  public update(operation: (draft: immer.Draft<EditorState>) => void): void {
-    const newState = immer.produce(this.state, operation);
+  public update(operation: (draft: immer.Draft<EditorState>, services: EditorServices) => void): void {
+    const newState = immer.produce(this.state, (draft) => operation(draft, this.services));
     // If there were no changes, don't do anything
     if (newState === this.state) {
       return;

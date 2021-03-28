@@ -1,5 +1,5 @@
 {
-  "name": "doctarian-document",
+  "name": "doctarion-document",
   "version": "0.1.0",
   "license": "MIT",
   "main": "build/index.js",
@@ -36,6 +36,7 @@
     ]
   },
   "dependencies": {
+    "doctarion-utils": "*",
     "immer": "^9.0.0",
     "iter-tools": "^7.0.2",
     "lodash": "^4.17.21"
