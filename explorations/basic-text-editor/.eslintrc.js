@@ -30,7 +30,7 @@ module.exports = {
     "import/order": ["error", { alphabetize: { order: "asc" }, "newlines-between": "always" }],
     "sort-imports": ["warn", { ignoreDeclarationSort: true }],
     "@typescript-eslint/no-empty-function": ["warn"],
-    "@typescript-eslint/no-unsafe-assignment": ["warn"],
+    "@typescript-eslint/no-unsafe-assignment": ["off"],
     "@typescript-eslint/member-ordering": [
       "error",
       {
