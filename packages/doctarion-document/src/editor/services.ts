@@ -134,6 +134,12 @@ export class EditorNodeLayoutService {
     }
   }
 
+  public removeProvider(nodeId: NodeId, provider: NodeLayoutProvider): void {
+    if (this.getProvider(nodeId) === provider) {
+      this.layoutProviders.delete(nodeId);
+    }
+  }
+
   public setProvider(nodeId: NodeId, provider: NodeLayoutProvider | undefined): void {
     if (provider) {
       this.layoutProviders.set(nodeId, provider);

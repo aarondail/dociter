@@ -25,9 +25,9 @@ export interface EditorState {
 }
 
 export class Editor {
+  public readonly services: EditorServices;
   private futureList: EditorState[];
   private historyList: EditorState[];
-  private services: EditorServices;
   private state: EditorState;
 
   public constructor(initialDocument: Models.Document, initialCursor?: Cursor) {

@@ -1,5 +1,6 @@
 export * from "./editor";
 export * from "./error";
+export * from "./services";
 
 import * as CursorOps from "./cursorOps";
 import * as DeletionOps from "./deletionOps";
