@@ -39,9 +39,11 @@ export class Editor {
     };
     this.historyList = [];
     this.futureList = [];
+
+    const idService = new EditorNodeIdService();
     this.services = {
-      ids: new EditorNodeIdService(),
-      layout: new EditorNodeLayoutService(),
+      ids: idService,
+      layout: new EditorNodeLayoutService(idService),
     };
 
     // Assign initial ids... note this must happen before the calls to update

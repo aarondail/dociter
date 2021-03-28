@@ -91,6 +91,14 @@ export const Chain = {
     );
   },
 
+  getParentIfPossible(chain: Chain): ChainLink | undefined {
+    const len = chain.length;
+    if (len < 2) {
+      return undefined;
+    }
+    return chain[len - 2];
+  },
+
   getParentAndTipIfPossible(chain: Chain): [ChainLink, ChainLinkNotFirst] | undefined {
     const len = chain.length;
     if (len < 2) {
