@@ -1,12 +1,12 @@
-import * as DoctarianDocument from "doctarion-document";
+import * as DoctarionDocument from "doctarion-document";
 import React from "react";
 
 import { EditorContext } from "./EditorContext";
 
-class NodeLayoutProvider implements DoctarianDocument.NodeLayoutProvider {
+class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   public constructor(private element: HTMLElement) {}
 
-  public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarianDocument.LayoutRect[] | undefined {
+  public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
     const r = new Range();
     r.selectNodeContents(this.element);
 
@@ -34,7 +34,7 @@ class NodeLayoutProvider implements DoctarianDocument.NodeLayoutProvider {
 }
 
 export interface DocumentNodeProps {
-  readonly node: DoctarianDocument.Node;
+  readonly node: DoctarionDocument.Node;
 }
 
 export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentNodeProps): JSX.Element | null {
@@ -42,13 +42,13 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
   const id = editorContext.ids.getId(node);
 
   let children: React.ReactNode;
-  if (DoctarianDocument.Node.containsText(node)) {
+  if (DoctarionDocument.Node.containsText(node)) {
     children = node.text.join("");
-  } else if (DoctarianDocument.Node.containsInlineContent(node)) {
+  } else if (DoctarionDocument.Node.containsInlineContent(node)) {
     children = node.content.map((n) => <DocumentNode key={editorContext.ids.getId(n)} node={n} />);
   } else {
     // This handles e.g. the Document itself
-    children = DoctarianDocument.Node.getChildren(node)?.map((n) => (
+    children = DoctarionDocument.Node.getChildren(node)?.map((n) => (
       <DocumentNode key={editorContext.ids.getId(n)} node={n} />
     ));
   }
@@ -77,7 +77,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
     [editorContext.layout, id, providerRef]
   );
 
-  return DoctarianDocument.Node.switch(node, {
+  return DoctarionDocument.Node.switch(node, {
     onDocument: (doc) => (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <div id={id} ref={elementRef as any}>
