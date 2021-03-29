@@ -41,6 +41,11 @@ export class CursorManager {
       // this.cursorHTMLElement.appendChild(img);
     }
 
+    if (this.cursorHTMLElement.className === "dot") {
+      this.cursorHTMLElement.className = "dot-2";
+    } else {
+      this.cursorHTMLElement.className = "dot";
+    }
     // TODO height
     const w = 3;
     const isLeft = cursor.affinity === DoctarionDocument.CursorAffinity.Before;

@@ -1,9 +1,9 @@
 import React from "react";
 
-import { KeyInterpreter } from "./KeyInterpreter";
+import { InputController } from "./InputController";
 
 interface TextInputAdapterProps {
-  readonly keyInterpreter: KeyInterpreter;
+  readonly inputController: InputController;
   readonly left: number;
   readonly top: number;
   readonly ref: any;
@@ -18,16 +18,16 @@ export const TextInputAdapter = React.memo(
       },
     }));
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => props.keyInterpreter.keyDown(e);
-    const handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) => props.keyInterpreter.keyUp(e);
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => props.inputController.keyDown(e);
+    const handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) => props.inputController.keyUp(e);
     const handleCompositionStart = (e: React.CompositionEvent<HTMLTextAreaElement>) =>
-      props.keyInterpreter.compositionStart(e);
+      props.inputController.compositionStart(e);
     const handleCompositionUpdate = (e: React.CompositionEvent<HTMLTextAreaElement>) =>
-      props.keyInterpreter.compositionUpdate(e);
+      props.inputController.compositionUpdate(e);
     const handleCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) =>
-      props.keyInterpreter.compositionEnd(e);
+      props.inputController.compositionEnd(e);
     const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-      props.keyInterpreter.input(e);
+      props.inputController.input(e);
       // if (taRef.current) {
       //   taRef.current.value = "";
       // }

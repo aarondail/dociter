@@ -1,21 +1,42 @@
 @keyframes blink {
   0% {
-    opacity: 0;
+    opacity: 1;
   }
   30% {
-    opacity: 0;
+    opacity: 1;
   }
   50% {
-    opacity: 1;
+    opacity: 0;
   }
-  60% {
-    opacity: 1;
+  90% {
+    opacity: 0;
   }
   100% {
+    opacity: 1;
+  }
+}
+
+@keyframes blink2 {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
     opacity: 0;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
 .dot {
-  animation: blink 1.2s infinite;
+  animation: blink 1s infinite;
+}
+.dot-2 {
+  animation: blink2 1s infinite;
 }

@@ -31,6 +31,7 @@ module.exports = {
     "sort-imports": ["warn", { ignoreDeclarationSort: true }],
     "@typescript-eslint/no-empty-function": ["warn"],
     "@typescript-eslint/no-unsafe-assignment": ["off"],
+    "@typescript-eslint/unbound-method": ["off"],
     "@typescript-eslint/member-ordering": [
       "error",
       {

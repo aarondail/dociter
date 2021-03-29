@@ -5,15 +5,13 @@ import { useCallbackRef } from "use-callback-ref";
 import { CursorManager } from "./CursorManager";
 import { DocumentNode } from "./DocumentNode";
 import { EditorContext } from "./EditorContext";
-import { KeyInterpreter } from "./KeyInterpreter";
+import { InputController, InputMode } from "./InputController";
+import { TextInputAdapter } from "./TextInputAdapter";
 
 import "./App.css";
 
-enum InputMode {
-  Command,
-  Insert,
-}
 function App(): JSX.Element {
+  const [, forceUpdate] = React.useState();
   const [doc /*, setDoc*/] = React.useState(
     DoctarionDocument.Document.new(
       "A",
@@ -23,27 +21,30 @@ function App(): JSX.Element {
       DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph"))
     )
   );
-  const [editorMode, setEditorMode] = React.useState(InputMode.Command);
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef: React.MutableRefObject<DoctarionDocument.Editor> = React.useRef<DoctarionDocument.Editor>() as any;
   if (!editorRef.current) {
     editorRef.current = new DoctarionDocument.Editor(doc);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const keyInterpreterRef: React.MutableRefObject<KeyInterpreter> = React.useRef() as any;
-  if (!keyInterpreterRef.current) {
-    new KeyInterpreter(editorRef.current);
-  }
+
   const cursorManagerRef: React.MutableRefObject<CursorManager | undefined> = React.useRef();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inputControllerRef: React.MutableRefObject<InputController> = React.useRef() as any;
+  if (!inputControllerRef.current) {
+    inputControllerRef.current = new InputController(editorRef.current, () => {
+      forceUpdate(undefined);
+      cursorManagerRef.current?.update();
+    });
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   (window as any).e = editorRef.current;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) =>
-    editorMode === InputMode.Command && keyInterpreterRef.current.keyDown(e);
+    inputControllerRef.current.inputMode === InputMode.Command && inputControllerRef.current.keyDown(e);
   const handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) =>
-    editorMode === InputMode.Command && keyInterpreterRef.current.keyUp(e);
+    inputControllerRef.current.inputMode === InputMode.Command && inputControllerRef.current.keyUp(e);
 
   const [ready, setReady] = React.useState(false);
   useEffect(() => {
@@ -56,6 +57,8 @@ function App(): JSX.Element {
 
   const containerDivRef = useCallbackRef<HTMLDivElement>(null, (div) => {
     if (div) {
+      // Trying to focus
+      console.log("Focus on div");
       div.focus();
     }
     if (cursorManagerRef.current) {
@@ -71,16 +74,16 @@ function App(): JSX.Element {
     // After rendering... but before the DOM is painted... update the cursor manger
     cursorManagerRef.current?.update();
   });
-  // const textAreaRef = useCallbackRef<typeof TextInputAdapter>(null, (textArea) => {
-  //   if (textArea) {
-  //     ((textArea as unknown) as HTMLTextAreaElement).focus();
-  //   } else {
-  //     containerDivRef.current?.focus();
-  //   }
-  // });
+  const textInputAdapterRef = useCallbackRef<typeof TextInputAdapter>(null, (textArea) => {
+    if (textArea) {
+      ((textArea as unknown) as HTMLTextAreaElement).focus();
+    } else {
+      containerDivRef.current?.focus();
+    }
+  });
 
   return (
-    <div style={{ minWidth: "100%", minHeight: "100%", backgroundColor: "#e1eef1" }}>
+    <div style={{ display: "flex", minWidth: "100%", minHeight: "100%", backgroundColor: "#e1eef1" }}>
       <div
         ref={containerDivRef}
         style={{
@@ -89,12 +92,26 @@ function App(): JSX.Element {
           padding: 10,
           fontSize: "17.5px",
           lineHeight: "1.35em",
-          outline: "none",
+          // outline: "none",
+          // minHeight: "100%",
+          flex: 1,
         }}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
       >
+        {inputControllerRef.current.inputMode === InputMode.Insert && (
+          <TextInputAdapter
+            ref={textInputAdapterRef}
+            inputController={inputControllerRef.current}
+            // TODO
+            left={0}
+            top={0}
+            // left={cursorClientRect?.left || 0}
+            // top={cursorClientRect?.top || 0}
+          />
+        )}
+
         {ready && (
           <EditorContext.Provider value={editorRef.current.services}>
             <DocumentNode node={editorRef.current.document} />
