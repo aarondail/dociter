@@ -42,7 +42,7 @@ export const TextInputAdapter = React.memo(
     return (
       <textarea
         ref={taRef}
-        className="EditorView-textarea"
+        className="TextInputAdapter-textarea"
         style={{
           position: "absolute",
           left: props.left,

@@ -11,7 +11,8 @@ import { TextInputAdapter } from "./TextInputAdapter";
 import "./App.css";
 
 function App(): JSX.Element {
-  const [, forceUpdate] = React.useState();
+  const [ignored, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
+
   const [doc /*, setDoc*/] = React.useState(
     DoctarionDocument.Document.new(
       "A",
@@ -33,7 +34,8 @@ function App(): JSX.Element {
   const inputControllerRef: React.MutableRefObject<InputController> = React.useRef() as any;
   if (!inputControllerRef.current) {
     inputControllerRef.current = new InputController(editorRef.current, () => {
-      forceUpdate(undefined);
+      console.log("onupdate()");
+      forceUpdate();
       cursorManagerRef.current?.update();
     });
   }
@@ -76,11 +78,14 @@ function App(): JSX.Element {
   });
   const textInputAdapterRef = useCallbackRef<typeof TextInputAdapter>(null, (textArea) => {
     if (textArea) {
+      console.log("focusing text area");
       ((textArea as unknown) as HTMLTextAreaElement).focus();
     } else {
       containerDivRef.current?.focus();
     }
   });
+
+  console.log("inputControllerRef.current.inputMode: ", inputControllerRef.current.inputMode);
 
   return (
     <div style={{ display: "flex", minWidth: "100%", minHeight: "100%", backgroundColor: "#e1eef1" }}>
