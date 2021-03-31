@@ -1,0 +1,52 @@
+@keyframes Cursor-cursor-blink1-keyframes {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes Cursor-cursor-blink2-keyframes {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.Cursor-cursor-blink1 {
+  animation: Cursor-cursor-blink1-keyframes 1s infinite;
+}
+.Cursor-cursor-blink2 {
+  animation: Cursor-cursor-blink2-keyframes 1s infinite;
+}
+
+.Cursor-cursor-blink1,
+.Cursor-cursor-blink2 {
+  position: absolute;
+  border: solid 1px #8229de;
+  width: 1px;
+  background-color: #8229de;
+  border-radius: 4px;
+  /* //72ECF6 D242FF A51FF0 */
+}

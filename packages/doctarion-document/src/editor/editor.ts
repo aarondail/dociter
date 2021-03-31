@@ -14,6 +14,8 @@ export enum SelectionAnchor {
   End = "END",
 }
 
+export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorServices) => void;
+
 export interface EditorState {
   readonly document: Models.Document;
   readonly cursor: Cursor;
@@ -101,7 +103,7 @@ export class Editor {
     }
   }
 
-  public update(operation: (draft: immer.Draft<EditorState>, services: EditorServices) => void): void {
+  public update(operation: EditorOperation): void {
     const newState = immer.produce(this.state, (draft) => operation(draft, this.services));
     // If there were no changes, don't do anything
     if (newState === this.state) {

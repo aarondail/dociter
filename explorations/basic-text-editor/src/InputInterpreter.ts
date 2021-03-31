@@ -1,25 +1,22 @@
 import * as DoctarionDocument from "doctarion-document";
 import { Ops } from "doctarion-document";
 
-export enum InputMode {
-  Command,
-  Insert,
-}
+import { EditorCommand, InputMode } from "./Editor";
 
-export class InputController {
+export class InputInterpreter {
+  public inputMode: InputMode;
+
   private ignoreFurtherPressesUntilNoPresses: boolean;
   private keyPressTimes: Map<string, number>;
-  private mode: InputMode;
 
-  public constructor(private readonly editor: DoctarionDocument.Editor, private readonly onUpdate: () => void) {
+  public constructor(
+    private readonly dispatch: (operationOrCommand: DoctarionDocument.EditorOperation | EditorCommand) => void,
+    mode: InputMode
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.keyPressTimes = new Map();
     this.ignoreFurtherPressesUntilNoPresses = false;
-    this.mode = InputMode.Command;
-  }
-
-  public get inputMode(): InputMode {
-    return this.mode;
+    this.inputMode = mode;
   }
 
   public compositionEnd(e: React.CompositionEvent<HTMLTextAreaElement>): void {
@@ -46,9 +43,8 @@ export class InputController {
     e.stopPropagation();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const text = (e.nativeEvent as any).data;
-    if (this.mode === InputMode.Insert && !this.ignoreFurtherPressesUntilNoPresses && text) {
-      this.editor.update(Ops.insertText(text));
-      this.onUpdate();
+    if (this.inputMode === InputMode.Insert && !this.ignoreFurtherPressesUntilNoPresses && text) {
+      this.dispatch(Ops.insertText(text));
     }
   }
 
@@ -120,46 +116,39 @@ export class InputController {
       }
       keys.sort();
 
-      if (this.mode === InputMode.Command) {
+      if (this.inputMode === InputMode.Command) {
         if (keys[0] === "KeyJ") {
-          // this.editor.update(Ops.moveCursorRelative(1, undefined));
+          // this.dispatch(Ops.moveCursorRelative(1, undefined));
         } else if (keys[0] === "KeyK") {
-          // this.editor.update(Ops.moveCursorRelative(-1, undefined));
+          // this.dispatch(Ops.moveCursorRelative(-1, undefined));
         } else if (keys[0] === "KeyH") {
           // eslint-disable-next-line
-          this.editor.update(Ops.moveBack);
-          this.onUpdate();
+          this.dispatch(Ops.moveBack);
         } else if (keys[0] === "KeyL") {
-          this.editor.update(Ops.moveForward);
-          this.onUpdate();
+          this.dispatch(Ops.moveForward);
         } else if (keys[0] === "KeyX") {
-          this.editor.update(Ops.deleteBackwards);
-          this.onUpdate();
+          this.dispatch(Ops.deleteBackwards);
         } else if (keys[0] === "KeyZ") {
           if (ctrl || metaOrCmd) {
             if (!shift) {
-              this.editor.undo();
+              this.dispatch(EditorCommand.Undo);
             } else {
-              this.editor.redo();
+              this.dispatch(EditorCommand.Redo);
             }
-            this.onUpdate();
           }
         } else if (keys[0] === "KeyA") {
-          this.mode = InputMode.Insert;
+          this.dispatch(EditorCommand.SwitchToInsertMode);
           this.ignoreFurtherPressesUntilNoPresses = true;
-          this.onUpdate();
         } else if (keys[0] === "KeyI") {
-          this.mode = InputMode.Insert;
+          this.dispatch(EditorCommand.SwitchToInsertMode);
           this.ignoreFurtherPressesUntilNoPresses = true;
-          this.onUpdate();
         }
       } else {
         if (keys[0] === "Backspace") {
-          this.editor.update(Ops.deleteBackwards);
+          this.dispatch(Ops.deleteBackwards);
         } else if (keys[0] === "Escape") {
-          this.mode = InputMode.Command;
+          this.dispatch(EditorCommand.SwitchToCommandMode);
           this.ignoreFurtherPressesUntilNoPresses = true;
-          this.onUpdate();
         }
       }
     } catch (e) {
