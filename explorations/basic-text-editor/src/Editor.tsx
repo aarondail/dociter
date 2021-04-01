@@ -18,6 +18,8 @@ export enum EditorCommand {
   Redo,
   SwitchToInsertMode,
   SwitchToCommandMode,
+  InputCompositionModeStart,
+  InputCompositionModeEnd,
 }
 
 export interface EditorProps {
@@ -79,11 +81,9 @@ export class Editor extends React.PureComponent<EditorProps> {
       >
         <textarea
           ref={this.setInsertionTextareaRef}
-          className="Editor-textarea"
+          className={`Editor-textarea ${this.inputInterpreter.isComposting ? "Editor-textarea-composting" : ""}`}
           // disabled={this.inputInterpreter.inputMode !== InputMode.Insert}
           tabIndex={0}
-          onKeyDown={this.handleTextareaKeyDown}
-          onKeyUp={this.handleTextareaKeyUp}
           wrap="off"
           autoComplete="off"
           autoCapitalize="off"
@@ -110,6 +110,12 @@ export class Editor extends React.PureComponent<EditorProps> {
     operationOrCommand: DoctarionDocument.EditorOperation | EditorCommand
   ) => {
     switch (operationOrCommand) {
+      case EditorCommand.InputCompositionModeEnd:
+        this.forceUpdate(); // Re-render so that the class name of the textarea is updated
+        break;
+      case EditorCommand.InputCompositionModeStart:
+        this.forceUpdate(); // Re-render so that the class name of the textarea is updated
+        break;
       case EditorCommand.Redo:
         this.editor.redo();
         break;
@@ -118,9 +124,11 @@ export class Editor extends React.PureComponent<EditorProps> {
         this.mainDivRef?.focus();
         break;
       case EditorCommand.SwitchToInsertMode:
-        console.log("HERE", this.insertionTextareaRef);
         this.inputInterpreter.inputMode = InputMode.Insert;
-        this.insertionTextareaRef?.focus();
+        if (this.insertionTextareaRef) {
+          this.insertionTextareaRef.value = "";
+          this.insertionTextareaRef.focus();
+        }
         break;
       case EditorCommand.Undo:
         this.editor.undo();
@@ -133,12 +141,10 @@ export class Editor extends React.PureComponent<EditorProps> {
   };
 
   private handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    console.log("TEST_MAINDIV keydown");
-    this.inputInterpreter.inputMode === InputMode.Command && this.inputInterpreter?.keyDown(e);
+    this.inputInterpreter?.keyDown(e);
   };
 
-  private handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) =>
-    this.inputInterpreter.inputMode === InputMode.Command && this.inputInterpreter?.keyUp(e);
+  private handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) => this.inputInterpreter?.keyUp(e);
 
   private handleTextareaBlur = () => {
     // Keep focus on the text area
@@ -167,20 +173,15 @@ export class Editor extends React.PureComponent<EditorProps> {
     // }
   };
 
-  private handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    console.log("TEST keydown");
-    this.inputInterpreter.inputMode === InputMode.Insert && this.inputInterpreter?.keyDown(e);
-  };
-
-  private handleTextareaKeyUp = (e: React.KeyboardEvent<HTMLElement>) =>
-    this.inputInterpreter.inputMode === InputMode.Insert && this.inputInterpreter?.keyUp(e);
-
   private setCursorsRef = (cursor: Cursor | null) => {
     this.cursorRef = cursor;
   };
 
   private setInsertionTextareaRef = (textarea: HTMLTextAreaElement | null) => {
     this.insertionTextareaRef = textarea;
+    if (this.insertionTextareaRef && this.inputInterpreter.inputMode === InputMode.Insert) {
+      this.insertionTextareaRef.focus();
+    }
   };
 
   private setMainDivRef = (div: HTMLDivElement | null) => {

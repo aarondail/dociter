@@ -66,7 +66,7 @@ export class Cursor extends React.PureComponent {
       return undefined;
     }
 
-    const w = 3;
+    const w = 2;
     const isLeft = cursor?.affinity === DoctarionDocument.CursorAffinity.Before;
     const left = isLeft ? rect.left - 1 : rect.right - w;
     const top = rect.top;

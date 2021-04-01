@@ -45,7 +45,7 @@
 .Cursor-cursor-blink2 {
   position: absolute;
   border: solid 1px #8229de;
-  width: 1px;
+  width: 0px;
   background-color: #8229de;
   border-radius: 4px;
   /* //72ECF6 D242FF A51FF0 */

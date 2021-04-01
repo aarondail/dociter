@@ -5,8 +5,10 @@ import { EditorCommand, InputMode } from "./Editor";
 
 export class InputInterpreter {
   public inputMode: InputMode;
+  public isComposting?: boolean; // :)
 
   private ignoreFurtherPressesUntilNoPresses: boolean;
+  private ignoreNextInput?: boolean;
   private keyPressTimes: Map<string, number>;
 
   public constructor(
@@ -21,29 +23,56 @@ export class InputInterpreter {
 
   public compositionEnd(e: React.CompositionEvent<HTMLTextAreaElement>): void {
     console.log("onCompositionEnd", e.nativeEvent);
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
+    this.isComposting = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (e.target as any).value = "";
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const text = (e.nativeEvent as any).data;
+    if (this.inputMode === InputMode.Insert && text) {
+      this.dispatch(Ops.insertText(text));
+    }
+    this.dispatch(EditorCommand.InputCompositionModeEnd);
   }
 
   public compositionStart(e: React.CompositionEvent<HTMLTextAreaElement>): void {
     console.log("onCompositionStart", e.nativeEvent);
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
+    this.isComposting = true;
+    this.dispatch(EditorCommand.InputCompositionModeStart);
   }
 
   public compositionUpdate(e: React.CompositionEvent<HTMLTextAreaElement>): void {
     console.log("onCompositionUpdate", e.nativeEvent);
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
   }
 
   public input(e: React.FormEvent<HTMLTextAreaElement>): void {
-    console.log("onInput", e.nativeEvent);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const text = (e.nativeEvent as any).data; // null in some cases (Enter)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    // const inputType = (e.nativeEvent as any).inputType; // "insertText", "insertLineBreak", ...?
+    console.log("onInput", e.nativeEvent, text);
+
     e.preventDefault();
     e.stopPropagation();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const text = (e.nativeEvent as any).data;
-    if (this.inputMode === InputMode.Insert && !this.ignoreFurtherPressesUntilNoPresses && text) {
+    if (this.isComposting) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (e.target as any).value = "";
+
+    if (this.ignoreNextInput) {
+      this.ignoreNextInput = false;
+      return;
+    }
+    if (this.inputMode === InputMode.Insert && text) {
       this.dispatch(Ops.insertText(text));
     }
   }
@@ -65,19 +94,23 @@ export class InputInterpreter {
     //
     // Maybe that is better but for now I'm going with this.
 
-    this.keyPressTimes.set(e.nativeEvent.code, new Date().getTime());
-    // Looks good to use: e.code (KeyA, MetaLeft) . ... that looks like it to me?
-    console.log("keyDown: " + e.nativeEvent.code, this.keyPressTimes.keys());
+    if (this.isComposting) {
+      return;
+    }
 
+    this.keyPressTimes.set(e.nativeEvent.code, new Date().getTime());
+
+    // Looks good to use: e.code (KeyA, MetaLeft) . ... that looks like it to me?
+    console.log("keyDown: ", e.nativeEvent.code, e.nativeEvent.isComposing, this.keyPressTimes.keys());
     this.processKeys();
 
-    // Can't do this here since it will block the input and composition events:
+    // Can't do this here since it will block the input and composition events... or at least it did at one point...
     // e.preventDefault();
     // e.stopPropagation();
   }
 
   public keyUp(e: React.KeyboardEvent<HTMLElement>): void {
-    console.log("keyUp: " + e.nativeEvent.code, this.keyPressTimes.keys());
+    // console.log("keyUp: ", e.nativeEvent.code, e.nativeEvent.isComposing, this.keyPressTimes.keys());
     this.keyPressTimes.delete(e.nativeEvent.code);
     if (this.keyPressTimes.size === 0) {
       this.ignoreFurtherPressesUntilNoPresses = false;
@@ -136,12 +169,11 @@ export class InputInterpreter {
               this.dispatch(EditorCommand.Redo);
             }
           }
-        } else if (keys[0] === "KeyA") {
-          this.dispatch(EditorCommand.SwitchToInsertMode);
-          this.ignoreFurtherPressesUntilNoPresses = true;
         } else if (keys[0] === "KeyI") {
           this.dispatch(EditorCommand.SwitchToInsertMode);
-          this.ignoreFurtherPressesUntilNoPresses = true;
+          // Have to ignore the next input which will be i
+          this.ignoreNextInput = true;
+          // this.ignoreFurtherPressesUntilNoPresses = true;
         }
       } else {
         if (keys[0] === "Backspace") {

@@ -16,6 +16,12 @@
 }
 
 .Editor-textarea {
+  font-size: 17.5px;
+  font-family: "Source Serif", sans-serif;
+  font-kerning: normal;
+  font-feature-settings: "kern" 1; /* TODO check that this works */
+  line-height: 1.35em;
+
   position: absolute;
   top: -100px;
   resize: none;
@@ -26,4 +32,18 @@
   -webkit-highlight: none;
   outline: none;
   color: transparent;
+  overflow: hidden;
+}
+
+.Editor-textarea-composting {
+  width: 200px;
+  height: 1.35em;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 5px;
+  /* border: none; */
+  /* -webkit-highlight: none;
+  outline: none;
+  color: transparent;
+  overflow: hidden; */
 }
