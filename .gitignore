@@ -7,7 +7,7 @@ coverage
 build
 
 #typescript
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # misc
 .DS_Store
