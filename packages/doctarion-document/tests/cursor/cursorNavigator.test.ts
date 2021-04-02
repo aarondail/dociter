@@ -1,7 +1,8 @@
+import { Chain } from "../../src/basic-traversal";
 import { CursorAffinity } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
 import * as Models from "../../src/models";
-import { debugCursorNavigator, debugPath, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
+import { debugCursorNavigator, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
   header(Models.HeaderLevel.One, inlineText("Header1")),
@@ -361,7 +362,7 @@ describe("navigateToPrecedingCursorPosition", () => {
       paths.push(debugCursorNavigator(nav));
 
       while (nav.navigateToPrecedingCursorPosition()) {
-        if (nav.parent === undefined) {
+        if (Chain.getParentIfPossible(nav.chain) === undefined) {
           break;
         }
         paths.push(debugCursorNavigator(nav));

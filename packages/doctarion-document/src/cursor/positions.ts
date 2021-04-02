@@ -1,4 +1,4 @@
-import { Node, NodeNavigator } from "../basic-traversal";
+import { Chain, Node, NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
 
 // -----------------------------------------------------------------------------
@@ -50,7 +50,9 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const el = navigator.tip.node;
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
-    const parent = navigator.parent?.node;
+    const parent = Chain.getParentIfPossible(navigator.chain)?.node;
+    // const parent = navigator.chain[navigator.chain.length - 2]?.node;
+    // const parent = navigator.parent?.node;
     if (Node.isCodePoint(el)) {
       // There are different rules for text inside an InlineText and for text in
       // other inline nodes.

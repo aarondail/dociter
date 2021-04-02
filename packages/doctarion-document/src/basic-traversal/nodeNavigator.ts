@@ -36,14 +36,6 @@ export class NodeNavigator {
     return Chain.getTip(this.currentChain);
   }
 
-  public get grandParent(): ChainLink | undefined {
-    return this.currentChain[this.currentChain.length - 3];
-  }
-
-  public get parent(): ChainLink | undefined {
-    return this.currentChain[this.currentChain.length - 2];
-  }
-
   public get path(): Path {
     return Chain.getPath(this.currentChain);
   }

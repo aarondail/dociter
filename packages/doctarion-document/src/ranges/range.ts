@@ -161,7 +161,7 @@ export const Range = {
       if (chainLengthBefore + 1 === chainLengthAfter) {
         // Parent --> Child
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const p = nav.parent!.node;
+        const p = Chain.getParentIfPossible(nav.chain)!.node;
         const totalKidCount = getKidCount(p);
         if (totalKidCount > 0) {
           TrackingStack.push(Chain.dropTipIfPossible(nav.chain) || nav.chain);

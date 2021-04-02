@@ -28,14 +28,6 @@ export class CursorNavigator {
     return this.nodeNavigator.tip;
   }
 
-  public get grandParent(): ChainLink | undefined {
-    return this.nodeNavigator.grandParent;
-  }
-
-  public get parent(): ChainLink | undefined {
-    return this.nodeNavigator.parent;
-  }
-
   public get cursor(): Cursor {
     return Cursor.new(this.nodeNavigator.path, this.currentAffinity);
   }
