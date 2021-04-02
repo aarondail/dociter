@@ -5,8 +5,8 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "tsc --build",
-    "build:w": "tsc --build --watch",
+    "build": "tsc --build tsconfig.build.json",
+    "build:w": "tsc --build tsconfig.build.json --watch",
     "test": "jest",
     "test:w": "jest --watch",
     "format": "prettier --write {src,tests}/**/*.ts",
