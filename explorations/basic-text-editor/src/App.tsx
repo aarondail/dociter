@@ -9,15 +9,32 @@ function App(): JSX.Element {
   const [doc /*, setDoc*/] = React.useState(
     DoctarionDocument.Document.new(
       "A",
-      // DD.Block.paragraph(DD.InlineText.new(SAMPLE)),
-      // DD.Block.paragraph(DD.InlineText.new("ThisissometextinaparagrapThisissometextinaparagraph")),
       DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is some text in a paragraph")),
-      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph"))
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph")),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Support j/k")),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Support arrow keys in both modes")),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Animate cursor")),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Support enter in insert breaking lines up")),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Make inserting a header work")),
+      DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Make inserting different font/bold/color work")
+      ),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph")),
+      DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Support selection with shift keys in insert mode")
+      ),
+      DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Support selection with mouse (browser based selection basically)")
+      ),
+      DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Overwrtie selection on insert (and delete works)")
+      ),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("Turn document types into classes"))
     )
   );
 
   return (
-    <div style={{ display: "flex", minWidth: "100%", minHeight: "100%", backgroundColor: "#e1eef1" }}>
+    <div className="App">
       <Editor initialDocument={doc} />
     </div>
   );

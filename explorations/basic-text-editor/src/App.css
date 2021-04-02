@@ -1,0 +1,7 @@
+.App {
+  display: flex;
+  min-width: 100%;
+  min-height: 100%;
+  background-color: #f3f7fa;
+  /* { display: "flex", minWidth: "100%", minHeight: "100%", backgroundColor: "#e1eef1" } */
+}

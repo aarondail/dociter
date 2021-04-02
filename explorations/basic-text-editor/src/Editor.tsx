@@ -74,7 +74,7 @@ export class Editor extends React.PureComponent<EditorProps> {
     return (
       <div
         ref={this.setMainDivRef}
-        className="Editor-main"
+        className={`Editor ${this.inputInterpreter.inputMode === InputMode.Command ? "command-mode" : "insert-mode"}`}
         tabIndex={0}
         onKeyDown={this.handleKeyDown}
         onKeyUp={this.handleKeyUp}

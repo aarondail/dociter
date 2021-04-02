@@ -44,9 +44,18 @@
 .Cursor-cursor-blink1,
 .Cursor-cursor-blink2 {
   position: absolute;
-  border: solid 1px #8229de;
   width: 0px;
-  background-color: #8229de;
   border-radius: 4px;
-  /* //72ECF6 D242FF A51FF0 */
+}
+
+.Editor.insert-mode .Cursor-cursor-blink1,
+.Editor.insert-mode .Cursor-cursor-blink2 {
+  border: solid 1px #de8029;
+  background-color: #de8029;
+}
+
+.Editor.command-mode .Cursor-cursor-blink1,
+.Editor.command-mode .Cursor-cursor-blink2 {
+  border: solid 1px #8229de;
+  background-color: #8229de;
 }
