@@ -4,6 +4,7 @@ import { Chain, Node, NodeNavigator, NodeThatContainsInlineContent, PathPart } f
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import * as Models from "../models";
 
+import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
@@ -21,6 +22,7 @@ export const insertText = (text: string | Models.Text) => (
   if (state.selection) {
     deleteSelection(state);
   }
+  resetCursorMovementHints(state);
 
   let nav = getCursorNavigatorAndValidate(state);
   const node = castDraft(nav.tip.node);
@@ -106,6 +108,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   if (state.selection) {
     deleteSelection(state);
   }
+  resetCursorMovementHints(state);
 
   const startingNav = getCursorNavigatorAndValidate(state);
 

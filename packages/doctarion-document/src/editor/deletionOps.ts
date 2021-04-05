@@ -4,6 +4,7 @@ import { Chain, ChainLink, ChainLinkNotFirst, Node, PathPart } from "../basic-tr
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { Range } from "../ranges";
 
+import { resetCursorMovementHints } from "./cursorOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
@@ -71,6 +72,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>): void {
   }
   state.cursor = castDraft(nav.cursor);
   clearSelection(state);
+  resetCursorMovementHints(state);
 }
 
 export function deleteSelection(state: immer.Draft<EditorState>): void {
@@ -92,6 +94,7 @@ export function deleteSelection(state: immer.Draft<EditorState>): void {
 
   state.cursor = castDraft(nav.cursor);
   clearSelection(state);
+  resetCursorMovementHints(state);
 }
 
 function deleteChild(parent: ChainLink, tip: ChainLinkNotFirst): void {

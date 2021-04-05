@@ -28,6 +28,10 @@ export const Node = {
     return children ? children.length > 0 : false;
   },
 
+  isBlock(node: Node): node is Models.Block {
+    return Node.isHeaderBlock(node) || Node.isParagraphBlock(node);
+  },
+
   isCodePoint(node: Node): boolean {
     return typeof node === "string";
   },
@@ -40,8 +44,8 @@ export const Node = {
     return (node as any).kind === Models.BlockKind.Header;
   },
 
-  isParagraphBlock(node: Node): node is Models.ParagraphBlock {
-    return (node as any).kind === Models.BlockKind.Paragraph;
+  isInline(node: Node): node is Models.Document {
+    return Node.isInlineText(node) || Node.isInlineUrlLink(node);
   },
 
   isInlineText(node: Node): node is Models.InlineText {
@@ -52,8 +56,8 @@ export const Node = {
     return (node as any).kind === Models.InlineKind.UrlLink;
   },
 
-  isInline(node: Node): node is Models.Inline {
-    return Node.isInlineText(node) || Node.isInlineUrlLink(node);
+  isParagraphBlock(node: Node): node is Models.ParagraphBlock {
+    return (node as any).kind === Models.BlockKind.Paragraph;
   },
 
   containsText(node: Node): node is NodeThatContainsText {

@@ -74,6 +74,24 @@ export const Chain = {
     return undefined;
   },
 
+  searchBackwards(chain: Chain, predicate: (node: Node) => boolean): Node | undefined {
+    for (let i = chain.length - 1; i >= 0; i--) {
+      if (predicate(chain[i].node)) {
+        return chain[i].node;
+      }
+    }
+    return undefined;
+  },
+
+  searchForwards(chain: Chain, predicate: (node: Node) => boolean): Node | undefined {
+    for (let i = 0; i < chain.length; i++) {
+      if (predicate(chain[i].node)) {
+        return chain[i].node;
+      }
+    }
+    return undefined;
+  },
+
   getGrandParentToTipIfPossible(chain: Chain): [ChainLink, ChainLinkNotFirst, ChainLinkNotFirst] | undefined {
     const len = chain.length;
     if (len < 3) {

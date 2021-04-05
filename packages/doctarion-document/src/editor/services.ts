@@ -1,6 +1,6 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { Chain, Node, Path, PathPart } from "../basic-traversal";
+import { Chain, Node, PathPart } from "../basic-traversal";
 
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and in some
@@ -59,6 +59,10 @@ export class EditorNodeIdService {
  *
  * From the point of view of the editor and all related code, the units for
  * these numbers dont matter (css pixels or raw pixels or whatever).
+ *
+ * To be clear the x axis is expected to start at 0 on the left and increase
+ * towards the right. Teh y axis is expected to start at 0 at the top of teh
+ * document and increase towards the bottom.
  */
 export interface LayoutRect {
   readonly bottom: number;
@@ -74,6 +78,16 @@ export interface NodeLayoutProvider {
    * This gets the layout rect for the entire node.
    */
   getLayout(): LayoutRect;
+  /**
+   * This gets the layout rect for each of the child nodes contained by this
+   * node. The returned array is in the order of child nodes, and has an array
+   * of rects per node because a node can potentially be rendered in different
+   * places (e.g. half on one line, half on the text line).
+   *
+   * This does not work for code points (i.e., Inline nodes). Use
+   * `getCodePointLayout` for that.
+   */
+  getChildNodeLayouts(startOffset?: number, endOffset?: number): [NodeId, LayoutRect[]][];
   /**
    * This gets the layout rects for the code points contained (as direct
    * children) by this node.

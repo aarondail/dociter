@@ -4,6 +4,7 @@ import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
 import { Range } from "../ranges";
 
+import { resetCursorMovementHints } from "./cursorOps";
 import { EditorState, SelectionAnchor } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 
@@ -40,6 +41,8 @@ export const select = (
     }
     state.cursor = castDraft(Cursor.new(fromPrime, CursorAffinity.Before));
   }
+
+  resetCursorMovementHints(state);
 };
 
 export function clearSelection(state: immer.Draft<EditorState>): void {

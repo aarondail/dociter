@@ -24,6 +24,13 @@ export interface EditorState {
    */
   readonly selection?: Range;
   readonly selectionAnchor?: SelectionAnchor;
+
+  /**
+   * When moving between lines visually, this value stores cursor's x value at
+   * the start of the line movement, so we can intelligently move between lines
+   * of different length and have the cursor try to go to the right spot.
+   */
+  readonly cursorVisualLineMovementXHint?: number;
 }
 
 export class Editor {
