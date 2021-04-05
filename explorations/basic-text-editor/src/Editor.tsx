@@ -137,6 +137,13 @@ export class Editor extends React.PureComponent<EditorProps> {
         this.editor.update(operationOrCommand);
     }
 
+    try {
+      const n = new DoctarionDocument.CursorNavigator(this.editor.document);
+      n.navigateTo(this.editor.cursor);
+      console.log("Current node: ", n.tip.node);
+      // eslint-disable-next-line no-empty
+    } catch {}
+
     this.forceUpdate();
   };
 

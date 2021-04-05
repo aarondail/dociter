@@ -1,22 +1,25 @@
 .Editor {
-  white-space: pre;
+  /* This is needed to get whitespace to be honored AND line breaks inside inline content */
+  white-space: break-spaces;
   padding: 10px;
-  font-size: 17.5px;
+  font-size: 18px;
   font-family: "Source Serif", sans-serif;
   font-kerning: normal;
   font-feature-settings: "kern" 1; /* TODO check that this works */
   line-height: 1.35em;
   outline: none;
   flex: 1;
-  -webkit-hyphens: auto;
+  /* -webkit-hyphens: auto; <-- this looks kinda cool but support is sorta spoty AND it messes up some of the live movement code */
   text-rendering: optimizeLegibility;
+  /* justify text is cool, but not supported on all browsers or langauges and left align seems ok on webpages anyways... */
+  text-align: left;
   /* letterSpacing: "0.05em",
   fontFamily: "'Fira Sans', sans-serif",
   fontFamily: "'Fira Sans Condensed', sans-serif", */
 }
 
 .Editor-textarea {
-  font-size: 17.5px;
+  font-size: 18px;
   font-family: "Source Serif", sans-serif;
   font-kerning: normal;
   font-feature-settings: "kern" 1; /* TODO check that this works */

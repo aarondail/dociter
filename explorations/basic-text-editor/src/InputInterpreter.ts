@@ -150,14 +150,17 @@ export class InputInterpreter {
       keys.sort();
 
       if (this.inputMode === InputMode.Command) {
-        if (keys[0] === "KeyJ") {
-          // this.dispatch(Ops.moveCursorRelative(1, undefined));
-        } else if (keys[0] === "KeyK") {
-          // this.dispatch(Ops.moveCursorRelative(-1, undefined));
-        } else if (keys[0] === "KeyH") {
-          // eslint-disable-next-line
+        if (keys[0] === "KeyJ" || keys[0] === "ArrowDown") {
+          console.time("moveVisualDown");
+          this.dispatch(Ops.moveVisualDown);
+          console.timeEnd("moveVisualDown");
+        } else if (keys[0] === "KeyK" || keys[0] === "ArrowUp") {
+          console.time("moveVisualUp");
+          this.dispatch(Ops.moveVisualUp);
+          console.timeEnd("moveVisualUp");
+        } else if (keys[0] === "KeyH" || keys[0] === "ArrowLeft") {
           this.dispatch(Ops.moveBack);
-        } else if (keys[0] === "KeyL") {
+        } else if (keys[0] === "KeyL" || keys[0] === "ArrowRight") {
           this.dispatch(Ops.moveForward);
         } else if (keys[0] === "KeyX") {
           this.dispatch(Ops.deleteBackwards);
@@ -181,6 +184,14 @@ export class InputInterpreter {
         } else if (keys[0] === "Escape") {
           this.dispatch(EditorCommand.SwitchToCommandMode);
           this.ignoreFurtherPressesUntilNoPresses = true;
+        } else if (keys[0] === "ArrowDown") {
+          this.dispatch(Ops.moveVisualDown);
+        } else if (keys[0] === "ArrowUp") {
+          this.dispatch(Ops.moveVisualUp);
+        } else if (keys[0] === "ArrowLeft") {
+          this.dispatch(Ops.moveBack);
+        } else if (keys[0] === "ArrowRight") {
+          this.dispatch(Ops.moveForward);
         }
       }
     } catch (e) {

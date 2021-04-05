@@ -6,6 +6,42 @@ import { EditorContext } from "./EditorContext";
 class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   public constructor(private element: HTMLElement) {}
 
+  /**
+   * This is very similar to the below method for code points but, but instead
+   * works for nodes that have other types of children (not code points).
+   *
+   * Also, unlike the code points method, it can return multiple records for a
+   * single node. For example an inline that is split across two different
+   * lines.
+   */
+  public getChildNodeLayouts(
+    startOffset?: number,
+    endOffset?: number
+  ): [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] {
+    const r = new Range();
+    r.selectNodeContents(this.element);
+
+    const start = startOffset ?? 0;
+    let end;
+    if (endOffset !== undefined) {
+      end = endOffset;
+    } else {
+      end = (this.element.textContent?.length || 1) - 1;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const c = this.element.firstChild!;
+    const results: [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] = [];
+    for (let i = start; i <= end; i++) {
+      r.setStart(c, i);
+      r.setEnd(c, i + 1);
+      const nodeId = (r.startContainer as HTMLElement).id;
+      if (nodeId) {
+        results.push([nodeId, [...r.getClientRects()]]);
+      }
+    }
+    return results;
+  }
+
   public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
     const r = new Range();
     r.selectNodeContents(this.element);
@@ -23,7 +59,20 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
     for (let i = start; i <= end; i++) {
       r.setStart(c, i);
       r.setEnd(c, i + 1);
-      results.push(r.getBoundingClientRect());
+      // console.log("Range contents: ", r.cloneContents(), r.getClientRects().length);
+      // Sometimes (with line wrapping, a code point will have multiple rects.
+      // Using getBoundingClientRect inflates to cover the entire pair of lines)
+      //
+      // We use the second rect since that is probably the one we want...
+      const rects = r.getClientRects();
+      console.log("DocumentNode::getCodePointLayout rect count = ", rects.length, rects);
+      if (rects.length === 1) {
+        results.push(rects[0]);
+      } else if (rects.length === 2) {
+        results.push(rects[1]);
+      } else {
+        throw new Error("Unexpected number of rects when getting a code point's layout.");
+      }
     }
     return results;
   }
