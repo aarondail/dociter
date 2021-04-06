@@ -62,6 +62,7 @@ export class Cursor extends React.PureComponent {
       return undefined;
     }
     const rect = layoutService.getLayout(chain);
+    console.log("Cursor.tsx", rect);
     if (!rect) {
       return undefined;
     }

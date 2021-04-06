@@ -1,6 +1,6 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { Node } from "../basic-traversal";
+import { Chain, Node, NodeNavigator } from "../basic-traversal";
 import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
 
 // -----------------------------------------------------------------------------

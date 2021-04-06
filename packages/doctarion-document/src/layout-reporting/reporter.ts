@@ -34,13 +34,14 @@ export class NodeLayoutReporter {
     return false;
   }
 
-  public getLayout(nodeNavigator: NodeNavigator): LayoutRect | undefined {
-    const tip = nodeNavigator.tip;
+  public getLayout(at: NodeNavigator | Chain): LayoutRect | undefined {
+    const chain: Chain = at instanceof NodeNavigator ? at.chain : at;
+    const tip = Chain.getTip(chain);
     let nodeWithProvider = tip.node;
     const isCodePoint = Node.isCodePoint(nodeWithProvider);
 
     if (isCodePoint) {
-      const parent = Chain.getParentIfPossible(nodeNavigator.chain);
+      const parent = Chain.getParentIfPossible(chain);
       if (!parent) {
         return undefined;
       }

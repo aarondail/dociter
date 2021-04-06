@@ -16,7 +16,7 @@ export interface NodeLayoutProvider {
    * This does not work for code points (i.e., Inline nodes). Use
    * `getCodePointLayout` for that.
    */
-  getChildNodeLayouts(startOffset?: number, endOffset?: number): [Node, LayoutRect[]][];
+  // getChildNodeLayouts(startOffset?: number, endOffset?: number): [NodeId, LayoutRect[]][];
   /**
    * This gets the layout rects for the code points contained (as direct
    * children) by this node.
