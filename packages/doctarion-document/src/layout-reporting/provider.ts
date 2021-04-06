@@ -1,6 +1,4 @@
-import { Node } from "../basic-traversal";
-
-import { LayoutRect } from "./types";
+import { LayoutRect } from "./rect";
 
 export interface NodeLayoutProvider {
   /**
@@ -8,18 +6,12 @@ export interface NodeLayoutProvider {
    */
   getLayout(): LayoutRect;
   /**
-   * This gets the layout rect for each of the child nodes contained by this
-   * node. The returned array is in the order of child nodes, and has an array
-   * of rects per node because a node can potentially be rendered in different
-   * places (e.g. half on one line, half on the text line).
-   *
-   * This does not work for code points (i.e., Inline nodes). Use
-   * `getCodePointLayout` for that.
-   */
-  // getChildNodeLayouts(startOffset?: number, endOffset?: number): [NodeId, LayoutRect[]][];
-  /**
    * This gets the layout rects for the code points contained (as direct
    * children) by this node.
+   *
+   * Note that it is possible, in the case of line wrapping, for a code point
+   * to have multiple layout rects. (Currently only the first rect returned is
+   * used by the NodeLayoutReporter).
    */
   getCodePointLayout(startOffset?: number, endOffset?: number): LayoutRect[] | undefined;
 }

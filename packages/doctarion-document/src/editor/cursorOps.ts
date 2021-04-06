@@ -111,24 +111,12 @@ function moveVisualUpOrDownHelper(
     if (!currentLayoutRect) {
       return;
     }
-    if (direction === "DOWN") {
-      if (
-        currentLayoutRect.left < priorLayoutRect.left ||
-        (currentLayoutRect.left === priorLayoutRect.left && currentLayoutRect.top > priorLayoutRect.top)
-      ) {
-        // OK this looks like the next line
-        foundNewLine = true;
-        break;
-      }
-    } else {
-      if (
-        currentLayoutRect.right > priorLayoutRect.right ||
-        (currentLayoutRect.right === priorLayoutRect.right && currentLayoutRect.top < priorLayoutRect.top)
-      ) {
-        // OK this looks like the previous line
-        foundNewLine = true;
-        break;
-      }
+    if (
+      (direction === "DOWN" && services.layout.doesFollowingRectWrapToNewLine(priorLayoutRect, currentLayoutRect)) ||
+      (direction === "UP" && services.layout.doesPreceedingRectWrapToNewLine(priorLayoutRect, currentLayoutRect))
+    ) {
+      foundNewLine = true;
+      break;
     }
     priorLayoutRect = currentLayoutRect;
   }
@@ -146,18 +134,13 @@ function moveVisualUpOrDownHelper(
     if (!nextLayoutRect) {
       return;
     }
-    if (direction === "DOWN") {
-      if (nextLayoutRect.top > currentLayoutRect.top && nextLayoutRect.left <= currentLayoutRect.left) {
-        // Moving to next line before we found a good match, so use last position
-        retreat();
-        break;
-      }
-    } else {
-      if (nextLayoutRect.top < currentLayoutRect.top && nextLayoutRect.right >= currentLayoutRect.right) {
-        // Moving to next line before we found a good match, so use last position
-        retreat();
-        break;
-      }
+    if (
+      (direction === "DOWN" && services.layout.doesFollowingRectWrapToNewLine(currentLayoutRect, nextLayoutRect)) ||
+      (direction === "UP" && services.layout.doesPreceedingRectWrapToNewLine(currentLayoutRect, nextLayoutRect))
+    ) {
+      // Moving to next line before we found a good match, so use last position
+      retreat();
+      break;
     }
 
     const xPosition = selectRectSide(nav.cursor, nextLayoutRect);

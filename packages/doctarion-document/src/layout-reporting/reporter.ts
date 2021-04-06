@@ -1,10 +1,14 @@
 import { Chain, Node, NodeNavigator, PathPart } from "../basic-traversal";
 
 import { NodeLayoutProvider } from "./provider";
-import { LayoutRect } from "./types";
+import { LayoutRect } from "./rect";
 
 export class NodeLayoutReporter {
   public constructor(private nodeToProviderLookup: (node: Node) => NodeLayoutProvider | undefined) {}
+
+  public doesFollowingRectWrapToNewLine(rect: LayoutRect, followingRect: LayoutRect): boolean {
+    return followingRect.left < rect.left || (followingRect.left === rect.left && followingRect.top > rect.top);
+  }
 
   public doesLineWrapAfter(nodeNavigator: NodeNavigator): boolean {
     const nav = nodeNavigator.clone();
@@ -12,7 +16,7 @@ export class NodeLayoutReporter {
     if (nav.navigateToNextSibling()) {
       const nextLayoutRect = this.getLayout(nav);
       if (currentLayoutRect && nextLayoutRect) {
-        if (currentLayoutRect?.top < nextLayoutRect?.top && currentLayoutRect.left >= nextLayoutRect?.left) {
+        if (this.doesFollowingRectWrapToNewLine(currentLayoutRect, nextLayoutRect)) {
           return true;
         }
       }
@@ -26,12 +30,16 @@ export class NodeLayoutReporter {
     if (nav.navigateToPrecedingSibling()) {
       const priorLayoutRect = this.getLayout(nav);
       if (currentLayoutRect && priorLayoutRect) {
-        if (currentLayoutRect?.top > priorLayoutRect?.top && currentLayoutRect.left <= priorLayoutRect?.left) {
+        if (this.doesPreceedingRectWrapToNewLine(currentLayoutRect, priorLayoutRect)) {
           return true;
         }
       }
     }
     return false;
+  }
+
+  public doesPreceedingRectWrapToNewLine(rect: LayoutRect, preceedingRect: LayoutRect): boolean {
+    return preceedingRect.right > rect.right || (preceedingRect.right === rect.right && preceedingRect.top < rect.top);
   }
 
   public getLayout(at: NodeNavigator | Chain): LayoutRect | undefined {
@@ -59,7 +67,7 @@ export class NodeLayoutReporter {
       }
       const cpIndex = PathPart.getIndex(tip.pathPart);
       const cp = provider.getCodePointLayout(cpIndex, cpIndex);
-      if (cp?.length === 1) {
+      if (cp) {
         return cp[0];
       }
       return undefined;
