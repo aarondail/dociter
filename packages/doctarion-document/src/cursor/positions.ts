@@ -1,5 +1,6 @@
 import { Chain, Node, NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
+import { NodeLayoutReporter } from "../layout-reporting";
 
 // -----------------------------------------------------------------------------
 // There are three or so places where a cursor may be placed GENERALLY:
@@ -46,21 +47,27 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     );
   },
 
-  getValidCursorAffinitiesAt(navigator: NodeNavigator): GetValidCursorAffinitiesAtResult {
+  getValidCursorAffinitiesAt(
+    navigator: NodeNavigator,
+    layoutReporter?: NodeLayoutReporter
+  ): GetValidCursorAffinitiesAtResult {
     const el = navigator.tip.node;
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
     const parent = Chain.getParentIfPossible(navigator.chain)?.node;
-    // const parent = navigator.chain[navigator.chain.length - 2]?.node;
-    // const parent = navigator.parent?.node;
     if (Node.isCodePoint(el)) {
-      // There are different rules for text inside an InlineText and for text in
-      // other inline nodes.
+      // For text, we generally prefer after affinity. One case where we don't
+      // is when the character is at the end or start of a line that was
+      // visually wrapped.
+      //
+      // There are some additional cases but they are more complicated and there
+      // are different rules for text inside an InlineText and for text in other
+      // inline nodes.
       //
       // For InlineText we only suggest before affinity if the code point is the
       // first in the InlineText node and the preceeding parent node (e.g. some
       // other inline node) is NOT an InlineText OR is an InlineText that has no
-      // children.
+      // children
       //
       // For text in other inline nodes, it is simpler and it only matters if it
       // is the first code point in that node.
@@ -78,10 +85,13 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
           return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
         }
       }
+      // This handles the visual line wrapping rule
+      if (layoutReporter && layoutReporter.doesLineWrapAfter(navigator)) {
+        return CannedGetValidCursorAffinitiesAtResult.none;
+      } else if (layoutReporter && layoutReporter.doesLineWrapBefore(navigator)) {
+        return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
+      }
       return CannedGetValidCursorAffinitiesAtResult.justAfter;
-      // Only return before affinity is this is the first code point in the
-      // inline text AND if the preceeding parent-level element is not an
-      // inline text element.
     } else {
       const hasNeutral = this.isEmptyInsertionPoint(el);
 

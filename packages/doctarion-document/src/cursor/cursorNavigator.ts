@@ -1,4 +1,5 @@
 import { Chain, ChainLink, Node, NodeNavigator, Path, PathString } from "../basic-traversal";
+import { NodeLayoutReporter } from "../layout-reporting";
 import * as Models from "../models";
 
 import { Cursor, CursorAffinity } from "./cursor";
@@ -8,13 +9,18 @@ import { PositionClassification } from "./positions";
  * This class is similar to NodeNavigator but intead of navigating
  * between the nodes of a document it navigates between the places where a
  * cursor could be placed.
+ *
+ * To make the behavior of things like navigation more deterministic we prefer
+ * some cursor positions to others even when they are equivalent. Specifically
+ * we bias towards positions after nodes and we prefer to those that relate to
+ * a code point vs not realted to one.
  */
 export class CursorNavigator {
   private currentAffinity: CursorAffinity;
-  // The elementNavigator stores the current node the cursor is on (or around)
+  // This nodeNavigator stores the current node the cursor is on
   private nodeNavigator: NodeNavigator;
 
-  public constructor(public readonly document: Models.Document) {
+  public constructor(public readonly document: Models.Document, private readonly layoutReporter?: NodeLayoutReporter) {
     // The document is always at the root of the chain
     this.currentAffinity = CursorAffinity.Neutral;
     this.nodeNavigator = new NodeNavigator(document);
@@ -53,7 +59,7 @@ export class CursorNavigator {
   }
 
   public clone(): CursorNavigator {
-    const navigator = new CursorNavigator(this.document);
+    const navigator = new CursorNavigator(this.document, this.layoutReporter);
     navigator.currentAffinity = this.currentAffinity;
     navigator.nodeNavigator = this.nodeNavigator.clone();
     return navigator;
@@ -67,7 +73,7 @@ export class CursorNavigator {
   public navigateTo(path: PathString | Path, affinity: CursorAffinity): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public navigateTo(cursorOrPath: any, maybeAffinity?: CursorAffinity): boolean {
-    const temp = new CursorNavigator(this.document);
+    const temp = this.clone();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!temp.navigateToUnchecked(cursorOrPath, maybeAffinity as any)) {
       return false;
@@ -79,7 +85,7 @@ export class CursorNavigator {
     if (this.navigateToNextCursorPosition()) {
       this.navigateToPrecedingCursorPosition();
     } else {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator);
+      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (!positions.before && !positions.neutral && !positions.after) {
         this.navigateToPrecedingCursorPosition();
       }
@@ -119,7 +125,7 @@ export class CursorNavigator {
   public navigateToNextCursorPosition(): boolean {
     const affinity = this.currentAffinity;
     let skipDescendants = false;
-    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator);
+    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
 
     if (affinity === CursorAffinity.Before) {
       if (positions.neutral) {
@@ -138,7 +144,7 @@ export class CursorNavigator {
       if (this.nodeNavigator.nextSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator);
+        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator, this.layoutReporter);
         if (parentPositions.after) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -149,7 +155,7 @@ export class CursorNavigator {
 
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsInDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator);
+      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.before) {
         this.currentAffinity = CursorAffinity.Before;
         return true;
@@ -198,7 +204,7 @@ export class CursorNavigator {
   public navigateToPrecedingCursorPosition(): boolean {
     const affinity = this.currentAffinity;
     let skipDescendants = false;
-    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator);
+    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
 
     if (affinity === CursorAffinity.After) {
       if (positions.neutral) {
@@ -217,7 +223,7 @@ export class CursorNavigator {
       if (this.nodeNavigator.precedingSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator);
+        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator, this.layoutReporter);
         if (parentPositions.before) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -228,7 +234,7 @@ export class CursorNavigator {
 
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateBackwardsInDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator);
+      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.after) {
         this.currentAffinity = CursorAffinity.After;
         return true;

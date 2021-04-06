@@ -24,7 +24,7 @@ export const insertText = (text: string | Models.Text) => (
   }
   resetCursorMovementHints(state);
 
-  let nav = getCursorNavigatorAndValidate(state);
+  let nav = getCursorNavigatorAndValidate(state, services);
   const node = castDraft(nav.tip.node);
 
   switch (nav.classifyCurrentPosition()) {
@@ -110,7 +110,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   }
   resetCursorMovementHints(state);
 
-  const startingNav = getCursorNavigatorAndValidate(state);
+  const startingNav = getCursorNavigatorAndValidate(state, services);
 
   let destinationInsertIndex: number | undefined;
   let destinationBlock: NodeThatContainsInlineContent | undefined;

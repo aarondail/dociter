@@ -20,12 +20,21 @@ import { Path, PathPart, PathString } from "./path";
  * https://en.wikipedia.org/wiki/Depth-first_search
  */
 export class NodeNavigator {
-  // Note this is mutable (can be changed) but the chain itself is immutable
+  // Note this is a mutable property (can be changed) but the chain itself is
+  // immutable
   private currentChain: Chain;
 
-  public constructor(public readonly document: Models.Document) {
-    // The document is always at the root of the chain
-    this.currentChain = [ChainLink.document(document)];
+  /**
+   * Construct a new NodeNavigator. The navigator's initial location will be
+   * the document itself.
+   */
+  public constructor(document: Models.Document);
+  constructor(private readonly document: Models.Document, initialChainUnchecked?: Chain) {
+    if (initialChainUnchecked) {
+      this.currentChain = initialChainUnchecked;
+    } else {
+      this.currentChain = [ChainLink.document(document)];
+    }
   }
 
   public get chain(): Chain {
@@ -81,15 +90,13 @@ export class NodeNavigator {
   }
 
   public clone(): NodeNavigator {
-    const navigator = new NodeNavigator(this.document);
-    navigator.currentChain = this.currentChain;
-    return navigator;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+    return new (NodeNavigator as any)(this.document, this.currentChain);
   }
 
   public cloneWithoutTip(): NodeNavigator {
-    const navigator = new NodeNavigator(this.document);
-    navigator.currentChain = Chain.dropTipIfPossible(this.currentChain) || this.currentChain;
-    return navigator;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+    return new (NodeNavigator as any)(this.document, Chain.dropTipIfPossible(this.currentChain) || this.currentChain);
   }
 
   public hasNextSibling(): boolean {

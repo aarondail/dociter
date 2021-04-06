@@ -1,18 +1,18 @@
 import * as immer from "immer";
 
-import { Chain, Node, Path, PathString } from "../basic-traversal";
+import { Path, PathString } from "../basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorServices, EditorState } from "../editor";
+import { LayoutRect } from "../layout-reporting";
 
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
-import { LayoutRect } from "./services";
 import { getCursorNavigatorAndValidate } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export function moveBack(state: immer.Draft<EditorState>): void {
-  const nav = getCursorNavigatorAndValidate(state);
+export function moveBack(state: immer.Draft<EditorState>, services: EditorServices): void {
+  const nav = getCursorNavigatorAndValidate(state, services);
   if (nav.navigateToPrecedingCursorPosition()) {
     state.cursor = castDraft(nav.cursor);
     clearSelection(state);
@@ -20,8 +20,8 @@ export function moveBack(state: immer.Draft<EditorState>): void {
   }
 }
 
-export function moveForward(state: immer.Draft<EditorState>): void {
-  const nav = getCursorNavigatorAndValidate(state);
+export function moveForward(state: immer.Draft<EditorState>, services: EditorServices): void {
+  const nav = getCursorNavigatorAndValidate(state, services);
   if (nav.navigateToNextCursorPosition()) {
     state.cursor = castDraft(nav.cursor);
     clearSelection(state);
@@ -83,13 +83,8 @@ function moveVisualUpOrDownHelper(
   services: EditorServices,
   direction: "UP" | "DOWN"
 ): void {
-  // TODO things
-  // 1. Jump by 10+ chars to improve timing when trying to find line break AND then 10+ when trying to find best
-  // 2. Test with long line (that wraps)
-  // 3. Test with long line (that doesn't wrap)
-  // 4. Genreal testing
-  const nav = getCursorNavigatorAndValidate(state);
-  const startingLayoutRect = services.layout.getLayout(nav.chain);
+  const nav = getCursorNavigatorAndValidate(state, services);
+  const startingLayoutRect = services.layout.getLayout(nav.toNodeNavigator());
   if (!startingLayoutRect) {
     return;
   }
@@ -111,7 +106,7 @@ function moveVisualUpOrDownHelper(
   let currentLayoutRect: LayoutRect | undefined;
   let foundNewLine = false;
   while (advance()) {
-    currentLayoutRect = services.layout.getLayout(nav.chain);
+    currentLayoutRect = services.layout.getLayout(nav.toNodeNavigator());
     // console.log("nav down (or up) to cursor pos", currentLayoutRect);
     if (!currentLayoutRect) {
       return;
@@ -147,7 +142,7 @@ function moveVisualUpOrDownHelper(
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let bestXPositionSoFar = direction === "DOWN" ? currentLayoutRect.left : currentLayoutRect.right;
   do {
-    const nextLayoutRect = services.layout.getLayout(nav.chain);
+    const nextLayoutRect = services.layout.getLayout(nav.toNodeNavigator());
     if (!nextLayoutRect) {
       return;
     }

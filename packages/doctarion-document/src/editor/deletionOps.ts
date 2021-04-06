@@ -8,12 +8,13 @@ import { resetCursorMovementHints } from "./cursorOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
+import { EditorServices } from "./services";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export function deleteBackwards(state: immer.Draft<EditorState>): void {
-  let nav = getCursorNavigatorAndValidate(state);
+export function deleteBackwards(state: immer.Draft<EditorState>, services: EditorServices): void {
+  let nav = getCursorNavigatorAndValidate(state, services);
 
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.CodePoint:

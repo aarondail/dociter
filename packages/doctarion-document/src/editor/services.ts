@@ -1,6 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { Chain, Node, PathPart } from "../basic-traversal";
+import { Node } from "../basic-traversal";
+import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
 
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and in some
@@ -53,103 +54,18 @@ export class EditorNodeIdService {
 // Second, the layout service and related types.
 // -----------------------------------------------------------------------------
 
-/**
- * This intentionally looks exactly like the ClientRect you get from calling
- * getBoundingClientRect() and friends in browser javascript.
- *
- * From the point of view of the editor and all related code, the units for
- * these numbers dont matter (css pixels or raw pixels or whatever).
- *
- * To be clear the x axis is expected to start at 0 on the left and increase
- * towards the right. Teh y axis is expected to start at 0 at the top of teh
- * document and increase towards the bottom.
- */
-export interface LayoutRect {
-  readonly bottom: number;
-  readonly height: number;
-  readonly left: number;
-  readonly right: number;
-  readonly top: number;
-  readonly width: number;
-}
-
-export interface NodeLayoutProvider {
-  /**
-   * This gets the layout rect for the entire node.
-   */
-  getLayout(): LayoutRect;
-  /**
-   * This gets the layout rect for each of the child nodes contained by this
-   * node. The returned array is in the order of child nodes, and has an array
-   * of rects per node because a node can potentially be rendered in different
-   * places (e.g. half on one line, half on the text line).
-   *
-   * This does not work for code points (i.e., Inline nodes). Use
-   * `getCodePointLayout` for that.
-   */
-  getChildNodeLayouts(startOffset?: number, endOffset?: number): [NodeId, LayoutRect[]][];
-  /**
-   * This gets the layout rects for the code points contained (as direct
-   * children) by this node.
-   */
-  getCodePointLayout(startOffset?: number, endOffset?: number): LayoutRect[] | undefined;
-}
-
-export class EditorNodeLayoutService {
+export class EditorNodeLayoutService extends NodeLayoutReporter {
   private layoutProviders: Map<NodeId, NodeLayoutProvider>;
 
   public constructor(private idService: EditorNodeIdService) {
+    super((node: Node) => this.getProviderForNode(node));
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.layoutProviders = new Map();
   }
 
-  /**
-   * This can't be a Node by itself, because for code points we need the parent
-   * Node.
-   *
-   * It could be a Path, but then we'd need the Editor to get the current
-   * Document model so we could resolve the Path to the Nodes.
-   */
-  public getLayout(chain: Chain): LayoutRect | undefined {
-    const tip = Chain.getTip(chain);
-    let nodeWithProvider = tip.node;
-    const isCodePoint = Node.isCodePoint(nodeWithProvider);
-
-    if (isCodePoint) {
-      const parent = Chain.getParentIfPossible(chain);
-      if (!parent) {
-        return undefined;
-      }
-      nodeWithProvider = parent.node;
-    }
-
-    const id = this.idService.getId(nodeWithProvider);
-    if (!id) {
-      return undefined;
-    }
-
-    const provider = this.getProvider(id);
-    if (!provider) {
-      return undefined;
-    }
-
-    if (isCodePoint) {
-      if (!tip.pathPart) {
-        return undefined;
-      }
-      const cpIndex = PathPart.getIndex(tip.pathPart);
-      const cp = provider.getCodePointLayout(cpIndex, cpIndex);
-      if (cp?.length === 1) {
-        return cp[0];
-      }
-      return undefined;
-    } else {
-      return provider.getLayout();
-    }
-  }
-
   public removeProvider(nodeId: NodeId, provider: NodeLayoutProvider): void {
-    if (this.getProvider(nodeId) === provider) {
+    if (this.getProviderForId(nodeId) === provider) {
       this.layoutProviders.delete(nodeId);
     }
   }
@@ -162,9 +78,17 @@ export class EditorNodeLayoutService {
     }
   }
 
-  private getProvider(nodeId: NodeId): NodeLayoutProvider | undefined {
+  private getProviderForId(nodeId: NodeId): NodeLayoutProvider | undefined {
     return this.layoutProviders.get(nodeId);
   }
+
+  private getProviderForNode = (node: Node) => {
+    const id = this.idService.getId(node);
+    if (id) {
+      return this.getProviderForId(id);
+    }
+    return undefined;
+  };
 }
 
 export interface EditorServices {
