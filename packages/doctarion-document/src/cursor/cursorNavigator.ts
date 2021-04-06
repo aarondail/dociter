@@ -1,6 +1,7 @@
-import { Chain, ChainLink, Node, NodeNavigator, Path, PathString } from "../basic-traversal";
+import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-traversal";
 import { NodeLayoutReporter } from "../layout-reporting";
 import * as Models from "../models";
+import { Node } from "../nodes";
 
 import { Cursor, CursorAffinity } from "./cursor";
 import { PositionClassification } from "./positions";

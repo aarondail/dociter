@@ -1,8 +1,7 @@
 import * as IterTools from "iter-tools";
 
 import * as Models from "../models";
-
-import { Node } from "./node";
+import { Node } from "../nodes";
 
 // -----------------------------------------------------------------------------
 // This file defines Path types and functions which are used to locate Nodes in

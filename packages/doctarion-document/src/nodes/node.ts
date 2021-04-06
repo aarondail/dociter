@@ -2,16 +2,32 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Models from "../models";
 
+import { NodeId, nodeIdSymbol } from "./nodeId";
+
 // -----------------------------------------------------------------------------
 // You can think of a document as a tree like structure of Nodes. The Nodes
 // are just the different objects that make up the Document.
 //
 // This is very handy for traversal.
+//
+// Nodes, with the exception of code points, can also be assigned ids to make it
+// easier to track them.
 // -----------------------------------------------------------------------------
 
 export type Node = Models.Block | Models.Inline | Models.CodePoint | Models.Document;
 
 export const Node = {
+  /**
+   * Assigns an id to this node. Note that code points cannot be assigned ids.
+   */
+  assignId(node: Node, id: NodeId): void {
+    if (typeof node === "string") {
+      throw new Error("Cannot assign a node id to code points.");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (node as any)[nodeIdSymbol] = id;
+  },
+
   getChildren(node: Node): readonly Node[] | undefined {
     return Node.switch<readonly Node[] | undefined>(node, {
       onDocument: (d) => d.blocks,
@@ -21,6 +37,15 @@ export const Node = {
       onInlineUrlLink: (e: Models.InlineUrlLink) => e.text,
       onCodePoint: () => undefined,
     });
+  },
+
+  /**
+   * This gets the id _previously assigned_ to this node (via `assignId`). Also
+   * note that code points cannot have node ids.
+   */
+  getId(node: Node): NodeId | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    return (node as any)[nodeIdSymbol];
   },
 
   hasChildren(node: Node): boolean {

@@ -1,8 +1,8 @@
 import * as IterTools from "iter-tools";
 
 import * as Models from "../models";
+import { Node } from "../nodes";
 
-import { Node } from "./node";
 import { Path, PathPart } from "./path";
 
 // -----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
-import { Chain, Node, NodeNavigator } from "../basic-traversal";
+import { Chain, NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
 import { NodeLayoutReporter } from "../layout-reporting";
+import { Node } from "../nodes";
 
 // -----------------------------------------------------------------------------
 // There are three or so places where a cursor may be placed GENERALLY:

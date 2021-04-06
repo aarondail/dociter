@@ -1,7 +1,8 @@
 import * as immer from "immer";
 
-import { Chain, ChainLink, ChainLinkNotFirst, Node, PathPart } from "../basic-traversal";
+import { Chain, ChainLink, ChainLinkNotFirst, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
+import { Node } from "../nodes";
 import { Range } from "../ranges";
 
 import { resetCursorMovementHints } from "./cursorOps";

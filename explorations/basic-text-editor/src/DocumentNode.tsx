@@ -43,6 +43,8 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   }
 
   public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
+    console.log(`DocumentNode::getCodePointLayout(${startOffset || ""}, ${endOffset || ""}})`);
+
     const r = new Range();
     r.selectNodeContents(this.element);
 
@@ -65,7 +67,7 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
       //
       // We use the second rect since that is probably the one we want...
       const rects = r.getClientRects();
-      console.log("DocumentNode::getCodePointLayout rect count = ", rects.length, rects);
+      // console.log("DocumentNode::getCodePointLayout rect count = ", rects.length, rects);
       if (rects.length === 1) {
         results.push(rects[0]);
       } else if (rects.length === 2) {
@@ -78,6 +80,7 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   }
 
   public getLayout() {
+    console.log("DocumentNode::getLayout()");
     return this.element.getBoundingClientRect();
   }
 }
@@ -88,17 +91,17 @@ export interface DocumentNodeProps {
 
 export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentNodeProps): JSX.Element | null {
   const editorContext = React.useContext(EditorContext);
-  const id = editorContext.ids.getId(node);
+  const id = DoctarionDocument.Node.getId(node);
 
   let children: React.ReactNode;
   if (DoctarionDocument.Node.containsText(node)) {
     children = node.text.join("");
   } else if (DoctarionDocument.Node.containsInlineContent(node)) {
-    children = node.content.map((n) => <DocumentNode key={editorContext.ids.getId(n)} node={n} />);
+    children = node.content.map((n) => <DocumentNode key={DoctarionDocument.Node.getId(n)} node={n} />);
   } else {
     // This handles e.g. the Document itself
     children = DoctarionDocument.Node.getChildren(node)?.map((n) => (
-      <DocumentNode key={editorContext.ids.getId(n)} node={n} />
+      <DocumentNode key={DoctarionDocument.Node.getId(n)} node={n} />
     ));
   }
 

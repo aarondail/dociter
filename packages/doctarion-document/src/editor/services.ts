@@ -1,7 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { Chain, Node, NodeNavigator } from "../basic-traversal";
 import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
+import { Node, NodeId } from "../nodes";
 
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and in some
@@ -22,14 +22,10 @@ import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
 // First up, the Node Id service and realted types.
 // -----------------------------------------------------------------------------
 
-export type NodeId = string;
-
 export class EditorNodeIdService {
   private generator: FriendlyIdGenerator;
-  private symbol: symbol;
 
   public constructor() {
-    this.symbol = Symbol("editorNodeId");
     this.generator = new FriendlyIdGenerator();
   }
 
@@ -39,14 +35,8 @@ export class EditorNodeIdService {
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.generator.generateId((node as any).kind || "DOCUMENT");
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (node as any)[this.symbol] = nodeId;
+    Node.assignId(node, nodeId);
     return nodeId;
-  }
-
-  public getId(node: Node): NodeId | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    return (node as any)[this.symbol];
   }
 }
 
@@ -83,7 +73,7 @@ export class EditorNodeLayoutService extends NodeLayoutReporter {
   }
 
   private getProviderForNode = (node: Node) => {
-    const id = this.idService.getId(node);
+    const id = Node.getId(node);
     if (id) {
       return this.getProviderForId(id);
     }

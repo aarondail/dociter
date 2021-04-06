@@ -26,6 +26,17 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
+// 1. move by 10
+// 2. fix relayout on resize window?
+// 3. remove debug stuff (consoel.log)
+//
+// 5. Add headers and url links and see how they work?
+// 6. Maybe support some other keys and operations?
+// 7. Support scrolling w.r.t layout rects (and zoom)?
+// 8. CLick to place cursor
+// 9. Some kinda debug mode for layout rects (or nodes in general)
+// 10. Animated cursor
+
 /**
  * Why aren't we using React state?
  *

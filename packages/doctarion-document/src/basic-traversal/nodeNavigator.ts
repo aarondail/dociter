@@ -1,9 +1,9 @@
 import lodash from "lodash";
 
 import * as Models from "../models";
+import { Node, NodeHandlersForSwitch } from "../nodes";
 
 import { Chain, ChainLink, ChainLinkNotFirst } from "./chain";
-import { Node, NodeHandlersForSwitch } from "./node";
 import { Path, PathPart, PathString } from "./path";
 
 /**

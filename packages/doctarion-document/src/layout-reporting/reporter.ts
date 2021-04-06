@@ -1,4 +1,5 @@
-import { Chain, Node, NodeNavigator, PathPart } from "../basic-traversal";
+import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
+import { Node } from "../nodes";
 
 import { NodeLayoutProvider } from "./provider";
 import { LayoutRect } from "./rect";

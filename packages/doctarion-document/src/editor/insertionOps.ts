@@ -1,8 +1,9 @@
 import * as immer from "immer";
 
-import { Chain, Node, NodeNavigator, NodeThatContainsInlineContent, PathPart } from "../basic-traversal";
+import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import * as Models from "../models";
+import { Node, NodeThatContainsInlineContent } from "../nodes";
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";

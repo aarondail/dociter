@@ -107,10 +107,10 @@ function moveVisualUpOrDownHelper(
   let foundNewLine = false;
   while (advance()) {
     currentLayoutRect = services.layout.getLayout(nav.toNodeNavigator());
-    // console.log("nav down (or up) to cursor pos", currentLayoutRect);
     if (!currentLayoutRect) {
       return;
     }
+
     if (
       (direction === "DOWN" && services.layout.doesFollowingRectWrapToNewLine(priorLayoutRect, currentLayoutRect)) ||
       (direction === "UP" && services.layout.doesPreceedingRectWrapToNewLine(priorLayoutRect, currentLayoutRect))

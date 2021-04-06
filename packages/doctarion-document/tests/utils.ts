@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { Chain, Node, NodeNavigator, Path, PathString } from "../src/basic-traversal";
+import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { CursorAffinity, CursorNavigator } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
 import * as Models from "../src/models";
+import { Node } from "../src/nodes";
 
 export const doc = (...blocks: readonly Models.Block[]): Models.Document => Models.Document.new("title", ...blocks);
 export const header = Models.Block.header;

@@ -1,5 +1,6 @@
-import { Chain, Node, NodeNavigator, Path } from "../basic-traversal";
+import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import * as Models from "../models";
+import { Node } from "../nodes";
 
 export interface Range {
   readonly from: Path;
