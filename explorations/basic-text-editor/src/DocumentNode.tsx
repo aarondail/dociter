@@ -43,7 +43,7 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   }
 
   public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
-    console.log(`DocumentNode::getCodePointLayout(${startOffset || ""}, ${endOffset || ""}})`);
+    // console.log(`DocumentNode::getCodePointLayout(${startOffset || ""}, ${endOffset || ""}})`);
 
     const r = new Range();
     r.selectNodeContents(this.element);
