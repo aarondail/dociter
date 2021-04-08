@@ -2,6 +2,7 @@ import * as DoctarionDocument from "doctarion-document";
 import React from "react";
 
 import "./Cursor.css";
+import { isElementInViewport } from "./utils";
 
 export interface CursorPosition {
   left: number;
@@ -21,6 +22,15 @@ export class Cursor extends React.PureComponent {
   // animation to reset when we re-render
   private animationFlipper = "1";
   private position?: CursorPosition;
+  private ref = React.createRef<HTMLDivElement>();
+
+  public componentDidUpdate(): void {
+    if (this.ref.current) {
+      if (!isElementInViewport(this.ref.current)) {
+        this.ref.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }
 
   /**
    * This is necessary because the layoutService is a _mutable_ object. When it
@@ -33,6 +43,7 @@ export class Cursor extends React.PureComponent {
     layoutService: DoctarionDocument.EditorNodeLayoutService
   ): CursorPosition | undefined {
     this.position = Cursor.calculatePosition(cursor, document, layoutService);
+    // console.log("Cursor pos", this.position);
 
     if (this.animationFlipper === "1") {
       this.animationFlipper = "2";
@@ -49,7 +60,7 @@ export class Cursor extends React.PureComponent {
       return null;
     }
 
-    return <div className={`Cursor-cursor-blink${this.animationFlipper}`} style={this.position}></div>;
+    return <div ref={this.ref} className={`Cursor-cursor-blink${this.animationFlipper}`} style={this.position}></div>;
   };
 
   private static calculatePosition(

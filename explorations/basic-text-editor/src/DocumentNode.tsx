@@ -1,4 +1,5 @@
 import * as DoctarionDocument from "doctarion-document";
+import { LayoutRect } from "doctarion-document";
 import React from "react";
 
 import { EditorContext } from "./EditorContext";
@@ -36,7 +37,7 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
       r.setEnd(c, i + 1);
       const nodeId = (r.startContainer as HTMLElement).id;
       if (nodeId) {
-        results.push([nodeId, [...r.getClientRects()]]);
+        results.push([nodeId, [...r.getClientRects()].map(this.adjustRect)]);
       }
     }
     return results;
@@ -69,9 +70,9 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
       const rects = r.getClientRects();
       // console.log("DocumentNode::getCodePointLayout rect count = ", rects.length, rects);
       if (rects.length === 1) {
-        results.push(rects[0]);
+        results.push(this.adjustRect(rects[0]));
       } else if (rects.length === 2) {
-        results.push(rects[1]);
+        results.push(this.adjustRect(rects[1]));
       } else {
         throw new Error("Unexpected number of rects when getting a code point's layout.");
       }
@@ -80,8 +81,21 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   }
 
   public getLayout() {
-    console.log("DocumentNode::getLayout()");
-    return this.element.getBoundingClientRect();
+    // console.log("DocumentNode::getLayout()");
+    return this.adjustRect(this.element.getBoundingClientRect());
+  }
+
+  private adjustRect(rect: ClientRect): LayoutRect {
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    return {
+      top: rect.top + scrollTop,
+      bottom: rect.bottom + scrollTop,
+      left: rect.left + scrollLeft,
+      right: rect.right + scrollLeft,
+      height: rect.height,
+      width: rect.width,
+    };
   }
 }
 

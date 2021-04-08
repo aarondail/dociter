@@ -22,7 +22,7 @@ export class InputInterpreter {
   }
 
   public compositionEnd(e: React.CompositionEvent<HTMLTextAreaElement>): void {
-    console.log("onCompositionEnd", e.nativeEvent);
+    // console.log("onCompositionEnd", e.nativeEvent);
     // e.preventDefault();
     // e.stopPropagation();
     this.isComposting = false;
@@ -39,7 +39,7 @@ export class InputInterpreter {
   }
 
   public compositionStart(e: React.CompositionEvent<HTMLTextAreaElement>): void {
-    console.log("onCompositionStart", e.nativeEvent);
+    // console.log("onCompositionStart", e.nativeEvent);
     // e.preventDefault();
     // e.stopPropagation();
     this.isComposting = true;
@@ -47,7 +47,7 @@ export class InputInterpreter {
   }
 
   public compositionUpdate(e: React.CompositionEvent<HTMLTextAreaElement>): void {
-    console.log("onCompositionUpdate", e.nativeEvent);
+    // console.log("onCompositionUpdate", e.nativeEvent);
     // e.preventDefault();
     // e.stopPropagation();
   }
@@ -57,7 +57,7 @@ export class InputInterpreter {
     const text = (e.nativeEvent as any).data; // null in some cases (Enter)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     // const inputType = (e.nativeEvent as any).inputType; // "insertText", "insertLineBreak", ...?
-    console.log("onInput", e.nativeEvent, text);
+    // console.log("onInput", e.nativeEvent, text);
 
     e.preventDefault();
     e.stopPropagation();
@@ -101,12 +101,17 @@ export class InputInterpreter {
     this.keyPressTimes.set(e.nativeEvent.code, new Date().getTime());
 
     // Looks good to use: e.code (KeyA, MetaLeft) . ... that looks like it to me?
-    console.log("keyDown: ", e.nativeEvent.code, e.nativeEvent.isComposing, this.keyPressTimes.keys());
+    // console.log("keyDown: ", e.nativeEvent.code, e.nativeEvent.isComposing, this.keyPressTimes.keys());
     this.processKeys();
 
-    // Can't do this here since it will block the input and composition events... or at least it did at one point...
-    // e.preventDefault();
-    // e.stopPropagation();
+    // Can't block everything  here since it will block the input and composition events... or at least it did at one point...
+    if (e.code === "Space" && this.inputMode === InputMode.Command) {
+      e.preventDefault();
+      e.stopPropagation();
+    } else if (e.code === "ArrowUp" || e.code === "ArrowDown" || e.code === "ArrowLeft" || e.code === "ArrowRight") {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   }
 
   public keyUp(e: React.KeyboardEvent<HTMLElement>): void {

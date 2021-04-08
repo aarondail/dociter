@@ -1,4 +1,5 @@
 import * as DoctarionDocument from "doctarion-document";
+import lodash from "lodash";
 import React from "react";
 
 import { Cursor } from "./Cursor";
@@ -26,16 +27,24 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
-// 1. move by 10
-// 2. fix relayout on resize window?
-// 3. remove debug stuff (consoel.log)
+//
+//
+//
 //
 // 5. Add headers and url links and see how they work?
 // 6. Maybe support some other keys and operations?
-// 7. Support scrolling w.r.t layout rects (and zoom)?
+//
 // 8. CLick to place cursor
 // 9. Some kinda debug mode for layout rects (or nodes in general)
 // 10. Animated cursor
+// 11. Support enter key!
+// 12, Scroll page when using arrows.hjkl or inserting text if needed
+// 13. Disable selections for now
+//
+// P1. Perf -- the getLayout getCodePointsLayout stuff used for moving visually up and down doesn't really seem to be that slow.
+//             the main prob with moving visually up and down seems to be really in teh NodeNavigator or CursorNavigator.
+//             ... maybe lettting those two "jump ahead" by X chars would be a good idea... but that is a lot of work.
+//             ... caching the layouts didn't appear to improve things much at all.
 
 /**
  * Why aren't we using React state?
@@ -56,9 +65,15 @@ export class Editor extends React.PureComponent<EditorProps> {
   private inputInterpreter: InputInterpreter;
   private insertionTextareaRef?: HTMLTextAreaElement | null;
   private mainDivRef?: HTMLDivElement | null;
+  private throttledHandleWindowResize: () => void;
+
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  private a = Math.random();
 
   public constructor(props: EditorProps) {
     super(props);
+
+    this.throttledHandleWindowResize = lodash.throttle(this.handleWindowResize, 50);
 
     this.editor = new DoctarionDocument.Editor(this.props.initialDocument);
     this.inputInterpreter = new InputInterpreter(this.dispatchEditorOperationOrCommand, InputMode.Command);
@@ -68,9 +83,15 @@ export class Editor extends React.PureComponent<EditorProps> {
   }
 
   public async componentDidMount(): Promise<void> {
+    window.addEventListener("gesturechange", this.handleGestureChange);
+    window.addEventListener("gestureend", this.handleGestureEnd);
+    window.addEventListener("resize", this.throttledHandleWindowResize);
+    window.addEventListener("wheel", this.handleWheel);
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
     await (window.document as any).fonts.load("12px Source Serif");
     this.fontsLoaded = true;
+
     this.forceUpdate();
   }
 
@@ -79,6 +100,14 @@ export class Editor extends React.PureComponent<EditorProps> {
     // that there may be new DOM nodes registered or the layout of existing ones
     // may have changed.
     this.syncCursorPositionAndEtc();
+  }
+
+  public componentWillUnmount(): void {
+    window.removeEventListener("gesturechange", this.handleGestureChange);
+    window.removeEventListener("gestureend", this.handleGestureEnd);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    window.removeEventListener("resize", this.throttledHandleWindowResize);
+    window.removeEventListener("wheel", this.handleWheel);
   }
 
   public render(): JSX.Element {
@@ -158,6 +187,23 @@ export class Editor extends React.PureComponent<EditorProps> {
     this.forceUpdate();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private handleGestureChange = (e: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (e.scale !== 1) {
+      // Im not sure this is really necessary since the document doesn't relayout... but it doesn't hurt I guess
+      this.throttledHandleWindowResize();
+    }
+  };
+
+  private handleGestureEnd = (e: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (e.scale !== 1) {
+      // Im not sure this is really necessary since the document doesn't relayout... but it doesn't hurt I guess
+      this.throttledHandleWindowResize();
+    }
+  };
+
   private handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
     this.inputInterpreter?.keyDown(e);
   };
@@ -191,6 +237,16 @@ export class Editor extends React.PureComponent<EditorProps> {
     // }
   };
 
+  private handleWheel = (e: WheelEvent) => {
+    if (e.ctrlKey) {
+      this.throttledHandleWindowResize();
+    }
+  };
+
+  private handleWindowResize = () => {
+    this.syncCursorPositionAndEtc();
+  };
+
   private setCursorsRef = (cursor: Cursor | null) => {
     this.cursorRef = cursor;
   };
@@ -209,7 +265,7 @@ export class Editor extends React.PureComponent<EditorProps> {
     }
   };
 
-  private syncCursorPositionAndEtc() {
+  private syncCursorPositionAndEtc = () => {
     const cursorPosition = this.cursorRef?.layout(
       this.editor.cursor,
       this.editor.document,
@@ -220,5 +276,5 @@ export class Editor extends React.PureComponent<EditorProps> {
       this.insertionTextareaRef.style.top = cursorPosition ? `${cursorPosition.top}px` : "";
       this.insertionTextareaRef.style.height = cursorPosition ? `${cursorPosition.height}px` : "";
     }
-  }
+  };
 }
