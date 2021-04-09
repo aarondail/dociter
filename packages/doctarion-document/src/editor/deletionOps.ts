@@ -1,6 +1,6 @@
 import * as immer from "immer";
 
-import { Chain, ChainLink, ChainLinkNotFirst, PathPart } from "../basic-traversal";
+import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { Node } from "../nodes";
 import { Range } from "../ranges";
@@ -9,17 +9,17 @@ import { resetCursorMovementHints } from "./cursorOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
-import { EditorServices } from "./services";
+import { EditorOperationServices } from "./services";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export function deleteBackwards(state: immer.Draft<EditorState>, services: EditorServices): void {
+export function deleteBackwards(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   let nav = getCursorNavigatorAndValidate(state, services);
 
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.CodePoint:
-      ifLet(Chain.getGrandParentToTipIfPossible(nav.chain), ([grandParent, parent, tip]) => {
+      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (!Node.containsText(parent.node)) {
           return false;
         }
@@ -33,7 +33,9 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
           if (parent.node.text.length === 1 && Node.isInlineText(parent.node)) {
             // In this case we are about to remove the last character in an
             // inline text In this case, we prefer to delete the inline text.
-            deleteChild(grandParent, parent);
+            const navPrime = nav.toNodeNavigator();
+            navPrime.navigateToParent();
+            deleteNode(navPrime, services);
 
             nav = refreshNavigator(nav);
             nav.navigateToParentUnchecked();
@@ -60,12 +62,10 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
       });
       break;
     case PositionClassification.EmptyInsertionPoint:
-      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
-        deleteChild(parent, tip);
-        nav = refreshNavigator(nav);
-        nav.navigateToPrecedingSiblingUnchecked();
-        nav.navigateToLastDescendantCursorPosition();
-      });
+      deleteNode(nav.toNodeNavigator(), services);
+      nav = refreshNavigator(nav);
+      nav.navigateToPrecedingSiblingUnchecked();
+      nav.navigateToLastDescendantCursorPosition();
       break;
     case PositionClassification.BeforeInBetweenInsertionPoint:
     case PositionClassification.AfterInBetweenInsertionPoint:
@@ -77,34 +77,53 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
   resetCursorMovementHints(state);
 }
 
-export function deleteSelection(state: immer.Draft<EditorState>): void {
+export function deleteSelection(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   if (!state.selection || !state.selectionAnchor) {
     throw new OperationError(OperationErrorCode.SelectionRequired);
   }
 
-  // This navigator is positioned on the place we will leave the selection after the deletion
-  const nav = new CursorNavigator(state.document);
-  nav.navigateTo(state.selection.from, CursorAffinity.Before);
-
-  const elementsToDelete = Range.getChainsCoveringRange(state.document, state.selection);
-  elementsToDelete.reverse();
-  for (const chain of elementsToDelete) {
-    ifLet(Chain.getParentAndTipIfPossible(chain), ([parent, tip]) => {
-      deleteChild(parent, tip);
-    });
+  {
+    const elementsToDelete = Range.getChainsCoveringRange(state.document, state.selection);
+    elementsToDelete.reverse();
+    const nav = new NodeNavigator(state.document);
+    for (const chain of elementsToDelete) {
+      nav.navigateTo(Chain.getPath(chain));
+      deleteNode(nav, services);
+    }
   }
 
-  state.cursor = castDraft(nav.cursor);
+  // This navigator is positioned on the place we will leave the selection after the deletion
+  {
+    const nav = new CursorNavigator(state.document);
+    nav.navigateTo(state.selection.from, CursorAffinity.Before);
+    state.cursor = castDraft(nav.cursor);
+  }
   clearSelection(state);
   resetCursorMovementHints(state);
 }
 
-function deleteChild(parent: ChainLink, tip: ChainLinkNotFirst): void {
+function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServices): void {
+  const node = nodeNavigator.tip.node;
+  const parent = nodeNavigator.parent;
+  const pathPart = nodeNavigator.tip.pathPart;
+
+  if (!parent || !pathPart) {
+    return;
+  }
   const kids = Node.getChildren(parent.node);
-  const kidIndex = PathPart.getIndex(tip.pathPart);
+  const kidIndex = PathPart.getIndex(pathPart);
 
   if (!kids) {
     return;
   }
+
+  // Unregister all child nodes and the node itself
+  if (!Node.isCodePoint(node)) {
+    nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
+      skipCodePoints: true,
+    });
+    services.tracking.unregister(node);
+  }
+
   castDraft(kids).splice(kidIndex, 1);
 }

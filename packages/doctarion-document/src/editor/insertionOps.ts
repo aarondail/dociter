@@ -9,19 +9,19 @@ import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
 import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
-import { EditorServices } from "./services";
+import { EditorOperationServices } from "./services";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
 export const insertText = (text: string | Models.Text) => (
   state: immer.Draft<EditorState>,
-  services: EditorServices
+  services: EditorOperationServices
 ): void => {
   const codePoints = typeof text === "string" ? Models.Text.fromString(text) : text;
 
   if (state.selection) {
-    deleteSelection(state);
+    deleteSelection(state, services);
   }
   resetCursorMovementHints(state);
 
@@ -53,15 +53,17 @@ export const insertText = (text: string | Models.Text) => (
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
         state.cursor = castDraft(nav.cursor);
       } else if (Node.containsInlineContent(node)) {
-        const newParagraph = Models.InlineText.new(codePoints);
-        node.content.push(castDraft(newParagraph));
-        services.ids.assignId(newParagraph);
+        const newInline = Models.InlineText.new(codePoints);
+        node.content.push(castDraft(newInline));
+        services.tracking.register(newInline, node);
         nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
         state.cursor = castDraft(nav.cursor);
       } else if (Node.isDocument(node)) {
-        const newInline = Models.Block.paragraph(Models.InlineText.new(codePoints));
-        node.blocks.push(castDraft(newInline));
-        services.ids.assignId(newInline);
+        const newInline = Models.InlineText.new(codePoints);
+        const newParagraph = Models.Block.paragraph(newInline);
+        services.tracking.register(newParagraph, node);
+        services.tracking.register(newInline, newParagraph);
+        node.blocks.push(castDraft(newParagraph));
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
         state.cursor = castDraft(nav.cursor);
       } else {
@@ -74,7 +76,7 @@ export const insertText = (text: string | Models.Text) => (
         if (Node.containsInlineContent(parent.node)) {
           const newInline = Models.InlineText.new(codePoints);
           castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
-          services.ids.assignId(newInline);
+          services.tracking.register(newInline, node);
           nav = refreshNavigator(nav);
           nav.navigateToLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
@@ -89,7 +91,7 @@ export const insertText = (text: string | Models.Text) => (
         if (Node.containsInlineContent(parent.node)) {
           const newInline = Models.InlineText.new(codePoints);
           castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
-          services.ids.assignId(newInline);
+          services.tracking.register(newInline, node);
           nav.navigateToNextSiblingLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
         } else {
@@ -104,10 +106,10 @@ export const insertText = (text: string | Models.Text) => (
 
 export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   state: immer.Draft<EditorState>,
-  services: EditorServices
+  services: EditorOperationServices
 ): void => {
   if (state.selection) {
-    deleteSelection(state);
+    deleteSelection(state, services);
   }
   resetCursorMovementHints(state);
 
@@ -139,6 +141,9 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
         if (shouldSplitText) {
           // Split the inline text node
           const [leftInlineText, rightInlineText] = Models.InlineText.split(parent.node, index);
+          services.tracking.unregister(parent.node);
+          services.tracking.register(leftInlineText, grandParent.node);
+          services.tracking.register(rightInlineText, grandParent.node);
 
           castDraft(grandParent.node.content).splice(
             PathPart.getIndex(parent.pathPart),
@@ -165,6 +170,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
         destinationNavigator = startingNav.toNodeNavigator();
       } else if (Node.isDocument(startingNav.tip.node)) {
         const p = Models.Block.paragraph();
+        services.tracking.register(p, state.document);
         state.document.blocks.push(castDraft(p));
         destinationInsertIndex = 0;
         destinationBlock = p;
@@ -200,7 +206,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
     // And insert url link
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     castDraft(destinationBlock.content).splice(destinationInsertIndex, 0, castDraft(inlineUrlLink));
-    services.ids.assignId(inlineUrlLink);
+    services.tracking.register(inlineUrlLink, destinationBlock);
 
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);
@@ -212,3 +218,5 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
     throw new Error("Could not figure out how to insert url link");
   }
 };
+
+// TODO make sure we regsiter/unregstier/notifyMove in here

@@ -2,7 +2,7 @@ import * as immer from "immer";
 
 import { Path, PathString } from "../basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
-import { EditorServices, EditorState } from "../editor";
+import { EditorOperationServices, EditorState } from "../editor";
 import { LayoutRect } from "../layout-reporting";
 
 import { OperationError, OperationErrorCode } from "./error";
@@ -11,7 +11,7 @@ import { getCursorNavigatorAndValidate } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export function moveBack(state: immer.Draft<EditorState>, services: EditorServices): void {
+export function moveBack(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   const nav = getCursorNavigatorAndValidate(state, services);
   if (nav.navigateToPrecedingCursorPosition()) {
     state.cursor = castDraft(nav.cursor);
@@ -20,7 +20,7 @@ export function moveBack(state: immer.Draft<EditorState>, services: EditorServic
   }
 }
 
-export function moveForward(state: immer.Draft<EditorState>, services: EditorServices): void {
+export function moveForward(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   const nav = getCursorNavigatorAndValidate(state, services);
   if (nav.navigateToNextCursorPosition()) {
     state.cursor = castDraft(nav.cursor);
@@ -29,7 +29,7 @@ export function moveForward(state: immer.Draft<EditorState>, services: EditorSer
   }
 }
 
-export function moveVisualDown(state: immer.Draft<EditorState>, services: EditorServices): void {
+export function moveVisualDown(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   moveVisualUpOrDownHelper(state, services, "DOWN");
 }
 
@@ -42,7 +42,7 @@ export function moveVisualDown(state: immer.Draft<EditorState>, services: Editor
 //   }
 // }
 
-export function moveVisualUp(state: immer.Draft<EditorState>, services: EditorServices): void {
+export function moveVisualUp(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   moveVisualUpOrDownHelper(state, services, "UP");
 }
 
@@ -80,7 +80,7 @@ export function resetCursorMovementHints(state: immer.Draft<EditorState>): void 
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/caretRangeFromPoint
 function moveVisualUpOrDownHelper(
   state: immer.Draft<EditorState>,
-  services: EditorServices,
+  services: EditorOperationServices,
   direction: "UP" | "DOWN"
 ): void {
   const nav = getCursorNavigatorAndValidate(state, services);

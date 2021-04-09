@@ -41,6 +41,10 @@ export class NodeNavigator {
     return this.currentChain;
   }
 
+  public get parent(): ChainLink | undefined {
+    return Chain.getParentIfPossible(this.currentChain);
+  }
+
   public get tip(): ChainLink {
     return Chain.getTip(this.currentChain);
   }
@@ -292,6 +296,29 @@ export class NodeNavigator {
       // Keep going up
     }
     return true;
+  }
+
+  /**
+   * This calls the callback for each node that is a descendant of the current
+   * node the navigatior is pointing at.
+   *
+   * This does not modify the state of the navigator.
+   */
+  public traverseDescendants(
+    callback: (node: Node, parent?: Node) => void,
+    options?: { skipCodePoints: boolean }
+  ): void {
+    const n = this.clone();
+    const ancestor = n.tip.node;
+    while (n.navigateForwardsInDfs() && Chain.contains(n.chain, ancestor)) {
+      if (options?.skipCodePoints && Node.isCodePoint(n.tip.node)) {
+        // Skip all code points
+        n.navigateToParent();
+        n.navigateToLastChild();
+      } else {
+        callback(n.tip.node, n.parent?.node);
+      }
+    }
   }
 
   private createLinkForChild(child: Node, index: number): ChainLinkNotFirst | undefined {
