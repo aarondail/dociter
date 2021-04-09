@@ -4,7 +4,7 @@ import React from "react";
 
 import { EditorContext } from "./EditorContext";
 
-class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
+export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
   public constructor(private element: HTMLElement) {}
 
   /**
@@ -80,7 +80,7 @@ class NodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
     return results;
   }
 
-  public getLayout() {
+  public getLayout(): LayoutRect {
     // console.log("DocumentNode::getLayout()");
     return this.adjustRect(this.element.getBoundingClientRect());
   }
@@ -119,7 +119,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
     ));
   }
 
-  const providerRef: React.MutableRefObject<NodeLayoutProvider | null> = React.createRef();
+  const providerRef: React.MutableRefObject<DocumentNodeLayoutProvider | null> = React.createRef();
   const elementRef = React.useCallback(
     (element: HTMLElement | undefined) => {
       if (!id) {
@@ -136,7 +136,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
         return;
       }
 
-      const provider = new NodeLayoutProvider(element);
+      const provider = new DocumentNodeLayoutProvider(element);
       editorContext.layout.setProvider(id, provider);
       providerRef.current = provider;
     },

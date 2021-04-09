@@ -32,8 +32,14 @@ export class EditorNodeLookupService {
   public getChainTo(nodeId: NodeId): Chain | undefined {
     const idChain = this.getIdChain(nodeId);
     const nav = new NodeNavigator(this.editorState.document);
+    if (idChain.length === 0) {
+      return undefined;
+    }
+    if (idChain[0] !== Node.getId(this.editorState.document)) {
+      return undefined;
+    }
     // Now walk the chain and find the matching nodes
-    for (const id of idChain) {
+    for (const id of idChain.slice(1)) {
       const children = Node.getChildren(nav.tip.node);
       if (!children) {
         return undefined;
@@ -77,6 +83,7 @@ export class EditorNodeLookupService {
       idChain.push(currentId);
       currentId = this.editorState.nodeParentMap[currentId];
     }
+    idChain.reverse();
     return idChain;
   }
 }

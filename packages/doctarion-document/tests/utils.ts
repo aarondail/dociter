@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
-import { CursorAffinity, CursorNavigator } from "../src/cursor";
+import { Cursor, CursorAffinity, CursorNavigator } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
 import * as Models from "../src/models";
 import { Node } from "../src/nodes";
@@ -110,7 +110,7 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
-  const debugEditorStateSimple = (state: EditorState) => {
+  const debugEditorStateSimple = (state: { document: Models.Document; cursor: Cursor }) => {
     const nav = new NodeNavigator(state.document);
     const c = state.cursor;
     if (nav.navigateTo(c.at)) {

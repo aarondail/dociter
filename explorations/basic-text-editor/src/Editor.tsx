@@ -32,14 +32,14 @@ export interface EditorProps {
 //
 //
 // 5. Add headers and url links and see how they work?
-// 6. Maybe support some other keys and operations?
+//
 //
 // 8. CLick to place cursor
 // 9. Some kinda debug mode for layout rects (or nodes in general)
 // 10. Animated cursor
 // 11. Support enter key!
-// 12, Scroll page when using arrows.hjkl or inserting text if needed
-// 13. Disable selections for now
+//
+//
 //
 // P1. Perf -- the getLayout getCodePointsLayout stuff used for moving visually up and down doesn't really seem to be that slow.
 //             the main prob with moving visually up and down seems to be really in teh NodeNavigator or CursorNavigator.
@@ -118,6 +118,7 @@ export class Editor extends React.PureComponent<EditorProps> {
         tabIndex={0}
         onKeyDown={this.handleKeyDown}
         onKeyUp={this.handleKeyUp}
+        onClick={this.handleClick}
       >
         <textarea
           ref={this.setInsertionTextareaRef}
@@ -185,6 +186,59 @@ export class Editor extends React.PureComponent<EditorProps> {
     } catch {}
 
     this.forceUpdate();
+  };
+
+  private handleClick = (e: React.MouseEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    // console.log("click", e.pageX, e.pageY, (e.nativeEvent as any).id, e.target);
+    const x = e.pageX;
+    const y = e.pageY;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const id = (e.target as HTMLElement).id;
+    if (!id) {
+      return;
+    }
+    const provider = this.editor.services.layout.getProvider(id);
+    if (!provider) {
+      return;
+    }
+    const chain = this.editor.services.lookup.getChainTo(id);
+    if (!chain) {
+      return;
+    }
+
+    const p = DoctarionDocument.Chain.getPath(chain);
+    console.log(p);
+
+    if (DoctarionDocument.Node.containsText(DoctarionDocument.Chain.getTipNode(chain))) {
+      let found = false;
+      let lefter = false;
+      let index = 0;
+      // Could do a binary search ...
+      for (const rect of provider.getCodePointLayout() || []) {
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          found = true;
+          if (x <= rect.left + rect.width * 0.5) {
+            lefter = true;
+          }
+          break;
+        }
+        index++;
+      }
+
+      if (found) {
+        this.dispatchEditorOperationOrCommand(
+          DoctarionDocument.Ops.jumpTo(
+            [...p, DoctarionDocument.PathPart.codePoint(index)],
+            // This probably doesn't work right in all cases
+            lefter ? DoctarionDocument.CursorAffinity.Before : DoctarionDocument.CursorAffinity.After
+          )
+        );
+        return;
+      }
+    }
+    // This doesn't work right in all cases
+    this.dispatchEditorOperationOrCommand(DoctarionDocument.Ops.jumpTo(p, DoctarionDocument.CursorAffinity.After));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
