@@ -3,7 +3,7 @@ import lodash from "lodash";
 import React from "react";
 
 import { Cursor } from "./Cursor";
-import { DocumentNode } from "./DocumentNode";
+import { DocumentNode, DocumentNodeLayoutProvider } from "./DocumentNode";
 import { EditorContext } from "./EditorContext";
 import { InputInterpreter } from "./InputInterpreter";
 
@@ -34,7 +34,7 @@ export interface EditorProps {
 // 5. Add headers and url links and see how they work?
 //
 //
-// 8. CLick to place cursor
+//
 // 9. Some kinda debug mode for layout rects (or nodes in general)
 // 10. Animated cursor
 // 11. Support enter key!
@@ -67,9 +67,6 @@ export class Editor extends React.PureComponent<EditorProps> {
   private mainDivRef?: HTMLDivElement | null;
   private throttledHandleWindowResize: () => void;
 
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  private a = Math.random();
-
   public constructor(props: EditorProps) {
     super(props);
 
@@ -80,6 +77,8 @@ export class Editor extends React.PureComponent<EditorProps> {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (window as any).e = this.editor;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (window as any).debugMode = false;
   }
 
   public async componentDidMount(): Promise<void> {
@@ -190,6 +189,9 @@ export class Editor extends React.PureComponent<EditorProps> {
 
   private handleClick = (e: React.MouseEvent) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const debugMode = (window as any).debugMode;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     // console.log("click", e.pageX, e.pageY, (e.nativeEvent as any).id, e.target);
     const x = e.pageX;
     const y = e.pageY;
@@ -208,7 +210,7 @@ export class Editor extends React.PureComponent<EditorProps> {
     }
 
     const p = DoctarionDocument.Chain.getPath(chain);
-    console.log(p);
+    // console.log(p);
 
     if (DoctarionDocument.Node.containsText(DoctarionDocument.Chain.getTipNode(chain))) {
       let found = false;
@@ -234,11 +236,15 @@ export class Editor extends React.PureComponent<EditorProps> {
             lefter ? DoctarionDocument.CursorAffinity.Before : DoctarionDocument.CursorAffinity.After
           )
         );
+
+        (provider as DocumentNodeLayoutProvider).debugMode = debugMode;
+
         return;
       }
     }
     // This doesn't work right in all cases
     this.dispatchEditorOperationOrCommand(DoctarionDocument.Ops.jumpTo(p, DoctarionDocument.CursorAffinity.After));
+    (provider as DocumentNodeLayoutProvider).debugMode = debugMode;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

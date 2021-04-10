@@ -5,7 +5,34 @@ import React from "react";
 import { EditorContext } from "./EditorContext";
 
 export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
+  private debugElements?: HTMLElement[];
+  private privateDebugMode = false;
+
   public constructor(private element: HTMLElement) {}
+
+  public set debugMode(value: boolean) {
+    if (this.privateDebugMode && !value) {
+      if (this.debugElements) {
+        this.debugElements.forEach((x) => this.element.removeChild(x));
+      }
+      this.debugElements = undefined;
+    } else if (!this.privateDebugMode && value) {
+      const rects = this.element.getClientRects();
+      const divs = [];
+      let i = 0;
+      for (const rawRect of rects) {
+        const rect = this.adjustRect(rawRect);
+        const div = document.createElement("div");
+        div.style.cssText = `position: absolute; pointer-events: none; left: ${rect.left}px; width: ${rect.width}px; top: ${rect.top}px; height: ${rect.height}px; border: solid 1px red;`;
+        divs.push(div);
+        this.element.appendChild(div);
+        i++;
+      }
+
+      this.debugElements = divs;
+    }
+    this.privateDebugMode = value;
+  }
 
   /**
    * This is very similar to the below method for code points but, but instead
