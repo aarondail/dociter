@@ -1,6 +1,6 @@
 import * as immer from "immer";
 
-import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
+import { Chain, NodeNavigator, Path, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { Node } from "../nodes";
 import { Range } from "../ranges";
@@ -43,7 +43,17 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
             nav.navigateToLastDescendantCursorPosition();
           } else {
             castDraft(parent.node).text.splice(index, 1);
+            // Would it be better to just try jumping to something?
             nav.navigateToPrecedingCursorPosition();
+            // This fixes a bug where we navigate back but the only thing that changes is the CursorAffinity
+            if (
+              nav.tip.pathPart &&
+              PathPart.getIndex(nav.tip.pathPart) === index &&
+              nav.cursor.affinity === CursorAffinity.Before &&
+              nav.toNodeNavigator().navigateToPrecedingSibling()
+            ) {
+              nav.navigateToPrecedingCursorPosition();
+            }
           }
         } else {
           // In this case we are deleting the character behind this one. This
