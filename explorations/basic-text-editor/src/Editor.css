@@ -17,6 +17,7 @@
   fontFamily: "'Fira Sans', sans-serif",
   fontFamily: "'Fira Sans Condensed', sans-serif", */
   user-select: none;
+  word-break: break-word;
 }
 
 .Editor-textarea {
@@ -50,4 +51,22 @@
   outline: none;
   color: transparent;
   overflow: hidden; */
+}
+
+.Editor h1 {
+  font-size: 40px;
+  font-weight: 600;
+  /* color: #8229de; */
+  /* text-shadow: 1px 1px black; */
+  /* -webkit-text-stroke: 0.5px #9b86b1; */
+  /* -webkit-text-stroke: 1px #8229de; */
+  /* border-bottom: solid 1px #555; */
+}
+.Editor h2 {
+  font-size: 30px;
+  font-weight: 600;
+}
+.Editor h3 {
+  font-size: 20px;
+  font-weight: 600;
 }

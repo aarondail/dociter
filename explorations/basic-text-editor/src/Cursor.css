@@ -59,3 +59,9 @@
   border: solid 1px #8229de;
   background-color: #8229de;
 }
+
+.Cursor-cursor {
+  transition-property: left top height;
+  transition-duration: 0.03s;
+  transition-timing-function: ease-in-out;
+}

@@ -77,11 +77,9 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     r.selectNodeContents(this.element);
 
     const start = startOffset ?? 0;
-    let end;
+    let end = (this.element.textContent?.length || 1) - 1;
     if (endOffset !== undefined) {
-      end = endOffset;
-    } else {
-      end = (this.element.textContent?.length || 1) - 1;
+      end = Math.min(end, endOffset);
     }
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const c = this.element.firstChild!;
@@ -89,7 +87,6 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     for (let i = start; i <= end; i++) {
       r.setStart(c, i);
       r.setEnd(c, i + 1);
-      // console.log("Range contents: ", r.cloneContents(), r.getClientRects().length);
       // Sometimes (with line wrapping, a code point will have multiple rects.
       // Using getBoundingClientRect inflates to cover the entire pair of lines)
       //
@@ -108,7 +105,6 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
   }
 
   public getLayout(): LayoutRect {
-    // console.log("DocumentNode::getLayout()");
     return this.adjustRect(this.element.getBoundingClientRect());
   }
 
@@ -177,12 +173,23 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
         {children}
       </div>
     ),
-    onHeaderBlock: (block) => (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      <h1 id={id} ref={elementRef as any}>
-        {children}
-      </h1>
-    ),
+    onHeaderBlock: (block) =>
+      block.level === DoctarionDocument.HeaderLevel.One ? (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <h1 id={id} ref={elementRef as any}>
+          {children}
+        </h1>
+      ) : block.level === DoctarionDocument.HeaderLevel.Two ? (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <h2 id={id} ref={elementRef as any}>
+          {children}
+        </h2>
+      ) : (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <h3 id={id} ref={elementRef as any}>
+          {children}
+        </h3>
+      ),
     onParagraphBlock: (block) => (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <p id={id} ref={elementRef as any}>
@@ -191,7 +198,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
     ),
     onInlineText: (inline) => (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      <span id={id} ref={elementRef as any}>
+      <span id={id} ref={elementRef as any} style={getStyleForInline(inline)}>
         {children}
       </span>
     ),
@@ -207,3 +214,24 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
     onCodePoint: (cp) => <span id={id}>{cp}</span>,
   });
 });
+
+const getStyleForInline = (inline: DoctarionDocument.InlineText) => {
+  const m = inline.modifiers;
+  if (!m) {
+    return undefined;
+  }
+  const result: React.CSSProperties = {
+    backgroundColor: m.backgroundColor,
+    color: m.foregroundColor,
+    fontWeight: m.bold ? "bold" : undefined,
+    fontStyle: m.italic ? "italic" : undefined,
+  };
+  if (m.strikethrough && m.underline) {
+    result.textDecoration = "line-through underline";
+  } else if (m.strikethrough) {
+    result.textDecoration = "line-through";
+  } else if (m.underline) {
+    result.textDecoration = "underline";
+  }
+  return result;
+};

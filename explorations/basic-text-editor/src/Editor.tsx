@@ -27,24 +27,16 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
-//
-//
-//
-//
-// 5. Add headers and url links and see how they work?
-//
-//
-//
-// 9. Some kinda debug mode for layout rects (or nodes in general)
-// 10. Animated cursor
-// 11. Support enter key!
-//
-//
-//
 // P1. Perf -- the getLayout getCodePointsLayout stuff used for moving visually up and down doesn't really seem to be that slow.
 //             the main prob with moving visually up and down seems to be really in teh NodeNavigator or CursorNavigator.
 //             ... maybe lettting those two "jump ahead" by X chars would be a good idea... but that is a lot of work.
 //             ... caching the layouts didn't appear to improve things much at all.
+// F1. Enter Key --- Need to support it.
+// B1. Inserting text near EOL - Doesn't work right
+// B2. Keys up in the InputInterpreter get missed sometimes causing wonkyness (due to debugger at least)
+// B3. Source maps for typescript LIBRARY code messed up
+// B4. Too hard to debug stuff!
+// B5. Clicking to place cursor... wrong often.
 
 /**
  * Why aren't we using React state?
@@ -149,6 +141,8 @@ export class Editor extends React.PureComponent<EditorProps> {
   private dispatchEditorOperationOrCommand = (
     operationOrCommand: DoctarionDocument.EditorOperation | EditorCommand
   ) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    console.log("dispatchEditorOperationOrCommand", (operationOrCommand as any).name);
     switch (operationOrCommand) {
       case EditorCommand.InputCompositionModeEnd:
         this.forceUpdate(); // Re-render so that the class name of the textarea is updated

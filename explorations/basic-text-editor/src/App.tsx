@@ -10,11 +10,31 @@ function App(): JSX.Element {
     DoctarionDocument.Document.new(
       "A",
       // DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is some text in a paragraph")),
-      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This")),
+      DoctarionDocument.Block.header(DoctarionDocument.HeaderLevel.One, DoctarionDocument.InlineText.new("This")),
       DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph")),
       DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Lorem Ipsum "),
+        DoctarionDocument.InlineText.new("is simply dummy text", {
+          bold: true,
+        }),
+        DoctarionDocument.InlineText.new(" of the printing "),
+        DoctarionDocument.InlineText.new("and typesetting industry.", {
+          backgroundColor: "blue",
+        }),
         DoctarionDocument.InlineText.new(
-          "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+          " Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
+          {
+            italic: true,
+            foregroundColor: "white",
+            backgroundColor: "black",
+          }
+        ),
+        DoctarionDocument.InlineText.new(
+          ", when an unknown printer took a galley of type and scrambled it to make a type specimen book. "
+        ),
+        DoctarionDocument.InlineUrlLink.new("It has survived", "http://abcdef.com"),
+        DoctarionDocument.InlineText.new(
+          " not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
         )
       ),
       DoctarionDocument.Block.paragraph(

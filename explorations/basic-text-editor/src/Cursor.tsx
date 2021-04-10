@@ -60,7 +60,13 @@ export class Cursor extends React.PureComponent {
       return null;
     }
 
-    return <div ref={this.ref} className={`Cursor-cursor-blink${this.animationFlipper}`} style={this.position}></div>;
+    return (
+      <div
+        ref={this.ref}
+        className={`Cursor-cursor Cursor-cursor-blink${this.animationFlipper}`}
+        style={this.position}
+      ></div>
+    );
   };
 
   private static calculatePosition(
