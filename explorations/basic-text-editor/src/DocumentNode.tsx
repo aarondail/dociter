@@ -54,8 +54,9 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     if (endOffset !== undefined) {
       end = endOffset;
     } else {
-      end = (this.element.textContent?.length || 1) - 1;
+      end = (this.element.childNodes?.length || 1) - 1;
     }
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const c = this.element.firstChild!;
     const results: [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] = [];
@@ -77,7 +78,9 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     r.selectNodeContents(this.element);
 
     const start = startOffset ?? 0;
-    let end = (this.element.textContent?.length || 1) - 1;
+    // let end = (this.element.textContent?.length || 1) - 1;
+    // let end = (this.element.textContent ? [...this.element.textContent].length : 1) - 1;
+    let end = 1000; // (this.element.textContent ? [...this.element.textContent].length : 1) - 1;
     if (endOffset !== undefined) {
       end = Math.min(end, endOffset);
     }
