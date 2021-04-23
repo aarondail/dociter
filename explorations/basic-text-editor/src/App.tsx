@@ -12,33 +12,32 @@ function App(): JSX.Element {
       DoctarionDocument.Block.paragraph(
         DoctarionDocument.InlineText.new("The quick brown fox 🦊 ate a zesty hamburgerfons 🍔.The 👩‍👩‍👧‍👧 laughed.")
       ),
-      DoctarionDocument.Block.header(DoctarionDocument.HeaderLevel.One, DoctarionDocument.InlineText.new("This"))
-      // DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph")),
-      // DoctarionDocument.Block.paragraph(
-      //   DoctarionDocument.InlineText.new("Lorem Ipsum "),
-      //   DoctarionDocument.InlineText.new("is simply dummy text", {
-      //     bold: true,
-      //   }),
-      //   DoctarionDocument.InlineText.new(" of the printing "),
-      //   DoctarionDocument.InlineText.new("and typesetting industry.", {
-      //     backgroundColor: "blue",
-      //   }),
-      //   DoctarionDocument.InlineText.new(
-      //     " Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
-      //     {
-      //       italic: true,
-      //       foregroundColor: "white",
-      //       backgroundColor: "black",
-      //     }
-      //   ),
-      //   DoctarionDocument.InlineText.new(
-      //     ", when an unknown printer took a galley of type and scrambled it to make a type specimen book. "
-      //   ),
-      //   DoctarionDocument.InlineUrlLink.new("It has survived", "http://abcdef.com"),
-      //   DoctarionDocument.InlineText.new(
-      //     " not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
-      //   )
-      // ),
+      DoctarionDocument.Block.paragraph(DoctarionDocument.InlineText.new("This is more text in a second paragraph")),
+      DoctarionDocument.Block.paragraph(
+        DoctarionDocument.InlineText.new("Lorem Ipsum "),
+        DoctarionDocument.InlineText.new("is simply dummy text", {
+          bold: true,
+        }),
+        DoctarionDocument.InlineText.new(" of the printing "),
+        DoctarionDocument.InlineText.new("and typesetting industry.", {
+          backgroundColor: "blue",
+        }),
+        DoctarionDocument.InlineText.new(
+          " Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
+          {
+            italic: true,
+            foregroundColor: "white",
+            backgroundColor: "black",
+          }
+        ),
+        DoctarionDocument.InlineText.new(
+          ", when an unknown printer took a galley of type and scrambled it to make a type specimen book. "
+        ),
+        DoctarionDocument.InlineUrlLink.new("It has survived", "http://abcdef.com"),
+        DoctarionDocument.InlineText.new(
+          " not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+        )
+      )
       // DoctarionDocument.Block.paragraph(
       //   DoctarionDocument.InlineText.new("Paragraph with\nactual some actual\nnew lines in it!")
       // ),

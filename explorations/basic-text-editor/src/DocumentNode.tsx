@@ -8,25 +8,28 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
   private debugElements?: HTMLElement[];
   private privateDebugMode = false;
 
-  public constructor(private element: HTMLElement) {}
+  public constructor(public element?: HTMLElement, public node?: DoctarionDocument.Node) {}
 
   public set debugMode(value: boolean) {
+    if (!this.element || !this.node) {
+      return;
+    }
+
     if (this.privateDebugMode && !value) {
       if (this.debugElements) {
-        this.debugElements.forEach((x) => this.element.removeChild(x));
+        this.debugElements.forEach((x) => this.element?.removeChild(x));
       }
       this.debugElements = undefined;
     } else if (!this.privateDebugMode && value) {
       const rects = this.element.getClientRects();
       const divs = [];
-      let i = 0;
+
       for (const rawRect of rects) {
         const rect = this.adjustRect(rawRect);
         const div = document.createElement("div");
         div.style.cssText = `position: absolute; pointer-events: none; left: ${rect.left}px; width: ${rect.width}px; top: ${rect.top}px; height: ${rect.height}px; border: solid 1px red;`;
         divs.push(div);
         this.element.appendChild(div);
-        i++;
       }
 
       this.debugElements = divs;
@@ -45,7 +48,10 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
   public getChildNodeLayouts(
     startOffset?: number,
     endOffset?: number
-  ): [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] {
+  ): [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] | undefined {
+    if (!this.element || !this.node) {
+      return undefined;
+    }
     const r = new Range();
     r.selectNodeContents(this.element);
 
@@ -71,23 +77,38 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     return results;
   }
 
-  public getCodePointLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
-    // console.log(`DocumentNode::getCodePointLayout(${startOffset || ""}, ${endOffset || ""}})`);
+  public getGraphemeLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
+    if (!this.element || !this.node || !DoctarionDocument.Node.containsText(this.node)) {
+      return undefined;
+    }
 
+    // console.log("Get grapheme layout,", startOffset, endOffset);
     const r = new Range();
     r.selectNodeContents(this.element);
 
-    const start = startOffset ?? 0;
-    // let end = (this.element.textContent?.length || 1) - 1;
-    // let end = (this.element.textContent ? [...this.element.textContent].length : 1) - 1;
-    let end = 1000; // (this.element.textContent ? [...this.element.textContent].length : 1) - 1;
-    if (endOffset !== undefined) {
-      end = Math.min(end, endOffset);
+    const maxLen = (this.element.textContent?.length || 1) - 1;
+
+    let start = 0;
+    let end = maxLen;
+    if (startOffset !== undefined) {
+      for (let i = 0; i < startOffset; i++) {
+        // Add the CODE UNITS for an individual grapheme to the start
+        start += this.node.text[i].length;
+      }
     }
+    if (endOffset !== undefined) {
+      end = start;
+      for (let i = startOffset !== undefined ? startOffset : 0; i < endOffset; i++) {
+        // Add the CODE UNITS for an individual grapheme to the start
+        end += this.node.text[i].length;
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const c = this.element.firstChild!;
     const results = [];
     for (let i = start; i <= end; i++) {
+      // console.log(i);
       r.setStart(c, i);
       r.setEnd(c, i + 1);
       // Sometimes (with line wrapping, a code point will have multiple rects.
@@ -95,7 +116,7 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
       //
       // We use the second rect since that is probably the one we want...
       const rects = r.getClientRects();
-      // console.log("DocumentNode::getCodePointLayout rect count = ", rects.length, rects);
+      // console.log("DocumentNode::getGrapheme rect count = ", rects.length, rects);
       if (rects.length === 1) {
         results.push(this.adjustRect(rects[0]));
       } else if (rects.length === 2) {
@@ -104,10 +125,15 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
         throw new Error("Unexpected number of rects when getting a code point's layout.");
       }
     }
+
+    // console.log("Get grapheme layout, res", results);
     return results;
   }
 
-  public getLayout(): LayoutRect {
+  public getLayout(): LayoutRect | undefined {
+    if (!this.element) {
+      return undefined;
+    }
     return this.adjustRect(this.element.getBoundingClientRect());
   }
 
@@ -146,6 +172,13 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
   }
 
   const providerRef: React.MutableRefObject<DocumentNodeLayoutProvider | null> = React.createRef();
+  if (!providerRef.current) {
+    providerRef.current = new DocumentNodeLayoutProvider();
+  }
+
+  // Always update the node
+  providerRef.current.node = node;
+
   const elementRef = React.useCallback(
     (element: HTMLElement | undefined) => {
       if (!id) {
@@ -153,18 +186,19 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
       }
 
       // I sure hope these callbacks get called with null for cleanup...
-      if (providerRef.current) {
+      if (providerRef.current?.element) {
         editorContext.layout.removeProvider(id, providerRef.current);
-        providerRef.current = null;
+        providerRef.current.element = undefined;
       }
 
       if (!element) {
         return;
       }
 
-      const provider = new DocumentNodeLayoutProvider(element);
-      editorContext.layout.setProvider(id, provider);
-      providerRef.current = provider;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      providerRef.current!.element = element;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      editorContext.layout.setProvider(id, providerRef.current!);
     },
     [editorContext.layout, id, providerRef]
   );
@@ -214,7 +248,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
     // We never really expect to be rendering a code point like this, because
     // the parent node, e.g. InlineText, will join all the code points into a
     // single string and render that. But, JIC we do this.
-    onCodePoint: (cp) => <span id={id}>{cp}</span>,
+    onGrapheme: (cp) => <span id={id}>{cp}</span>,
   });
 });
 

@@ -4,7 +4,7 @@ export interface NodeLayoutProvider {
   /**
    * This gets the layout rect for the entire node.
    */
-  getLayout(): LayoutRect;
+  getLayout(): LayoutRect | undefined;
   /**
    * This gets the layout rects for the graphemes contained (as direct
    * children) by this node.
@@ -13,5 +13,5 @@ export interface NodeLayoutProvider {
    * to have multiple layout rects. (Currently only the first rect returned is
    * used by the NodeLayoutReporter).
    */
-  getCodePointLayout(startOffset?: number, endOffset?: number): LayoutRect[] | undefined;
+  getGraphemeLayout(startOffset?: number, endOffset?: number): LayoutRect[] | undefined;
 }

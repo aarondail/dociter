@@ -211,7 +211,7 @@ export class Editor extends React.PureComponent<EditorProps> {
       let lefter = false;
       let index = 0;
       // Could do a binary search ...
-      for (const rect of provider.getCodePointLayout() || []) {
+      for (const rect of provider.getGraphemeLayout() || []) {
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
           found = true;
           if (x <= rect.left + rect.width * 0.5) {
@@ -225,7 +225,7 @@ export class Editor extends React.PureComponent<EditorProps> {
       if (found) {
         this.dispatchEditorOperationOrCommand(
           DoctarionDocument.Ops.jumpTo(
-            [...p, DoctarionDocument.PathPart.codePoint(index)],
+            [...p, DoctarionDocument.PathPart.grapheme(index)],
             // This probably doesn't work right in all cases
             lefter ? DoctarionDocument.CursorAffinity.Before : DoctarionDocument.CursorAffinity.After
           )

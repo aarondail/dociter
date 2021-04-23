@@ -66,10 +66,10 @@ export class NodeLayoutReporter {
       if (!tip.pathPart) {
         return undefined;
       }
-      const cpIndex = PathPart.getIndex(tip.pathPart);
-      const cp = provider.getCodePointLayout(cpIndex, cpIndex);
-      if (cp) {
-        return cp[0];
+      const gIndex = PathPart.getIndex(tip.pathPart);
+      const g = provider.getGraphemeLayout(gIndex, gIndex);
+      if (g) {
+        return g[0];
       }
       return undefined;
     } else {
