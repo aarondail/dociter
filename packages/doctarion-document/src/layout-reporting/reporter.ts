@@ -47,9 +47,9 @@ export class NodeLayoutReporter {
     const chain: Chain = at instanceof NodeNavigator ? at.chain : at;
     const tip = Chain.getTip(chain);
     let nodeWithProvider = tip.node;
-    const isCodePoint = Node.isCodePoint(nodeWithProvider);
+    const isGrapheme = Node.isGrapheme(nodeWithProvider);
 
-    if (isCodePoint) {
+    if (isGrapheme) {
       const parent = Chain.getParentIfPossible(chain);
       if (!parent) {
         return undefined;
@@ -62,7 +62,7 @@ export class NodeLayoutReporter {
       return undefined;
     }
 
-    if (isCodePoint) {
+    if (isGrapheme) {
       if (!tip.pathPart) {
         return undefined;
       }

@@ -80,7 +80,7 @@ export class Editor {
     n.navigateToStartOfDfs();
     this.operationServices.tracking.register(n.tip.node, undefined);
     n.traverseDescendants((node, parent) => this.operationServices.tracking.register(node, parent), {
-      skipCodePoints: true,
+      skipGraphemes: true,
     });
 
     if (initialCursor === undefined) {

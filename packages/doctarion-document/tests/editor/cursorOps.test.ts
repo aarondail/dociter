@@ -51,7 +51,7 @@ describe("jump", () => {
     expect(() => editor.update(Ops.jumpTo("block:1/content:2/cp:99", Before))).toThrowError(OperationError);
   });
 
-  it("jumping to non-code points non insertion-points is handled gracefully", () => {
+  it("jumping to non-graphemes non insertion-points is handled gracefully", () => {
     const editor = new Editor(testDoc1);
 
     editor.update(Ops.jumpTo("block:0", Before));

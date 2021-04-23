@@ -59,7 +59,7 @@ export const DebugEditorHelpers = (() => {
       onParagraphBlock: () => `PARAGRAPH`,
       onInlineText: (e) => `TEXT {${modifiersToString(e.modifiers)}}`,
       onInlineUrlLink: ({ url }) => `URL_LINK ${url}`,
-      onCodePoint: () => {
+      onGrapheme: () => {
         throw new Error("Should never hit this.");
       },
     });
@@ -79,8 +79,8 @@ export const DebugEditorHelpers = (() => {
     for (const { node } of chain) {
       if (Node.isDocument(node)) {
         continue;
-      } else if (Node.isCodePoint(node)) {
-        // Code points don't need to be individually written
+      } else if (Node.isGrapheme(node)) {
+        // Graphemes don't need to be individually written
         break;
       }
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -127,7 +127,7 @@ SLICE:  ${elementString}`;
     } else {
       return `
 CURSOR: ?${debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)"}?
-SLICE:  !INVALID CURSOR POSITION (probably not a code point or insertion point?)!
+SLICE:  !INVALID CURSOR POSITION (probably not a grapheme or insertion point?)!
 DOCUMENT BLOCKS:
 ${JSON.stringify(state.document.blocks, undefined, 4)}
 `;

@@ -29,7 +29,7 @@ export const Range = {
    * This gets chains in the range but tries to eliminate chains that are
    * redundant with other shorter chains in the range.
    *
-   * E.g., if the range covers, say all code points in a InlineText, just the
+   * E.g., if the range covers, say all graphemes in a InlineText, just the
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */

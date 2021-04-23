@@ -9,7 +9,7 @@ import { Path, PathPart, PathString } from "./path";
 /**
  * This class helps with navigating between nodes of a document. It does not
  * understand (text) cursor navigation which is more complicated than just
- * moving between code points. For that see the CursorNavigator class.
+ * moving between graphemes. For that see the CursorNavigator class.
  *
  * The NodeNavigator maintains its own state, and methods on the class mutate
  * that state. That said, any data returned from the class won't be mutated by
@@ -306,13 +306,13 @@ export class NodeNavigator {
    */
   public traverseDescendants(
     callback: (node: Node, parent?: Node) => void,
-    options?: { skipCodePoints: boolean }
+    options?: { skipGraphemes: boolean }
   ): void {
     const n = this.clone();
     const ancestor = n.tip.node;
     while (n.navigateForwardsInDfs() && Chain.contains(n.chain, ancestor)) {
-      if (options?.skipCodePoints && Node.isCodePoint(n.tip.node)) {
-        // Skip all code points
+      if (options?.skipGraphemes && Node.isGrapheme(n.tip.node)) {
+        // Skip all graphemes
         n.navigateToParent();
         n.navigateToLastChild();
       } else {
@@ -326,7 +326,7 @@ export class NodeNavigator {
 
     return Node.switch(child, {
       onDocument: () => undefined,
-      onCodePoint: (cp: Models.CodePoint) => p.codePoint(cp, index),
+      onGrapheme: (cp: Models.Grapheme) => p.grapheme(cp, index),
       onHeaderBlock: (b: Models.HeaderBlock) => p.block(b, index),
       onParagraphBlock: (b: Models.ParagraphBlock) => p.block(b, index),
       onInlineText: (e: Models.InlineText) => p.content(e, index),
@@ -373,9 +373,9 @@ const navigateToSiblingHelpers = (() => {
       // @ts-expect-error
       onParagraphBlock: (b, _, idx) => p.content(b.content[idx + operand], idx + operand),
       // @ts-expect-error
-      onInlineText: (b, _, idx) => p.codePoint(b.text[idx + operand], idx + operand),
+      onInlineText: (b, _, idx) => p.grapheme(b.text[idx + operand], idx + operand),
       // @ts-expect-error
-      onInlineUrlLink: (b, _, idx) => p.codePoint(b.text[idx + operand], idx + operand),
+      onInlineUrlLink: (b, _, idx) => p.grapheme(b.text[idx + operand], idx + operand),
     } as NodeHandlersForSwitch<ChainLinkNotFirst | undefined>);
 
   const createConfigJustFindingNode = (operand: number) =>

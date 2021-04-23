@@ -12,7 +12,7 @@ export type Path = readonly PathPart[];
 export enum PathPartLabel {
   Block = "block",
   Content = "content",
-  CodePoint = "cp",
+  Grapheme = "cp",
 }
 export type PathPart = readonly [PathPartLabel, number];
 
@@ -23,8 +23,6 @@ export const PathPart = {
 
   content: (index: number): PathPart => [PathPartLabel.Content, index],
 
-  codePoint: (index: number): PathPart => [PathPartLabel.CodePoint, index],
-
   getLabel(pathPart: PathPart): PathPartLabel {
     return pathPart[0];
   },
@@ -32,6 +30,8 @@ export const PathPart = {
   getIndex(pathPart: PathPart): number {
     return pathPart[1];
   },
+
+  grapheme: (index: number): PathPart => [PathPartLabel.Grapheme, index],
 
   isEqual(left: PathPart, right: PathPart): boolean {
     return left[0] === right[0] && left[1] === right[1];
@@ -55,17 +55,17 @@ export const PathPart = {
     return Node.switch<T | undefined>(parentNode, {
       onDocument: (d: Models.Document) =>
         resolve(pathPart, PathPartLabel.Block, (idx) => handlers.onDocument(d, PathPartLabel.Block, idx)),
-      onCodePoint: () =>
-        // There is nothing further we can unpack into here.  There are no "parts" of a CodePoint...
+      onGrapheme: () =>
+        // There is nothing further we can unpack into here.  There are no "parts" of a Grapheme...
         undefined,
       onHeaderBlock: (b: Models.HeaderBlock) =>
         resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onHeaderBlock(b, PathPartLabel.Content, idx)),
       onParagraphBlock: (b: Models.ParagraphBlock) =>
         resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onParagraphBlock(b, PathPartLabel.Content, idx)),
       onInlineUrlLink: (e: Models.InlineUrlLink) =>
-        resolve(pathPart, PathPartLabel.CodePoint, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.CodePoint, idx)),
+        resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.Grapheme, idx)),
       onInlineText: (e: Models.InlineText) =>
-        resolve(pathPart, PathPartLabel.CodePoint, (idx) => handlers.onInlineText(e, PathPartLabel.CodePoint, idx)),
+        resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineText(e, PathPartLabel.Grapheme, idx)),
     });
   },
 };
@@ -167,9 +167,9 @@ export type ResolvePathPartHandlers<T> = {
   onDocument: (d: Models.Document, pathLabel: PathPartLabel.Block, pathIndex: number) => T;
   onHeaderBlock: (b: Models.HeaderBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
   onParagraphBlock: (b: Models.ParagraphBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
-  onInlineText: (e: Models.InlineText, pathLabel: PathPartLabel.CodePoint, pathIndex: number) => T;
-  onInlineUrlLink: (e: Models.InlineUrlLink, pathLabel: PathPartLabel.CodePoint, pathIndex: number) => T;
-  // Note that code points never have any children so they can't be "walked" into
+  onInlineText: (e: Models.InlineText, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
+  onInlineUrlLink: (e: Models.InlineUrlLink, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
+  // Note that graphemes never have any children so they can't be "walked" into
 };
 
 // ----------------------------------------------------------------------------

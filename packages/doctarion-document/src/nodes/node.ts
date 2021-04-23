@@ -10,19 +10,19 @@ import { NodeId, nodeIdSymbol } from "./nodeId";
 //
 // This is very handy for traversal.
 //
-// Nodes, with the exception of code points, can also be assigned ids to make it
+// Nodes, with the exception of graphemes, can also be assigned ids to make it
 // easier to track them.
 // -----------------------------------------------------------------------------
 
-export type Node = Models.Block | Models.Inline | Models.CodePoint | Models.Document;
+export type Node = Models.Block | Models.Inline | Models.Grapheme | Models.Document;
 
 export const Node = {
   /**
-   * Assigns an id to this node. Note that code points cannot be assigned ids.
+   * Assigns an id to this node. Note that graphemes cannot be assigned ids.
    */
   assignId(node: Node, id: NodeId): void {
     if (typeof node === "string") {
-      throw new Error("Cannot assign a node id to code points.");
+      throw new Error("Cannot assign a node id to graphemes.");
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (node as any)[nodeIdSymbol] = id;
@@ -35,13 +35,13 @@ export const Node = {
       onParagraphBlock: (b: Models.ParagraphBlock) => b.content,
       onInlineText: (e: Models.InlineText) => e.text,
       onInlineUrlLink: (e: Models.InlineUrlLink) => e.text,
-      onCodePoint: () => undefined,
+      onGrapheme: () => undefined,
     });
   },
 
   /**
    * This gets the id _previously assigned_ to this node (via `assignId`). Also
-   * note that code points cannot have node ids.
+   * note that graphemes cannot have node ids.
    */
   getId(node: Node): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
@@ -57,12 +57,12 @@ export const Node = {
     return Node.isHeaderBlock(node) || Node.isParagraphBlock(node);
   },
 
-  isCodePoint(node: Node): boolean {
-    return typeof node === "string";
-  },
-
   isDocument(node: Node): node is Models.Document {
     return (node as any).kind === undefined && typeof node !== "string";
+  },
+
+  isGrapheme(node: Node): boolean {
+    return typeof node === "string";
   },
 
   isHeaderBlock(node: Node): node is Models.HeaderBlock {
@@ -98,7 +98,7 @@ export const Node = {
   switch<T>(node: Node, handlers: NodeHandlersForSwitch<T>): T {
     const k: unknown = (node as any).kind;
     if (typeof node === "string") {
-      return handlers.onCodePoint(node);
+      return handlers.onGrapheme(node);
     } else if (k === Models.BlockKind.Header) {
       return handlers.onHeaderBlock(node as any);
     } else if (k === Models.BlockKind.Paragraph) {
@@ -120,7 +120,7 @@ export const Node = {
  */
 export type NodeHandlersForSwitch<T> = {
   onDocument: (d: Models.Document) => T;
-  onCodePoint: (s: Models.CodePoint) => T;
+  onGrapheme: (s: Models.Grapheme) => T;
   onHeaderBlock: (b: Models.HeaderBlock) => T;
   onParagraphBlock: (b: Models.ParagraphBlock) => T;
   onInlineText: (e: Models.InlineText) => T;
@@ -128,7 +128,7 @@ export type NodeHandlersForSwitch<T> = {
 };
 
 /**
- * Helper type that lists the Node types that have text / code points.
+ * Helper type that lists the Node types that have text / graphemes.
  */
 export type NodeThatContainsText = Models.InlineText | Models.InlineUrlLink;
 

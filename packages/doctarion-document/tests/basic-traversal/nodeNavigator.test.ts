@@ -17,7 +17,7 @@ test("navigateTo", () => {
     nav.navigateTo([
       [PathPartLabel.Block, 1],
       [PathPartLabel.Content, 1],
-      [PathPartLabel.CodePoint, 2],
+      [PathPartLabel.Grapheme, 2],
     ])
   ).toBeTruthy();
   expect(debugPath(nav)).toMatchInlineSnapshot(`"block:1/content:1/cp:2"`);

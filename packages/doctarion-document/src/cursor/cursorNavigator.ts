@@ -14,7 +14,7 @@ import { PositionClassification } from "./positions";
  * To make the behavior of things like navigation more deterministic we prefer
  * some cursor positions to others even when they are equivalent. Specifically
  * we bias towards positions after nodes and we prefer to those that relate to
- * a code point vs not realted to one.
+ * a grapheme vs not realted to one.
  */
 export class CursorNavigator {
   private currentAffinity: CursorAffinity;
@@ -41,8 +41,8 @@ export class CursorNavigator {
 
   public classifyCurrentPosition(): PositionClassification | undefined {
     const el = this.nodeNavigator.tip.node;
-    if (Node.isCodePoint(el)) {
-      return PositionClassification.CodePoint;
+    if (Node.isGrapheme(el)) {
+      return PositionClassification.Grapheme;
     } else if (PositionClassification.isEmptyInsertionPoint(el)) {
       return PositionClassification.EmptyInsertionPoint;
     } else if (
@@ -67,7 +67,7 @@ export class CursorNavigator {
   }
 
   /**
-   * Note that when navigating to a code point with before affinity, the
+   * Note that when navigating to a grapheme with before affinity, the
    * navigator may choose to use an earlier point with after affinity.
    */
   public navigateTo(cursor: Cursor): boolean;

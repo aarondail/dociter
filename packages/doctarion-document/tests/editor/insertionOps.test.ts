@@ -94,7 +94,7 @@ CURSOR: block:0/content:0/cp:0 |>
 SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   });
 
-  it("inserts muliple code points successfully", () => {
+  it("inserts muliple graphemes successfully", () => {
     const editor = new Editor(testDoc1);
     // Jump to second N in the "NNN" inline text
     editor.update(Ops.jumpTo("block:1/content:2/cp:1", After));
@@ -246,7 +246,7 @@ PARAGRAPH > URL_LINK test.com > "ABC"`);
   });
 
   // ---------------------------------------------------------------------------
-  // Insertion at the Code Point Level
+  // Insertion at the Grapheme Level
   // ---------------------------------------------------------------------------
 
   it("should insert into the middle of a inline text with before affinity", () => {

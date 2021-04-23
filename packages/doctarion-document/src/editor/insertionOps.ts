@@ -18,7 +18,7 @@ export const insertText = (text: string | Models.Text) => (
   state: immer.Draft<EditorState>,
   services: EditorOperationServices
 ): void => {
-  const codePoints = typeof text === "string" ? Models.Text.fromString(text) : text;
+  const graphemes = typeof text === "string" ? Models.Text.fromString(text) : text;
 
   if (state.selection) {
     deleteSelection(state, services);
@@ -29,18 +29,18 @@ export const insertText = (text: string | Models.Text) => (
   const node = castDraft(nav.tip.node);
 
   switch (nav.classifyCurrentPosition()) {
-    case PositionClassification.CodePoint:
+    case PositionClassification.Grapheme:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (!Node.containsText(parent.node)) {
           throw new Error(
-            "Found a code point whole parent that apparently does not have text which should be impossible"
+            "Found a grapheme whole parent that apparently does not have text which should be impossible"
           );
         }
 
         const offset = state.cursor.affinity === CursorAffinity.Before ? 0 : 1;
 
-        castDraft(parent.node.text).splice(PathPart.getIndex(tip.pathPart) + offset, 0, ...codePoints);
-        for (let i = 0; i < codePoints.length; i++) {
+        castDraft(parent.node.text).splice(PathPart.getIndex(tip.pathPart) + offset, 0, ...graphemes);
+        for (let i = 0; i < graphemes.length; i++) {
           nav.navigateToNextCursorPosition();
         }
         state.cursor = castDraft(nav.cursor);
@@ -49,22 +49,22 @@ export const insertText = (text: string | Models.Text) => (
 
     case PositionClassification.EmptyInsertionPoint:
       if (Node.containsText(node)) {
-        node.text.push(...codePoints);
-        nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
+        node.text.push(...graphemes);
+        nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
         state.cursor = castDraft(nav.cursor);
       } else if (Node.containsInlineContent(node)) {
-        const newInline = Models.InlineText.new(codePoints);
+        const newInline = Models.InlineText.new(graphemes);
         node.content.push(castDraft(newInline));
         services.tracking.register(newInline, node);
         nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
         state.cursor = castDraft(nav.cursor);
       } else if (Node.isDocument(node)) {
-        const newInline = Models.InlineText.new(codePoints);
+        const newInline = Models.InlineText.new(graphemes);
         const newParagraph = Models.Block.paragraph(newInline);
         services.tracking.register(newParagraph, node);
         services.tracking.register(newInline, newParagraph);
         node.blocks.push(castDraft(newParagraph));
-        nav.navigateToLastDescendantCursorPosition(); // Move to the last Code Point
+        nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
         state.cursor = castDraft(nav.cursor);
       } else {
         throw new Error("Cursor is on an empty insertion point where there is no way to insert text somehow");
@@ -74,7 +74,7 @@ export const insertText = (text: string | Models.Text) => (
     case PositionClassification.BeforeInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (Node.containsInlineContent(parent.node)) {
-          const newInline = Models.InlineText.new(codePoints);
+          const newInline = Models.InlineText.new(graphemes);
           castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav = refreshNavigator(nav);
@@ -89,7 +89,7 @@ export const insertText = (text: string | Models.Text) => (
     case PositionClassification.AfterInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (Node.containsInlineContent(parent.node)) {
-          const newInline = Models.InlineText.new(codePoints);
+          const newInline = Models.InlineText.new(graphemes);
           castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav.navigateToNextSiblingLastDescendantCursorPosition();
@@ -120,11 +120,11 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   let destinationNavigator: NodeNavigator | undefined;
 
   switch (startingNav.classifyCurrentPosition()) {
-    case PositionClassification.CodePoint:
+    case PositionClassification.Grapheme:
       ifLet(Chain.getGrandParentToTipIfPossible(startingNav.chain), ([grandParent, parent, tip]) => {
         if (!Node.containsText(parent.node) || !Node.containsInlineContent(grandParent.node)) {
           throw new Error(
-            "Found code point outside of a parent that contains text or a grand parent that contains inline content."
+            "Found grapheme outside of a parent that contains text or a grand parent that contains inline content."
           );
         }
 
@@ -133,7 +133,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
         }
 
         if (!tip.pathPart || !parent.pathPart) {
-          throw new Error("Found a code point or inline text without a pathPart");
+          throw new Error("Found a grapheme or inline text without a pathPart");
         }
 
         const index = PathPart.getIndex(tip.pathPart) + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);

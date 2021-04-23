@@ -22,7 +22,7 @@ import { EditorState } from "./editor";
 /**
  * Lookup nodes, and the chain to nodes, by their id.
  *
- * Note, even though code points are nodes they are not assigned ids and thus
+ * Note, even though graphemes are nodes they are not assigned ids and thus
  * this service never deals with them.
  */
 export class EditorNodeLookupService {
@@ -99,7 +99,7 @@ export class EditorNodeLookupService {
  *
  * This is intended to _only_ be used by `EditorOperation` functions.
  *
- * Note, even though code points are nodes they are not assigned ids and thus
+ * Note, even though graphemes are nodes they are not assigned ids and thus
  * this service never deals with them.
  */
 export class EditorNodeTrackingService {
@@ -119,7 +119,7 @@ export class EditorNodeTrackingService {
 
   /**
    * When a new node is added to the document, this method must be called (the
-   * exception being code points). This method assigns the node its id.
+   * exception being graphemes). This method assigns the node its id.
    */
   public register(node: Node, parent: Node | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -154,7 +154,7 @@ export class EditorNodeTrackingService {
  * This service provides a way for document rendering code (that exists outside
  * this library and uses the Editor) to inform the Editor and the operations
  * about how the document is being rendered. The rendering code registers
- * `NodeLayoutProvider`s for the nodes (aside from code points as they lack
+ * `NodeLayoutProvider`s for the nodes (aside from graphemes as they lack
  * ids) as they are rendered. The providers then give the operations the
  * ability to figure out where the nodes are by getting their LayoutRect.
  *
@@ -216,7 +216,7 @@ export interface EditorOperationServices {
    * The node tracking service is responsible for assigning node ids, and
    * looking up nodes by id.
    *
-   * Note: code points don't get assigned unique ids and that for ids to be
+   * Note: graphemes don't get assigned unique ids and that for ids to be
    * assigned, this service has to be called. It doesn't automagically assign
    * ids to new nodes.
    */

@@ -47,7 +47,7 @@ export const ChainLink = (() => {
     }),
     block: (b: Models.Block, index: number) => build(PathPart.block(index), b),
     content: (i: Models.Inline, index: number) => build(PathPart.content(index), i),
-    codePoint: (cp: Models.CodePoint, index: number) => build(PathPart.codePoint(index), cp),
+    grapheme: (g: Models.Grapheme, index: number) => build(PathPart.grapheme(index), g),
   };
 })();
 

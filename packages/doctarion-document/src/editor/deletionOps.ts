@@ -18,7 +18,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
   let nav = getCursorNavigatorAndValidate(state, services);
 
   switch (nav.classifyCurrentPosition()) {
-    case PositionClassification.CodePoint:
+    case PositionClassification.Grapheme:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
         if (!Node.containsText(parent.node)) {
           return false;
@@ -60,7 +60,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
           // doesn't need to do anything in the case of non-InlineText's but for
           // InlineTexts it can try to delete the actual prior text. But because
           // of the way the cursor navigator works this genreally won't happen
-          // because it almost always prefers after affinity for code points except
+          // because it almost always prefers after affinity for graphemes except
           // when it absolutely cannot make that work.
           //
           // To make our lives easier we just do nothing here for now. I
@@ -128,9 +128,9 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
   }
 
   // Unregister all child nodes and the node itself
-  if (!Node.isCodePoint(node)) {
+  if (!Node.isGrapheme(node)) {
     nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
-      skipCodePoints: true,
+      skipGraphemes: true,
     });
     services.tracking.unregister(node);
   }

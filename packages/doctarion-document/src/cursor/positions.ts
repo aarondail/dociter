@@ -5,7 +5,7 @@ import { Node } from "../nodes";
 
 // -----------------------------------------------------------------------------
 // There are three or so places where a cursor may be placed GENERALLY:
-// 1. Between, before, and after code points.
+// 1. Between, before, and after graphemes.
 // 3. On an node that can contain children but does not currently have any
 //    children.  This could be an empty InlineText or InlineUrlLink but could
 //    be a ParagraphBlock or HeaderBlock or even the Document itself.
@@ -13,7 +13,7 @@ import { Node } from "../nodes";
 //    node (e.g. InlineUrlLink) when the sibling is also not an InlineText
 //    node (or there is no sibling).
 //
-// We refer to 1 as "code points", 2 as "empty insertion points", and 3 as
+// We refer to 1 as "graphemes", 2 as "empty insertion points", and 3 as
 // "in-between insertion points".
 //
 // Also one thing to note is that some cursor positions are different but
@@ -24,11 +24,11 @@ import { Node } from "../nodes";
 // Because of that, to make the behavior of things like navigation more
 // deterministic we prefer some cursor positions to others even when they are
 // equivalent. Specifically we bias towards positions after nodes and we prefer
-// to those that relate to a code point vs not realted to one.
+// to those that relate to a grapheme vs not realted to one.
 // -----------------------------------------------------------------------------
 
 enum PositionClassificationBase {
-  CodePoint = "CODE_POINT",
+  Grapheme = "GRAPHEME",
   EmptyInsertionPoint = "EMPTY_INSERTION_POINT",
   BeforeInBetweenInsertionPoint = "BEFORE_IN_BETWEEN_INSERTION_POINT",
   AfterInBetweenInsertionPoint = "AFTER_IN_BETWEEN_INSERTION_POINT",
@@ -56,7 +56,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
     const parent = Chain.getParentIfPossible(navigator.chain)?.node;
-    if (Node.isCodePoint(el)) {
+    if (Node.isGrapheme(el)) {
       // For text, we generally prefer after affinity. One case where we don't
       // is when the character is at the end or start of a line that was
       // visually wrapped.
@@ -65,13 +65,13 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
       // are different rules for text inside an InlineText and for text in other
       // inline nodes.
       //
-      // For InlineText we only suggest before affinity if the code point is the
+      // For InlineText we only suggest before affinity if the grapheme is the
       // first in the InlineText node and the preceeding parent node (e.g. some
       // other inline node) is NOT an InlineText OR is an InlineText that has no
       // children
       //
       // For text in other inline nodes, it is simpler and it only matters if it
-      // is the first code point in that node.
+      // is the first grapheme in that node.
       if (parent && Node.containsText(parent) && precedingSibling === undefined) {
         if (Node.isInlineText(parent)) {
           const parentPrecedingSibling = navigator.precedingParentSiblingNode;
@@ -107,7 +107,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
       // For in between insertion points, we ignore those in case there the
       // preceding or next sibiling element is an InlineText. Because in this
       // case we prefer to have the cursor on the existing InlineText (even if
-      // it has no code points).
+      // it has no graphemes).
       if (hasBeforeBetweenInsertionPoint && !precedingSibling) {
         result.before = true;
       }

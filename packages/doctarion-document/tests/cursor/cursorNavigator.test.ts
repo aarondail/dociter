@@ -95,7 +95,7 @@ const TestHelpers = {
 };
 
 describe("navigateTo", () => {
-  it("navigates to code points in a fleshed out doc", () => {
+  it("navigates to graphemes in a fleshed out doc", () => {
     const nav = new CursorNavigator(testDoc1);
     nav.navigateTo("block:1/content:1/cp:2", CursorAffinity.After);
     expect(debugCursorNavigator(nav)).toEqual("block:1/content:1/cp:2 |>");
@@ -123,7 +123,7 @@ describe("navigateTo", () => {
     expect(nav2.tip.node).toEqual("B");
   });
 
-  it("navigates to code points and changes affinity in some cases", () => {
+  it("navigates to graphemes and changes affinity in some cases", () => {
     const nav = new CursorNavigator(testDoc1);
     expect(nav.navigateTo("block:2/content:2/cp:3", CursorAffinity.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("block:2/content:2/cp:2 |>");
@@ -194,7 +194,7 @@ describe("navigateToNextCursorPosition", () => {
     });
   });
 
-  it("should navigate through code points", () => {
+  it("should navigate through graphemes", () => {
     const nav = new CursorNavigator(testDoc1);
     const next = nextPrime.bind(undefined, nav);
     next(1);
@@ -375,7 +375,7 @@ describe("navigateToPrecedingCursorPosition", () => {
     });
   });
 
-  it("should navigate through code points", () => {
+  it("should navigate through graphemes", () => {
     const nav = new CursorNavigator(testDoc1);
     const back = backPrime.bind(undefined, nav);
     nav.navigateTo("block:2/content:2/cp:1", CursorAffinity.After);
