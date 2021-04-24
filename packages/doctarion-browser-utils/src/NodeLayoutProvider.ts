@@ -19,6 +19,38 @@ export interface DetailedLayoutForNodeContainingOnlyText {
 export class NodeLayoutProvider {
   public constructor(public element?: HTMLElement, public node?: Node) {}
 
+  /**
+   * This is for testing.
+   */
+  public getAllGraphemeLayoutRectsForNodeContainingOnlyText(): (LayoutRect | undefined)[] | undefined {
+    if (!this.element || !this.node || !(Node.isInlineText(this.node) || Node.isInlineUrlLink(this.node))) {
+      return undefined;
+    }
+
+    const graphemeCount = this.node.text.length;
+    const codeUnitCount = this.element.textContent?.length || 0;
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const c = this.element.firstChild!;
+    const r = new Range();
+    r.selectNodeContents(this.element);
+
+    const graphemeToCodeUnitMap = buildGraphemeToCodeUnitMap(this.node.text);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const graphemeToRectMap: (LayoutRect | undefined)[] = new Array(graphemeCount);
+
+    for (let gi = 0; gi < graphemeCount; gi++) {
+      graphemeToRectMap[gi] = this.getCodeUnitLayout(
+        c,
+        r,
+        graphemeToCodeUnitMap[gi],
+        gi === graphemeCount - 1 ? codeUnitCount : graphemeToCodeUnitMap[gi + 1]
+      );
+    }
+
+    return graphemeToRectMap;
+  }
+
   // TODO consider reworking Inline to make it clear there are inlines that
   // contain text, and inlines that don't and no other nodes contain text other
   // than inlines.
@@ -52,10 +84,10 @@ export class NodeLayoutProvider {
 
     const graphemeToCodeUnitMap = buildGraphemeToCodeUnitMap(this.node.text);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const graphemeToRectMap: (LayoutRect | undefined)[] = new Array(codeUnitCount);
+    const graphemeToRectMap: (LayoutRect | undefined)[] = new Array(graphemeCount);
 
     let leftIndex = 0;
-    let leftRect = this.getCodeUnitLayout(c, r, leftIndex, graphemeToCodeUnitMap[1] - 1);
+    let leftRect = this.getCodeUnitLayout(c, r, leftIndex, graphemeToCodeUnitMap[1]);
     graphemeToRectMap[leftIndex] = leftRect;
 
     let rightIndex = graphemeCount - 1;
@@ -67,7 +99,7 @@ export class NodeLayoutProvider {
           c,
           r,
           rightIndex,
-          rightIndex === graphemeCount - 1 ? codeUnitCount - 1 : graphemeToCodeUnitMap[rightIndex + 1] - 1
+          rightIndex === graphemeCount - 1 ? codeUnitCount : graphemeToCodeUnitMap[rightIndex + 1]
         );
         if (!rightRect) {
           break;
@@ -79,7 +111,7 @@ export class NodeLayoutProvider {
 
       if (leftIndex === rightIndex - 1) {
         if (!sameLine) {
-          lineBreaks.add(leftIndex);
+          lineBreaks.add(rightIndex);
         }
         // Advance below
       } else {

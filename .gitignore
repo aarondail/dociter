@@ -6,8 +6,11 @@ coverage
 # production
 build
 
-#typescript
+# typescript
 *.tsbuildinfo
+
+# temp folder/dir
+temp
 
 # misc
 .DS_Store

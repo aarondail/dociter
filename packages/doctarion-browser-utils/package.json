@@ -7,8 +7,10 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "build:w": "tsc --build tsconfig.build.json --watch",
-    "test": "jest",
-    "test:w": "jest --watch",
+    "test:w": "concurrently -n bundle,live-server 'yarn test:bundle:w' 'yarn test:server'",
+    "test:bundle:w": "chokidar 'src/*.ts' 'tests/*.ts' -c 'yarn test:bundle'",
+    "test:bundle": "esbuild tests/NodeLayoutProvider.test.ts --bundle --outfile=temp/test-bundle.js",
+    "test:server": "live-server --open=tests/NodeLayoutProvider.html .",
     "format": "prettier --write {src,tests}/**/*.ts",
     "lint": "tsc --noEmit && eslint {src,tests}/**/*.ts",
     "pre-commit": "lint-staged"
@@ -18,25 +20,25 @@
     "doctarion-utils": "*"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.21",
     "@types/lodash": "^4.14.168",
     "@typescript-eslint/eslint-plugin": "^4.18.0",
     "@typescript-eslint/parser": "^4.18.0",
+    "chokidar-cli": "^2.1.0",
+    "concurrently": "^6.0.2",
+    "esbuild": "^0.11.14",
     "eslint": "^7.22.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jest": "^24.3.2",
     "eslint-plugin-prettier": "^3.3.1",
-    "jest": "^26.6.3",
     "lint-staged": "^10.5.4",
+    "live-server": "^1.2.1",
+    "lodash": "^4.17.21",
     "prettier": "^2.2.1",
-    "ts-jest": "^26.5.4",
     "typescript": "^4.2.3"
   },
   "lint-staged": {
     "{src,tests}/**/*.{js,ts,jsx,tsx}": [
-      "eslint --fix",
-      "jest --bail --findRelatedTests"
+      "eslint --fix"
     ]
   }
 }
