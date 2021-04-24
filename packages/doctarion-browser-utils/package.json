@@ -1,0 +1,42 @@
+{
+  "name": "doctarion-browser-utils",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "build:w": "tsc --build tsconfig.build.json --watch",
+    "test": "jest",
+    "test:w": "jest --watch",
+    "format": "prettier --write {src,tests}/**/*.ts",
+    "lint": "tsc --noEmit && eslint {src,tests}/**/*.ts",
+    "pre-commit": "lint-staged"
+  },
+  "dependencies": {
+    "doctarion-document": "*",
+    "doctarion-utils": "*"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.21",
+    "@types/lodash": "^4.14.168",
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "eslint": "^7.22.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jest": "^24.3.2",
+    "eslint-plugin-prettier": "^3.3.1",
+    "jest": "^26.6.3",
+    "lint-staged": "^10.5.4",
+    "prettier": "^2.2.1",
+    "ts-jest": "^26.5.4",
+    "typescript": "^4.2.3"
+  },
+  "lint-staged": {
+    "{src,tests}/**/*.{js,ts,jsx,tsx}": [
+      "eslint --fix",
+      "jest --bail --findRelatedTests"
+    ]
+  }
+}
