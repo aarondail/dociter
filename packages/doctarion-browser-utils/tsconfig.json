@@ -16,7 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": [ "src/**/*", "tests/**/*" ],
+  "include": [ "src/**/*", "tests/**/*", "karma.conf.js" ],
   "references": [
     { "path": "../doctarion-document/tsconfig.build.json" },
     { "path": "../doctarion-utils/tsconfig.build.json" }
