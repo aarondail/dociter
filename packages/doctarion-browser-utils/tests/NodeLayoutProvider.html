@@ -15,7 +15,9 @@ p {
   font-family: Arial;
   min-height: 100px;
   margin: 0 20px 0 0;
-
+  /* This is needed to get whitespace to be honored AND line breaks */
+  /* https://developer.mozilla.org/en-US/docs/Web/CSS/white-space */
+  white-space: break-spaces;
 }
 p.results {
   background-color: lightcyan;
@@ -43,15 +45,31 @@ p.results.failed {
 <p id="test3r" class="results"></p>
 </div>
 <div class="row">
-<p id="test4" style="font-size: 20px;">
-  This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
-</p>
+<p id="test4">
+  This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
 <p id="test4r" class="results"></p>
+</div>
+<div class="row">
+  <p id="test5" style="font-size: 4px;">
+    This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
+  <p id="test5r" class="results"></p>
+  </div>
+<div class="row">
+<p id="test6" style="white-space: normal;">
+
+  The     a quick brown     a      fox 🦊 ate a zesty              hamburgerfons 🍔.
+  
+  
+  
+  The 👩‍👩‍👧‍👧 laughed.
+
+</p>
+<p id="test6r" class="results"></p>
+</div>
 <!-- The next test shoudl have multiple inlines -->
 <!-- <p id="test4" style="font-size: 3px;">
   This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
 </p> -->
-</div>
 </body>
 <script type="text/javascript" src="../temp/test-bundle.js">
 </script>

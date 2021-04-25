@@ -27,7 +27,11 @@ export function areGraphemeRectsOnSameLine(earlier: LayoutRect, later: LayoutRec
   if (earlier.left > later.left) {
     return false;
   }
-  return !(earlier.bottom < later.top);
+  const r = earlier.bottom > later.top;
+  // if (r) {
+  //   debugger;
+  // }
+  return r;
 }
 
 export function buildGraphemeToCodeUnitMap(text: Text): number[] {

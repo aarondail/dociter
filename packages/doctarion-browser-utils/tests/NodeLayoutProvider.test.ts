@@ -8,7 +8,8 @@ import { NodeLayoutProvider } from "../src";
 
 // TESTS TO RUN
 
-const tests = [test1, test2, test3, test4];
+const tests = [test1, test2, test3, test4, test5, test6];
+// const tests = [test6];
 
 // HELPER
 
@@ -82,10 +83,26 @@ function test3({ provider, ex }: TestArgs) {
   ex.equal(layout?.layoutRects.length, 1);
   ex.equal(layout?.graphemeLineBreaks?.size, 3);
 
-  // debugHelper(p);
+  // debugHelper(provider);
 }
 
 function test4({ provider, ex }: TestArgs) {
+  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  ex.truthy(layout);
+  ex.equal(layout?.layoutRects.length, 1);
+  ex.equal(layout?.graphemeLineBreaks?.size, 23);
+  // debugHelper(provider);
+}
+
+function test5({ provider, ex }: TestArgs) {
+  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  ex.truthy(layout);
+  ex.equal(layout?.layoutRects.length, 1);
+  ex.equal(layout?.graphemeLineBreaks?.size, 5);
+  // debugHelper(provider);
+}
+
+function test6({ provider, ex }: TestArgs) {
   const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
   ex.truthy(layout);
   ex.equal(layout?.layoutRects.length, 1);
@@ -133,13 +150,17 @@ function debugHelper(p: NodeLayoutProvider) {
     const interesting = interestingGraphemes?.has(i);
     const rect = document.createElement("div");
     const { left, top, width, height } = r;
-    const color = interesting ? "magenta" : colors[i % colors.length];
+    const color = interesting ? "orange" : colors[i % colors.length];
     const opacity = interesting ? "100%" : "40%";
     const borderSize = interesting ? "2px" : "2px";
+    // if (!interesting) {
+    //   i++;
+    //   continue;
+    // }
     rect.style.cssText = `
 position: absolute; box-sizing: border-box; opacity: ${opacity};
 left: ${left}px; top: ${top}px; width: ${width}px; height: ${height}px;
-border: solid ${borderSize} ${color};`;
+border: solid ${borderSize} ${color}; ${interesting ? "background-color: rgba(255,255,255,0.5); " : ""}`;
     document.body.appendChild(rect);
     i++;
   }

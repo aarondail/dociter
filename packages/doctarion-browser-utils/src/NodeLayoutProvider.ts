@@ -45,6 +45,7 @@ export class NodeLayoutProvider {
         r,
         graphemeToCodeUnitMap[gi],
         gi === graphemeCount - 1 ? codeUnitCount : graphemeToCodeUnitMap[gi + 1]
+        // "gi: " + this.node.text[gi]
       );
     }
 
@@ -59,6 +60,11 @@ export class NodeLayoutProvider {
     // just `containsText` is that this logic won't work for a theoreticaly node
     // that contains text AND something else. Not sure we will have such a node,
     // but this fells safer.
+    //
+    // Also this algorithm won't work (or wont be guarentted to work?) if the
+    // letters bounding rectangles vary wildly in height. This should be ok,
+    // since this is a single HTMLElement and so all the characters should have
+    // the same styling (as long as no crazy CSS is being used)
     if (!this.element || !this.node || !(Node.isInlineText(this.node) || Node.isInlineUrlLink(this.node))) {
       return undefined;
     }
@@ -84,50 +90,111 @@ export class NodeLayoutProvider {
 
     const graphemeToCodeUnitMap = buildGraphemeToCodeUnitMap(this.node.text);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const graphemeToRectMap: (LayoutRect | undefined)[] = new Array(graphemeCount);
+    const graphemeToRectMap: (LayoutRect | undefined | null)[] = new Array(graphemeCount);
+
+    const getRectForGrapheme = (i: number) => {
+      let rect = graphemeToRectMap[i];
+      if (rect !== undefined) {
+        return rect;
+      }
+      rect =
+        this.getCodeUnitLayout(
+          c,
+          r,
+          graphemeToCodeUnitMap[i],
+          i === graphemeCount - 1 ? codeUnitCount : graphemeToCodeUnitMap[i + 1]
+        ) || null;
+      graphemeToRectMap[i] = rect;
+      return rect;
+    };
 
     let leftIndex = 0;
-    let leftRect = this.getCodeUnitLayout(c, r, leftIndex, graphemeToCodeUnitMap[1]);
+    let leftRect = getRectForGrapheme(leftIndex);
     graphemeToRectMap[leftIndex] = leftRect;
 
     let rightIndex = graphemeCount - 1;
     const lineBreaks = new Set<number>();
-    while (leftRect && leftIndex < rightIndex) {
-      let rightRect = graphemeToRectMap[rightIndex];
+    while (leftIndex < rightIndex) {
+      // console.log("NLP::loop", leftIndex, rightIndex);
+
+      // Advance left forward if it doesn't have a rect
+      if (!leftRect) {
+        // console.log("no left rect");
+        leftIndex++;
+        leftRect = getRectForGrapheme(leftIndex);
+        continue;
+      }
+
+      let rightRect = getRectForGrapheme(rightIndex);
+
+      let allRectsBetweenLeftAndRightAreNull = false;
       if (!rightRect) {
-        rightRect = this.getCodeUnitLayout(
-          c,
-          r,
-          rightIndex,
-          rightIndex === graphemeCount - 1 ? codeUnitCount : graphemeToCodeUnitMap[rightIndex + 1]
-        );
+        // console.log("no right rect");
+        const originalRightIndex = rightIndex;
+
+        // Are there any rects between this and leftIndex?
+        while (leftIndex < rightIndex - 1) {
+          rightIndex--;
+          rightRect = getRectForGrapheme(rightIndex);
+          if (rightRect) {
+            break;
+          }
+        }
+
+        // If we adjusted the rightIndex position and landed on a rect
+        if (rightRect) {
+          // Loop back around and retry everything
+          continue;
+        }
+
+        allRectsBetweenLeftAndRightAreNull = true;
+
+        // If there were no rects beteween the leftIndex and the
+        // originalRightIndex then we need to try to go to the right to find the
+        // next non undefined rect now...
+        rightIndex = originalRightIndex;
+
+        while (rightIndex < graphemeCount) {
+          rightIndex++;
+          rightRect = getRectForGrapheme(rightIndex);
+          if (rightRect) {
+            break;
+          }
+        }
+
+        // If there are no rects left we are done
         if (!rightRect) {
           break;
         }
-        graphemeToRectMap[rightIndex] = rightRect;
       }
 
+      // console.log(leftRect.top, rightRect.top);
+      // There is a right rect, is it on the same line as the leftRect?
       const sameLine = areGraphemeRectsOnSameLine(leftRect, rightRect);
 
-      if (leftIndex === rightIndex - 1) {
+      if (leftIndex === rightIndex - 1 || allRectsBetweenLeftAndRightAreNull) {
         if (!sameLine) {
+          // console.log("##### adding line break");
+          // console.log( leftIndex, rightIndex, this.node.text[leftIndex], leftRect, this.node.text[rightIndex], rightRect);
           lineBreaks.add(rightIndex);
         }
-        // Advance below
+        // Advance both below
       } else {
         if (sameLine) {
-          // Advance below
+          // Advance both below
         } else {
           // Search between left and right
-          rightIndex = Math.max(leftIndex + 1, Math.floor(leftIndex + (rightIndex - leftIndex) / 2));
+          rightIndex = Math.max(leftIndex + 1, Math.floor(leftIndex + (rightIndex - leftIndex) / 4));
           continue;
         }
       }
-      // Advance
+
+      // Advance both left and right here
       leftIndex = rightIndex;
       leftRect = rightRect;
-      const remaining = graphemeCount - leftIndex;
-      rightIndex = Math.min(Math.floor(remaining / 2) + leftIndex, graphemeCount - 1);
+      // const remaining = graphemeCount - leftIndex;
+      rightIndex = graphemeCount - 1; // Math.min(Math.floor(remaining / 2) + leftIndex, graphemeCount - 1);
+      // console.log("advanceing", leftIndex, rightIndex, leftIndex < rightIndex);
     }
 
     return {
@@ -201,8 +268,19 @@ export class NodeLayoutProvider {
     return result;
   }
 
-  private getCodeUnitLayout(firstChild: ChildNode, range: Range, start: number, end: number): LayoutRect | undefined {
-    // console.log(i);
+  /**
+   * This can return undefined sometimes when there is literally nothing
+   * renderered for the code point (e.g. if it is a whitespace in a sequence of
+   * whitespace, and all the whitespace is collapsed).
+   */
+  private getCodeUnitLayout(
+    firstChild: ChildNode,
+    range: Range,
+    start: number,
+    end: number,
+    debug?: string
+  ): LayoutRect | undefined {
+    // console.log("getcodeUnitlayout", start, end);
     range.setStart(firstChild, start);
     range.setEnd(firstChild, end);
 
@@ -210,10 +288,16 @@ export class NodeLayoutProvider {
     if (rects.length === 0) {
       return undefined;
     } else if (rects.length === 1) {
+      // console.warn("=== 1 rect", debug, rects);
       return adjustRect(rects[0]);
     } else if (rects.length === 2) {
+      // console.warn("=== 2 rects", debug, rects);
+      if (rects[0].width === 0) {
+        return adjustRect(rects[1]);
+      }
       return adjustRect(rects[1]);
     } else {
+      console.warn("> 2 rects", debug, rects);
       // throw new Error("Unexpected number of rects when getting a code point's layout.");
       return adjustRect(rects[0]);
     }
