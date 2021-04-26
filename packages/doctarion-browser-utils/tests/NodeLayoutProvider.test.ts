@@ -8,7 +8,7 @@ import { NodeLayoutProvider } from "../src";
 
 // TESTS TO RUN
 
-const tests = [test1, test2, test3, test4, test5, test6];
+const tests = [test1, test2, test3, test4, test5, test6, test7];
 // const tests = [test6];
 
 // HELPER
@@ -107,7 +107,15 @@ function test6({ provider, ex }: TestArgs) {
   ex.truthy(layout);
   ex.equal(layout?.layoutRects.length, 1);
   ex.equal(layout?.graphemeLineBreaks?.size, 3);
-  debugHelper(provider);
+  // debugHelper(provider);
+}
+
+function test7({ provider, ex }: TestArgs) {
+  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  ex.truthy(layout);
+  ex.truthy(layout?.layoutRects.length || 0 >= 3);
+  ex.equal(layout?.graphemeLineBreaks?.size, 5);
+  // debugHelper(provider);
 }
 
 // TEST RUNNER
@@ -136,6 +144,7 @@ for (const test of tests) {
 
 // OTHER HELPER
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function debugHelper(p: NodeLayoutProvider) {
   const rects = p.getAllGraphemeLayoutRectsForNodeContainingOnlyText() || [];
   const interestingGraphemes = p.getDetailedLayoutForNodeContainingOnlyText()?.graphemeLineBreaks;

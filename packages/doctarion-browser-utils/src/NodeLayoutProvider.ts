@@ -203,59 +203,6 @@ export class NodeLayoutProvider {
     };
   }
 
-  // public getGraphemeLayout(startOffset?: number, endOffset?: number): LayoutRect[] | undefined {
-  //   if (!this.element || !this.node || !Node.containsText(this.node)) {
-  //     return undefined;
-  //   }
-
-  //   // console.log("Get grapheme layout,", startOffset, endOffset);
-  //   const r = new Range();
-  //   r.selectNodeContents(this.element);
-
-  //   const maxLen = (this.element.textContent?.length || 1) - 1;
-
-  //   let start = 0;
-  //   let end = maxLen;
-  //   if (startOffset !== undefined) {
-  //     for (let i = 0; i < startOffset; i++) {
-  //       // Add the CODE UNITS for an individual grapheme to the start
-  //       start += this.node.text[i].length;
-  //     }
-  //   }
-  //   if (endOffset !== undefined) {
-  //     end = start;
-  //     for (let i = startOffset !== undefined ? startOffset : 0; i < endOffset; i++) {
-  //       // Add the CODE UNITS for an individual grapheme to the start
-  //       end += this.node.text[i].length;
-  //     }
-  //   }
-
-  //   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  //   const c = this.element.firstChild!;
-  //   const results = [];
-  //   for (let i = start; i <= end; i++) {
-  //     // console.log(i);
-  //     r.setStart(c, i);
-  //     r.setEnd(c, i + 1);
-  //     // Sometimes (with line wrapping, a code point will have multiple rects.
-  //     // Using getBoundingClientRect inflates to cover the entire pair of lines)
-  //     //
-  //     // We use the second rect since that is probably the one we want...
-  //     const rects = r.getClientRects();
-  //     // console.log("DocumentNode::getGrapheme rect count = ", rects.length, rects);
-  //     if (rects.length === 1) {
-  //       results.push(this.adjustRect(rects[0]));
-  //     } else if (rects.length === 2) {
-  //       results.push(this.adjustRect(rects[1]));
-  //     } else {
-  //       throw new Error("Unexpected number of rects when getting a code point's layout.");
-  //     }
-  //   }
-
-  //   // console.log("Get grapheme layout, res", results);
-  //   return results;
-  // }
-
   public getLayout(): LayoutRect[] | undefined {
     if (!this.element) {
       return undefined;
@@ -277,8 +224,8 @@ export class NodeLayoutProvider {
     firstChild: ChildNode,
     range: Range,
     start: number,
-    end: number,
-    debug?: string
+    end: number
+    // debug?: string
   ): LayoutRect | undefined {
     // console.log("getcodeUnitlayout", start, end);
     range.setStart(firstChild, start);
@@ -297,7 +244,7 @@ export class NodeLayoutProvider {
       }
       return adjustRect(rects[1]);
     } else {
-      console.warn("> 2 rects", debug, rects);
+      // console.warn("> 2 rects", debug, rects);
       // throw new Error("Unexpected number of rects when getting a code point's layout.");
       return adjustRect(rects[0]);
     }
