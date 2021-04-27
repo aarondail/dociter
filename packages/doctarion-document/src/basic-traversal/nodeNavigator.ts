@@ -1,7 +1,16 @@
 import lodash from "lodash";
 
-import * as Models from "../models";
-import { Node, NodeHandlersForSwitch } from "../nodes";
+import {
+  Document,
+  Grapheme,
+  HeaderBlock,
+  InlineText,
+  InlineUrlLink,
+  Node,
+  NodeHandlersForSwitch,
+  NodeUtils,
+  ParagraphBlock,
+} from "../models";
 
 import { Chain, ChainLink, ChainLinkNotFirst } from "./chain";
 import { Path, PathPart, PathString } from "./path";
@@ -28,8 +37,8 @@ export class NodeNavigator {
    * Construct a new NodeNavigator. The navigator's initial location will be
    * the document itself.
    */
-  public constructor(document: Models.Document);
-  constructor(private readonly document: Models.Document, initialChainUnchecked?: Chain) {
+  public constructor(document: Document);
+  constructor(private readonly document: Document, initialChainUnchecked?: Chain) {
     if (initialChainUnchecked) {
       this.currentChain = initialChainUnchecked;
     } else {
@@ -127,7 +136,7 @@ export class NodeNavigator {
     // In some cases you want to skip navigating through any descendants of the
     // current node
     if (!options?.skipDescendants) {
-      const children = Node.getChildren(this.tip.node);
+      const children = NodeUtils.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
         return this.navigateToLastChild();
       }
@@ -151,7 +160,7 @@ export class NodeNavigator {
     // In some cases you want to skip navigating through any descendants of the
     // current node
     if (!options?.skipDescendants) {
-      const children = Node.getChildren(this.tip.node);
+      const children = NodeUtils.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
         return this.navigateToFirstChild();
       }
@@ -207,7 +216,7 @@ export class NodeNavigator {
   }
 
   public navigateToChild(index: number): boolean {
-    return this.navigateToChildPrime(Node.getChildren(this.tip.node), index);
+    return this.navigateToChildPrime(NodeUtils.getChildren(this.tip.node), index);
   }
 
   public navigateToEndOfDfs(): boolean {
@@ -221,11 +230,11 @@ export class NodeNavigator {
   }
 
   public navigateToFirstChild(): boolean {
-    return this.navigateToChildPrime(Node.getChildren(this.tip.node), 0);
+    return this.navigateToChildPrime(NodeUtils.getChildren(this.tip.node), 0);
   }
 
   public navigateToLastChild(): boolean {
-    const children = Node.getChildren(this.tip.node);
+    const children = NodeUtils.getChildren(this.tip.node);
     return this.navigateToChildPrime(children, (children?.length || 0) - 1);
   }
 
@@ -311,7 +320,7 @@ export class NodeNavigator {
     const n = this.clone();
     const ancestor = n.tip.node;
     while (n.navigateForwardsInDfs() && Chain.contains(n.chain, ancestor)) {
-      if (options?.skipGraphemes && Node.isGrapheme(n.tip.node)) {
+      if (options?.skipGraphemes && NodeUtils.isGrapheme(n.tip.node)) {
         // Skip all graphemes
         n.navigateToParent();
         n.navigateToLastChild();
@@ -324,13 +333,13 @@ export class NodeNavigator {
   private createLinkForChild(child: Node, index: number): ChainLinkNotFirst | undefined {
     const p = ChainLink;
 
-    return Node.switch(child, {
+    return NodeUtils.switch(child, {
       onDocument: () => undefined,
-      onGrapheme: (cp: Models.Grapheme) => p.grapheme(cp, index),
-      onHeaderBlock: (b: Models.HeaderBlock) => p.block(b, index),
-      onParagraphBlock: (b: Models.ParagraphBlock) => p.block(b, index),
-      onInlineText: (e: Models.InlineText) => p.content(e, index),
-      onInlineUrlLink: (e: Models.InlineUrlLink) => p.content(e, index),
+      onGrapheme: (cp: Grapheme) => p.grapheme(cp, index),
+      onHeaderBlock: (b: HeaderBlock) => p.block(b, index),
+      onParagraphBlock: (b: ParagraphBlock) => p.block(b, index),
+      onInlineText: (e: InlineText) => p.content(e, index),
+      onInlineUrlLink: (e: InlineUrlLink) => p.content(e, index),
     });
   }
 
@@ -367,11 +376,11 @@ const navigateToSiblingHelpers = (() => {
   const createConfigForBuildingLinks = (operand: number) =>
     ({
       // @ts-expect-error
-      onDocument: (d, _, idx) => p.block(d.blocks[idx + operand], idx + operand),
+      onDocument: (d, _, idx) => p.block(d.children[idx + operand], idx + operand),
       // @ts-expect-error
-      onHeaderBlock: (b, _, idx) => p.content(b.content[idx + operand], idx + operand),
+      onHeaderBlock: (b, _, idx) => p.content(b.children[idx + operand], idx + operand),
       // @ts-expect-error
-      onParagraphBlock: (b, _, idx) => p.content(b.content[idx + operand], idx + operand),
+      onParagraphBlock: (b, _, idx) => p.content(b.children[idx + operand], idx + operand),
       // @ts-expect-error
       onInlineText: (b, _, idx) => p.grapheme(b.text[idx + operand], idx + operand),
       // @ts-expect-error
@@ -381,11 +390,11 @@ const navigateToSiblingHelpers = (() => {
   const createConfigJustFindingNode = (operand: number) =>
     ({
       // @ts-expect-error
-      onDocument: (d, _, idx) => d.blocks[idx + operand],
+      onDocument: (d, _, idx) => d.children[idx + operand],
       // @ts-expect-error
-      onHeaderBlock: (b, _, idx) => b.content[idx + operand],
+      onHeaderBlock: (b, _, idx) => b.children[idx + operand],
       // @ts-expect-error
-      onParagraphBlock: (b, _, idx) => b.content[idx + operand],
+      onParagraphBlock: (b, _, idx) => b.children[idx + operand],
       // @ts-expect-error
       onInlineText: (b, _, idx) => b.text[idx + operand],
       // @ts-expect-error

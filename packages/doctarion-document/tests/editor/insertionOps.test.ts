@@ -1,6 +1,6 @@
 import { CursorAffinity } from "../../src/cursor";
 import { Editor, OperationError, Ops } from "../../src/editor";
-import * as Models from "../../src/models";
+import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, Neutral, After } = CursorAffinity;
@@ -8,12 +8,12 @@ const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 
 const testDoc1 = doc(
-  header(Models.HeaderLevel.One, inlineText("H1")),
+  header(HeaderLevel.One, inlineText("H1")),
   paragraph(inlineText("MMM"), inlineText(""), inlineText("NNN")),
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", ""), inlineText("DD")),
   paragraph(inlineUrlLink("e.com", "EE"), inlineUrlLink("f.com", "FF")),
-  header(Models.HeaderLevel.One)
+  header(HeaderLevel.One)
 );
 
 describe("insertText", () => {

@@ -1,10 +1,10 @@
 import { Chain, Path } from "../../src/basic-traversal";
-import * as Models from "../../src/models";
+import { HeaderLevel } from "../../src/models";
 import { Range } from "../../src/ranges";
 import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
-  header(Models.HeaderLevel.One, inlineText("H12")),
+  header(HeaderLevel.One, inlineText("H12")),
   paragraph(inlineText("MM"), inlineText(""), inlineText("NN")),
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"))

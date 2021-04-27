@@ -1,8 +1,10 @@
 import { Inline } from "./inlines";
+import { NodeKind, NodeLayoutType, ObjectNode } from "./node";
 
-export enum BlockKind {
-  Header = "HEADER",
-  Paragraph = "PARAGRAPH",
+export abstract class InlineContainingNode extends ObjectNode {
+  public abstract children: readonly Inline[];
+  public abstract kind: NodeKind.ParagraphBlock | NodeKind.HeaderBlock;
+  public abstract layoutType: NodeLayoutType.Block = NodeLayoutType.Block;
 }
 
 export enum HeaderLevel {
@@ -11,34 +13,32 @@ export enum HeaderLevel {
   Three = "THREE",
 }
 
-export interface HeaderBlock {
-  readonly kind: BlockKind.Header;
-  readonly level: HeaderLevel;
-  readonly content: readonly Inline[];
+export class HeaderBlock extends InlineContainingNode {
+  public readonly children: Inline[];
+  public readonly kind = NodeKind.HeaderBlock;
+  public readonly layoutType = NodeLayoutType.Block;
+  public readonly level: HeaderLevel;
+
+  public constructor(level: HeaderLevel = HeaderLevel.One, ...children: Inline[]) {
+    super();
+    this.level = level;
+    this.children = children;
+  }
 }
 
-export interface ParagraphBlock {
-  readonly kind: BlockKind.Paragraph;
-  readonly content: readonly Inline[];
+export class ParagraphBlock extends InlineContainingNode {
+  public readonly children: Inline[];
+  public readonly kind = NodeKind.ParagraphBlock;
+  public readonly layoutType = NodeLayoutType.Block;
+
+  public constructor(...children: Inline[]) {
+    super();
+    this.children = children;
+  }
 }
 
 export type Block = HeaderBlock | ParagraphBlock;
 
-export const Block = {
-  header(level: HeaderLevel = HeaderLevel.One, ...content: Inline[]): HeaderBlock {
-    return {
-      kind: BlockKind.Header,
-      content,
-      level: level,
-    };
-  },
-  paragraph(...content: Inline[]): ParagraphBlock {
-    return {
-      kind: BlockKind.Paragraph,
-      content,
-    };
-  },
-};
 // List(List),
 // Spacer,
 // Floater {

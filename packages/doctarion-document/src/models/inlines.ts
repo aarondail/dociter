@@ -1,8 +1,22 @@
+import { NodeKind, NodeLayoutType, ObjectNode } from "./node";
 import { Text } from "./text";
 
-export enum InlineKind {
-  Text = "TEXT",
-  UrlLink = "URL_LINK",
+// -----------------------------------------------------------------------------
+// Inlines are the only document nodes that can contain text.  Not all inlines
+// do, but only inlines can.  In terms of layout the expectation is that inlines
+// are laid out "in lines" with each other, and possible wrapping of their text
+// or other contents.  This is opposed to blocks that are expected to occupy a
+// horizontal block of space in the flow of the document.
+// -----------------------------------------------------------------------------
+
+export abstract class TextContainingNode extends ObjectNode {
+  public abstract children: Text;
+  public abstract kind: NodeKind.InlineText | NodeKind.InlineUrlLink;
+  public abstract layoutType: NodeLayoutType.Inline = NodeLayoutType.Inline;
+  /**
+   * Alias for children.
+   */
+  public abstract text: Text;
 }
 
 export interface TextModifiers {
@@ -15,42 +29,52 @@ export interface TextModifiers {
   readonly backgroundColor: string;
 }
 
-export interface InlineText {
-  readonly kind: InlineKind.Text;
-  readonly text: Text;
-  readonly modifiers?: Partial<TextModifiers>;
-}
+export class InlineText extends TextContainingNode {
+  public readonly children: Text;
+  public readonly kind = NodeKind.InlineText;
+  public readonly layoutType = NodeLayoutType.Inline;
+  public readonly modifiers?: Partial<TextModifiers>;
 
-export const InlineText = {
-  new: (text: string | Text, modifiers?: Partial<TextModifiers>): InlineText => {
-    return {
-      kind: InlineKind.Text,
-      text: typeof text === "string" ? Text.fromString(text) : text,
-      modifiers,
-    };
-  },
+  public constructor(text: string | Text, modifiers?: Partial<TextModifiers>) {
+    super();
+    this.children = typeof text === "string" ? Text.fromString(text) : text;
+    this.modifiers = modifiers;
+  }
 
-  split(inlineText: InlineText, index: number): [InlineText, InlineText] {
-    const left = InlineText.new(inlineText.text.slice(0, index), inlineText.modifiers && { ...inlineText.modifiers });
-    const right = InlineText.new(inlineText.text.slice(index), inlineText.modifiers && { ...inlineText.modifiers });
+  public split(index: number): [InlineText, InlineText] {
+    const left = new InlineText(this.children.slice(0, index), this.modifiers && { ...this.modifiers });
+    const right = new InlineText(this.children.slice(index), this.modifiers && { ...this.modifiers });
     return [left, right];
-  },
-};
+  }
 
-export interface InlineUrlLink {
-  readonly kind: InlineKind.UrlLink;
-  readonly text: Text;
-  readonly url: string;
+  /**
+   * Convinence property that returns the child graphemes.  This is equivalent
+   * to the children property.
+   */
+  public get text(): Text {
+    return this.children;
+  }
 }
 
-export const InlineUrlLink = {
-  new: (url: string, text: string | Text): InlineUrlLink => {
-    return {
-      kind: InlineKind.UrlLink,
-      text: typeof text === "string" ? Text.fromString(text) : text,
-      url,
-    };
-  },
-};
+export class InlineUrlLink extends TextContainingNode {
+  public readonly children: Text;
+  public readonly kind = NodeKind.InlineUrlLink;
+  public readonly layoutType = NodeLayoutType.Inline;
+  public readonly url: string;
+
+  public constructor(url: string, text: string | Text) {
+    super();
+    this.children = typeof text === "string" ? Text.fromString(text) : text;
+    this.url = url;
+  }
+
+  /**
+   * Convinence property that returns the child graphemes.  This is equivalent
+   * to the children property.
+   */
+  public get text(): Text {
+    return this.children;
+  }
+}
 
 export type Inline = InlineText | InlineUrlLink;

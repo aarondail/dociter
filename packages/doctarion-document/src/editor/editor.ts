@@ -4,11 +4,11 @@ import lodash from "lodash";
 
 import { NodeNavigator } from "../basic-traversal";
 import { Cursor, CursorAffinity } from "../cursor";
-import * as Models from "../models";
-import { Node, NodeId } from "../nodes";
+import { Document } from "../models";
 import { Range } from "../ranges";
 
 import { moveBack, moveForward } from "./cursorOps";
+import { NodeId } from "./nodeId";
 import {
   EditorNodeLayoutService,
   EditorNodeLookupService,
@@ -25,7 +25,7 @@ export enum SelectionAnchor {
 export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorOperationServices) => void;
 
 export interface EditorState {
-  readonly document: Models.Document;
+  readonly document: Document;
   readonly cursor: Cursor;
   /**
    * Note if there is a selection the cursor should be at one of the two ends.
@@ -51,7 +51,7 @@ export class Editor {
   private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
-  public constructor(initialDocument: Models.Document, initialCursor?: Cursor) {
+  public constructor(initialDocument: Document, initialCursor?: Cursor) {
     this.state = {
       // Clone because we are going to assign ids which techncially is a
       // mutation
@@ -99,7 +99,7 @@ export class Editor {
     return this.state.cursor;
   }
 
-  public get document(): Models.Document {
+  public get document(): Document {
     return this.state.document;
   }
 

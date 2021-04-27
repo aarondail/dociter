@@ -1,7 +1,6 @@
 import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-traversal";
 import { NodeLayoutReporter } from "../layout-reporting";
-import * as Models from "../models";
-import { Node } from "../nodes";
+import { Document, NodeUtils } from "../models";
 
 import { Cursor, CursorAffinity } from "./cursor";
 import { PositionClassification } from "./positions";
@@ -21,7 +20,7 @@ export class CursorNavigator {
   // This nodeNavigator stores the current node the cursor is on
   private nodeNavigator: NodeNavigator;
 
-  public constructor(public readonly document: Models.Document, private readonly layoutReporter?: NodeLayoutReporter) {
+  public constructor(public readonly document: Document, private readonly layoutReporter?: NodeLayoutReporter) {
     // The document is always at the root of the chain
     this.currentAffinity = CursorAffinity.Neutral;
     this.nodeNavigator = new NodeNavigator(document);
@@ -41,7 +40,7 @@ export class CursorNavigator {
 
   public classifyCurrentPosition(): PositionClassification | undefined {
     const el = this.nodeNavigator.tip.node;
-    if (Node.isGrapheme(el)) {
+    if (NodeUtils.isGrapheme(el)) {
       return PositionClassification.Grapheme;
     } else if (PositionClassification.isEmptyInsertionPoint(el)) {
       return PositionClassification.EmptyInsertionPoint;
@@ -132,7 +131,7 @@ export class CursorNavigator {
       if (positions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
-      } else if (positions.after && !Node.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (positions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
         this.currentAffinity = CursorAffinity.After;
         return true;
       }
@@ -163,7 +162,7 @@ export class CursorNavigator {
       } else if (newPositions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
-      } else if (newPositions.after && !Node.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (newPositions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
         this.currentAffinity = CursorAffinity.After;
         return true;
       }
@@ -211,7 +210,7 @@ export class CursorNavigator {
       if (positions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
-      } else if (positions.before && !Node.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (positions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
         this.currentAffinity = CursorAffinity.Before;
         return true;
       }
@@ -242,7 +241,7 @@ export class CursorNavigator {
       } else if (newPositions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
-      } else if (newPositions.before && !Node.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (newPositions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
         this.currentAffinity = CursorAffinity.Before;
         return true;
       }

@@ -1,13 +1,13 @@
 import { CursorAffinity } from "../../src/cursor";
 import { Editor, OperationError, Ops } from "../../src/editor";
-import * as Models from "../../src/models";
+import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, After } = CursorAffinity;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 
 const testDoc1 = doc(
-  header(Models.HeaderLevel.One, inlineText("H1")),
+  header(HeaderLevel.One, inlineText("H1")),
   paragraph(inlineText("MM"), inlineText(""), inlineText("NN")),
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"))

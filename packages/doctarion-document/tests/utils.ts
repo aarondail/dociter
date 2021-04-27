@@ -1,16 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
-import * as Models from "../src/models";
-import { Node } from "../src/nodes";
+import {
+  Block,
+  Document,
+  HeaderBlock,
+  InlineText,
+  InlineUrlLink,
+  Node,
+  NodeUtils,
+  ParagraphBlock,
+  Text,
+  TextModifiers,
+} from "../src/models";
 
-export const doc = (...blocks: readonly Models.Block[]): Models.Document => Models.Document.new("title", ...blocks);
-export const header = Models.Block.header;
-export const paragraph = Models.Block.paragraph;
-export const inlineText = Models.InlineText.new;
-export const inlineUrlLink = Models.InlineUrlLink.new;
+export const doc = (...blocks: readonly Block[]): Document => new Document("title", ...blocks);
+export const header = (...args: any[]) => new HeaderBlock(...args);
+export const paragraph = (...args: any[]) => new ParagraphBlock(...args);
+export const inlineText = (text: string | Text, modifiers?: Partial<TextModifiers>) => new InlineText(text, modifiers);
+export const inlineUrlLink = (url: string, text: string | Text) => new InlineUrlLink(url, text);
 
 export const debugPath = (nav: { path: Path }): string => Path.toString(nav.path);
 
@@ -27,7 +39,7 @@ export const debugCursorNavigator = (nav: CursorNavigator): string => {
 
 export const DebugEditorHelpers = (() => {
   const debugNodeSolo = (node: Node): string => {
-    const modifiersToString = (m?: Partial<Models.TextModifiers>) => {
+    const modifiersToString = (m?: Partial<TextModifiers>) => {
       if (!m) {
         return "";
       }
@@ -53,7 +65,7 @@ export const DebugEditorHelpers = (() => {
       return result.join(",");
     };
 
-    const d = Node.switch(node, {
+    const d = NodeUtils.switch(node, {
       onDocument: () => "!DOCUMENT!",
       onHeaderBlock: ({ level }) => `HEADER ${level}`,
       onParagraphBlock: () => `PARAGRAPH`,
@@ -64,7 +76,7 @@ export const DebugEditorHelpers = (() => {
       },
     });
 
-    if (Node.containsText(node)) {
+    if (NodeUtils.isTextContainer(node)) {
       return d + " > " + `"${node.text.join("")}"`;
     }
     return d;
@@ -77,9 +89,9 @@ export const DebugEditorHelpers = (() => {
 
     const chunks = [];
     for (const { node } of chain) {
-      if (Node.isDocument(node)) {
+      if (node instanceof Document) {
         continue;
-      } else if (Node.isGrapheme(node)) {
+      } else if (NodeUtils.isGrapheme(node)) {
         // Graphemes don't need to be individually written
         break;
       }
@@ -92,11 +104,11 @@ export const DebugEditorHelpers = (() => {
   /**
    * This is probably not right for all elements so making it work only for blocks for now.
    */
-  const debugBlockSimple = (document: Models.Document, path: PathString): string => {
+  const debugBlockSimple = (document: Document, path: PathString): string => {
     const nav = new NodeNavigator(document);
     if (nav.navigateTo(path)) {
       let result = "";
-      if (Node.containsInlineContent(nav.tip.node)) {
+      if (NodeUtils.isInlineContainer(nav.tip.node)) {
         if (nav.navigateToFirstChild()) {
           do {
             result += "\n" + debugElementChainSimple(nav.chain);
@@ -110,7 +122,7 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
-  const debugEditorStateSimple = (state: { document: Models.Document; cursor: Cursor }) => {
+  const debugEditorStateSimple = (state: { document: Document; cursor: Cursor }) => {
     const nav = new NodeNavigator(state.document);
     const c = state.cursor;
     if (nav.navigateTo(c.at)) {
@@ -129,7 +141,7 @@ SLICE:  ${elementString}`;
 CURSOR: ?${debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)"}?
 SLICE:  !INVALID CURSOR POSITION (probably not a grapheme or insertion point?)!
 DOCUMENT BLOCKS:
-${JSON.stringify(state.document.blocks, undefined, 4)}
+${JSON.stringify(state.document.children, undefined, 4)}
 `;
     }
   };

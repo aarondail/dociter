@@ -1,7 +1,6 @@
 import * as IterTools from "iter-tools";
 
-import * as Models from "../models";
-import { Node } from "../nodes";
+import { Document, HeaderBlock, InlineText, InlineUrlLink, Node, NodeUtils, ParagraphBlock } from "../models";
 
 // -----------------------------------------------------------------------------
 // This file defines Path types and functions which are used to locate Nodes in
@@ -41,30 +40,30 @@ export const PathPart = {
     // Technically since labels don't factor into the code below we could just call:
     // getChildren()[getIndex(pathPart)]...
     return PathPart.resolve<Node | undefined>(parentNode, pathPart, {
-      onDocument: (d, _label, index) => d.blocks[index],
-      onHeaderBlock: (b: Models.HeaderBlock, _label, index) => b.content[index],
-      onParagraphBlock: (b: Models.ParagraphBlock, _label, index) => b.content[index],
-      onInlineText: (e: Models.InlineText, _label, index) => e.text[index],
-      onInlineUrlLink: (e: Models.InlineUrlLink, _label, index) => e.text[index],
+      onDocument: (d, _label, index) => d.children[index],
+      onHeaderBlock: (b: HeaderBlock, _label, index) => b.children[index],
+      onParagraphBlock: (b: ParagraphBlock, _label, index) => b.children[index],
+      onInlineText: (e: InlineText, _label, index) => e.text[index],
+      onInlineUrlLink: (e: InlineUrlLink, _label, index) => e.text[index],
     });
   },
 
   resolve<T>(parentNode: Node, pathPart: PathPart, handlers: ResolvePathPartHandlers<T>): T | undefined {
     const resolve = resolvePathPartHelper;
 
-    return Node.switch<T | undefined>(parentNode, {
-      onDocument: (d: Models.Document) =>
+    return NodeUtils.switch<T | undefined>(parentNode, {
+      onDocument: (d: Document) =>
         resolve(pathPart, PathPartLabel.Block, (idx) => handlers.onDocument(d, PathPartLabel.Block, idx)),
       onGrapheme: () =>
         // There is nothing further we can unpack into here.  There are no "parts" of a Grapheme...
         undefined,
-      onHeaderBlock: (b: Models.HeaderBlock) =>
+      onHeaderBlock: (b: HeaderBlock) =>
         resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onHeaderBlock(b, PathPartLabel.Content, idx)),
-      onParagraphBlock: (b: Models.ParagraphBlock) =>
+      onParagraphBlock: (b: ParagraphBlock) =>
         resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onParagraphBlock(b, PathPartLabel.Content, idx)),
-      onInlineUrlLink: (e: Models.InlineUrlLink) =>
+      onInlineUrlLink: (e: InlineUrlLink) =>
         resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.Grapheme, idx)),
-      onInlineText: (e: Models.InlineText) =>
+      onInlineText: (e: InlineText) =>
         resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineText(e, PathPartLabel.Grapheme, idx)),
     });
   },
@@ -164,11 +163,11 @@ export enum PathComparison {
 }
 
 export type ResolvePathPartHandlers<T> = {
-  onDocument: (d: Models.Document, pathLabel: PathPartLabel.Block, pathIndex: number) => T;
-  onHeaderBlock: (b: Models.HeaderBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
-  onParagraphBlock: (b: Models.ParagraphBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
-  onInlineText: (e: Models.InlineText, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
-  onInlineUrlLink: (e: Models.InlineUrlLink, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
+  onDocument: (d: Document, pathLabel: PathPartLabel.Block, pathIndex: number) => T;
+  onHeaderBlock: (b: HeaderBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
+  onParagraphBlock: (b: ParagraphBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
+  onInlineText: (e: InlineText, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
+  onInlineUrlLink: (e: InlineUrlLink, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
   // Note that graphemes never have any children so they can't be "walked" into
 };
 

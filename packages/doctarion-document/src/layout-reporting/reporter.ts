@@ -1,5 +1,5 @@
 import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
-import { Node } from "../nodes";
+import { Node, NodeUtils } from "../models";
 
 import { NodeLayoutProvider } from "./provider";
 import { LayoutRect } from "./rect";
@@ -47,7 +47,7 @@ export class NodeLayoutReporter {
     const chain: Chain = at instanceof NodeNavigator ? at.chain : at;
     const tip = Chain.getTip(chain);
     let nodeWithProvider = tip.node;
-    const isGrapheme = Node.isGrapheme(nodeWithProvider);
+    const isGrapheme = NodeUtils.isGrapheme(nodeWithProvider);
 
     if (isGrapheme) {
       const parent = Chain.getParentIfPossible(chain);

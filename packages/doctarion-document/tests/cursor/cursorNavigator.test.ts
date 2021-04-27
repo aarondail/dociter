@@ -1,11 +1,11 @@
 import { Chain } from "../../src/basic-traversal";
 import { CursorAffinity } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
-import * as Models from "../../src/models";
+import { HeaderLevel } from "../../src/models";
 import { debugCursorNavigator, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
-  header(Models.HeaderLevel.One, inlineText("Header1")),
+  header(HeaderLevel.One, inlineText("Header1")),
   paragraph(inlineText("Here is some text"), inlineText("MORE"), inlineText("last")),
   paragraph(inlineText("Paragraph 2"), inlineUrlLink("http://google.com", "GOOG"), inlineText("final sentence"))
 );
@@ -14,7 +14,7 @@ const testDoc1 = doc(
 const testDoc2 = doc(
   paragraph(),
   paragraph(inlineText("A"), inlineText(""), inlineText("B")),
-  header(Models.HeaderLevel.One),
+  header(HeaderLevel.One),
   paragraph(inlineText("C"))
 );
 
@@ -268,7 +268,7 @@ describe("navigateToNextCursorPosition", () => {
     expect(nav.tip.node).toEqual("B");
     expect(debugCursorNavigator(nav)).toEqual("block:1/content:2/cp:0 |>");
     next(1);
-    expect(nav.tip.node).toEqual(header(Models.HeaderLevel.One));
+    expect(nav.tip.node).toEqual(header(HeaderLevel.One));
     expect(debugCursorNavigator(nav)).toEqual("block:2");
     next(1);
     expect(nav.tip.node).toEqual("C");
@@ -444,7 +444,7 @@ describe("navigateToPrecedingCursorPosition", () => {
     nav.navigateTo("block:3/content:0/cp:0", CursorAffinity.Before);
     expect(nav.tip.node).toEqual("C"); // of final sentence
     back(1);
-    expect(nav.tip.node).toEqual(header(Models.HeaderLevel.One));
+    expect(nav.tip.node).toEqual(header(HeaderLevel.One));
     expect(debugCursorNavigator(nav)).toEqual("block:2");
     back(1);
     expect(nav.tip.node).toEqual("B");

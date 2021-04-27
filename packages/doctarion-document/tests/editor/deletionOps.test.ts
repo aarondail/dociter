@@ -1,6 +1,6 @@
 import { CursorAffinity } from "../../src/cursor";
 import { Editor, Ops } from "../../src/editor";
-import * as Models from "../../src/models";
+import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Neutral, After } = CursorAffinity;
@@ -8,11 +8,11 @@ const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 
 const testDoc1 = doc(
-  header(Models.HeaderLevel.One, inlineText("H1")),
+  header(HeaderLevel.One, inlineText("H1")),
   paragraph(inlineText("MM"), inlineText(""), inlineText("NN"), inlineText("AA"), inlineText("BB", { bold: true })),
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD")),
-  header(Models.HeaderLevel.One)
+  header(HeaderLevel.One)
 );
 
 describe("deleteBackwards", () => {
@@ -98,7 +98,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
   });
 
   it("will delete empty paragraph block for cursor with before affinity", () => {
-    const d = doc(header(Models.HeaderLevel.One, inlineText("H1")), paragraph());
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1", After));
     editor.update(Ops.deleteBackwards);
@@ -113,7 +113,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   });
 
   it("will delete empty paragraph block after empty inline text", () => {
-    const d = doc(header(Models.HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1/content:0", Neutral));
     editor.update(Ops.deleteBackwards);
@@ -133,7 +133,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   });
 
   it("will delete empty paragraph block after empty inline url link", () => {
-    const d = doc(header(Models.HeaderLevel.One, inlineText("H1")), paragraph(inlineUrlLink("g.com", "")));
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineUrlLink("g.com", "")));
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1/content:0", Neutral));
     editor.update(Ops.deleteBackwards);
@@ -153,7 +153,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   });
 
   it("will delete empty header block", () => {
-    const d = doc(header(Models.HeaderLevel.One, inlineText("H1")), header(Models.HeaderLevel.Two));
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1", Neutral));
     editor.update(Ops.deleteBackwards);
@@ -168,10 +168,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   });
 
   it("will delete empty inline url link", () => {
-    const d = doc(
-      header(Models.HeaderLevel.One, inlineText("H1")),
-      paragraph(inlineText("ASD"), inlineUrlLink("g.com", ""))
-    );
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineUrlLink("g.com", "")));
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1/content:1", Neutral));
     editor.update(Ops.deleteBackwards);
@@ -186,7 +183,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
   });
 
   it("will delete empty inline text", () => {
-    const d = doc(header(Models.HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
+    const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
     const editor = new Editor(d);
     editor.update(Ops.jumpTo("block:1/content:1", Neutral));
     editor.update(Ops.deleteBackwards);

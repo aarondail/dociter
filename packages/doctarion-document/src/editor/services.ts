@@ -4,9 +4,10 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
-import { Node, NodeId } from "../nodes";
+import { Node, NodeUtils } from "../models";
 
 import { EditorState } from "./editor";
+import { NodeId } from "./nodeId";
 
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and clients of
@@ -35,16 +36,16 @@ export class EditorNodeLookupService {
     if (idChain.length === 0) {
       return undefined;
     }
-    if (idChain[0] !== Node.getId(this.editorState.document)) {
+    if (idChain[0] !== NodeId.getId(this.editorState.document)) {
       return undefined;
     }
     // Now walk the chain and find the matching nodes
     for (const id of idChain.slice(1)) {
-      const children = Node.getChildren(nav.tip.node);
+      const children = NodeUtils.getChildren(nav.tip.node);
       if (!children) {
         return undefined;
       }
-      const index = children.findIndex((n: Node) => Node.getId(n) === id);
+      const index = children.findIndex((n: Node) => NodeId.getId(n) === id);
       if (index === -1) {
         return undefined;
       }
@@ -111,7 +112,7 @@ export class EditorNodeTrackingService {
   }
 
   public notifyNodeMoved(node: Node, newParentId: NodeId): void {
-    const id = Node.getId(node);
+    const id = NodeId.getId(node);
     if (id) {
       this.editorState.nodeParentMap[id] = newParentId;
     }
@@ -124,9 +125,9 @@ export class EditorNodeTrackingService {
   public register(node: Node, parent: Node | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    Node.assignId(node, nodeId);
+    NodeId.assignId(node, nodeId);
 
-    const parentId = parent && Node.getId(parent);
+    const parentId = parent && NodeId.getId(parent);
     if (parentId) {
       this.editorState.nodeParentMap[nodeId] = parentId;
     }
@@ -139,7 +140,7 @@ export class EditorNodeTrackingService {
    * is just moved to a new parent, the `notifyNodeMoved` method should be called.
    */
   public unregister(node: Node): void {
-    const id = Node.getId(node);
+    const id = NodeId.getId(node);
     if (id) {
       delete this.editorState.nodeParentMap[id];
     }
@@ -195,7 +196,7 @@ export class EditorNodeLayoutService extends NodeLayoutReporter {
   }
 
   private getProviderForNode = (node: Node) => {
-    const id = Node.getId(node);
+    const id = NodeId.getId(node);
     if (id) {
       return this.getProviderForId(id);
     }

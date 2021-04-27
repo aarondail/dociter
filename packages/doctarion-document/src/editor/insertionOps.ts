@@ -2,8 +2,16 @@ import * as immer from "immer";
 
 import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
-import * as Models from "../models";
-import { Node, NodeThatContainsInlineContent } from "../nodes";
+import {
+  Document,
+  InlineContainingNode,
+  InlineText,
+  InlineUrlLink,
+  Node,
+  NodeUtils,
+  ParagraphBlock,
+  Text,
+} from "../models";
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
@@ -14,11 +22,11 @@ import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils"
 
 const castDraft = immer.castDraft;
 
-export const insertText = (text: string | Models.Text) => (
+export const insertText = (text: string | Text) => (
   state: immer.Draft<EditorState>,
   services: EditorOperationServices
 ): void => {
-  const graphemes = typeof text === "string" ? Models.Text.fromString(text) : text;
+  const graphemes = typeof text === "string" ? Text.fromString(text) : text;
 
   if (state.selection) {
     deleteSelection(state, services);
@@ -31,7 +39,7 @@ export const insertText = (text: string | Models.Text) => (
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
-        if (!Node.containsText(parent.node)) {
+        if (!NodeUtils.isTextContainer(parent.node)) {
           throw new Error(
             "Found a grapheme whole parent that apparently does not have text which should be impossible"
           );
@@ -48,22 +56,22 @@ export const insertText = (text: string | Models.Text) => (
       break;
 
     case PositionClassification.EmptyInsertionPoint:
-      if (Node.containsText(node)) {
-        node.text.push(...graphemes);
+      if (NodeUtils.isTextContainer(node)) {
+        castDraft(node.text).push(...graphemes);
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
         state.cursor = castDraft(nav.cursor);
-      } else if (Node.containsInlineContent(node)) {
-        const newInline = Models.InlineText.new(graphemes);
-        node.content.push(castDraft(newInline));
+      } else if (NodeUtils.isInlineContainer(node)) {
+        const newInline = new InlineText(graphemes);
+        castDraft(node.children).push(castDraft(newInline));
         services.tracking.register(newInline, node);
         nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
         state.cursor = castDraft(nav.cursor);
-      } else if (Node.isDocument(node)) {
-        const newInline = Models.InlineText.new(graphemes);
-        const newParagraph = Models.Block.paragraph(newInline);
+      } else if (node instanceof Document) {
+        const newInline = new InlineText(graphemes);
+        const newParagraph = new ParagraphBlock(newInline);
         services.tracking.register(newParagraph, node);
         services.tracking.register(newInline, newParagraph);
-        node.blocks.push(castDraft(newParagraph));
+        castDraft(node.children).push(castDraft(newParagraph));
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
         state.cursor = castDraft(nav.cursor);
       } else {
@@ -73,9 +81,9 @@ export const insertText = (text: string | Models.Text) => (
 
     case PositionClassification.BeforeInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
-        if (Node.containsInlineContent(parent.node)) {
-          const newInline = Models.InlineText.new(graphemes);
-          castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
+        if (NodeUtils.isInlineContainer(parent.node)) {
+          const newInline = new InlineText(graphemes);
+          castDraft(parent.node.children).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav = refreshNavigator(nav);
           nav.navigateToLastDescendantCursorPosition();
@@ -88,9 +96,9 @@ export const insertText = (text: string | Models.Text) => (
 
     case PositionClassification.AfterInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
-        if (Node.containsInlineContent(parent.node)) {
-          const newInline = Models.InlineText.new(graphemes);
-          castDraft(parent.node.content).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
+        if (NodeUtils.isInlineContainer(parent.node)) {
+          const newInline = new InlineText(graphemes);
+          castDraft(parent.node.children).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav.navigateToNextSiblingLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
@@ -104,7 +112,7 @@ export const insertText = (text: string | Models.Text) => (
   }
 };
 
-export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
+export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
   state: immer.Draft<EditorState>,
   services: EditorOperationServices
 ): void => {
@@ -116,19 +124,19 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   const startingNav = getCursorNavigatorAndValidate(state, services);
 
   let destinationInsertIndex: number | undefined;
-  let destinationBlock: NodeThatContainsInlineContent | undefined;
+  let destinationBlock: InlineContainingNode | undefined;
   let destinationNavigator: NodeNavigator | undefined;
 
   switch (startingNav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
       ifLet(Chain.getGrandParentToTipIfPossible(startingNav.chain), ([grandParent, parent, tip]) => {
-        if (!Node.containsText(parent.node) || !Node.containsInlineContent(grandParent.node)) {
+        if (!NodeUtils.isTextContainer(parent.node) || !NodeUtils.isInlineContainer(grandParent.node)) {
           throw new Error(
             "Found grapheme outside of a parent that contains text or a grand parent that contains inline content."
           );
         }
 
-        if (!Node.isInlineText(parent.node)) {
+        if (!(parent.node instanceof InlineText)) {
           throw new Error("Cannot insert a URL link inside a non Inilne Text node.");
         }
 
@@ -140,12 +148,12 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
         const shouldSplitText = index !== 0 && index < parent.node.text.length;
         if (shouldSplitText) {
           // Split the inline text node
-          const [leftInlineText, rightInlineText] = Models.InlineText.split(parent.node, index);
+          const [leftInlineText, rightInlineText] = parent.node.split(index);
           services.tracking.unregister(parent.node);
           services.tracking.register(leftInlineText, grandParent.node);
           services.tracking.register(rightInlineText, grandParent.node);
 
-          castDraft(grandParent.node.content).splice(
+          castDraft(grandParent.node.children).splice(
             PathPart.getIndex(parent.pathPart),
             1,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,14 +172,14 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
       break;
 
     case PositionClassification.EmptyInsertionPoint:
-      if (Node.containsInlineContent(startingNav.tip.node)) {
+      if (NodeUtils.isInlineContainer(startingNav.tip.node)) {
         destinationInsertIndex = 0;
         destinationBlock = startingNav.tip.node;
         destinationNavigator = startingNav.toNodeNavigator();
-      } else if (Node.isDocument(startingNav.tip.node)) {
-        const p = Models.Block.paragraph();
+      } else if (startingNav.tip.node instanceof Document) {
+        const p = new ParagraphBlock();
         services.tracking.register(p, state.document);
-        state.document.blocks.push(castDraft(p));
+        castDraft(state.document.children).push(castDraft(p));
         destinationInsertIndex = 0;
         destinationBlock = p;
         destinationNavigator = startingNav.toNodeNavigator();
@@ -186,7 +194,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
     case PositionClassification.BeforeInBetweenInsertionPoint:
     case PositionClassification.AfterInBetweenInsertionPoint:
       ifLet(Chain.getParentAndTipIfPossible(startingNav.chain), ([parent, tip]) => {
-        if (Node.containsInlineContent(parent.node)) {
+        if (NodeUtils.isInlineContainer(parent.node)) {
           destinationInsertIndex =
             PathPart.getIndex(tip.pathPart) + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
           destinationBlock = parent.node;
@@ -205,7 +213,7 @@ export const insertUrlLink = (inlineUrlLink: Models.InlineUrlLink) => (
   if (destinationBlock !== undefined && destinationInsertIndex !== undefined && destinationNavigator !== undefined) {
     // And insert url link
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    castDraft(destinationBlock.content).splice(destinationInsertIndex, 0, castDraft(inlineUrlLink));
+    castDraft(destinationBlock.children).splice(destinationInsertIndex, 0, castDraft(inlineUrlLink));
     services.tracking.register(inlineUrlLink, destinationBlock);
 
     // Update the cursor

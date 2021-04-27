@@ -1,8 +1,8 @@
 import * as immer from "immer";
 
-import { Chain, NodeNavigator, Path, PathPart } from "../basic-traversal";
+import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
-import { Node } from "../nodes";
+import { InlineText, NodeUtils } from "../models";
 import { Range } from "../ranges";
 
 import { resetCursorMovementHints } from "./cursorOps";
@@ -20,7 +20,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
       ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
-        if (!Node.containsText(parent.node)) {
+        if (!NodeUtils.isTextContainer(parent.node)) {
           return false;
         }
 
@@ -30,7 +30,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
         }
 
         if (index !== -1) {
-          if (parent.node.text.length === 1 && Node.isInlineText(parent.node)) {
+          if (parent.node.text.length === 1 && parent.node instanceof InlineText) {
             // In this case we are about to remove the last character in an
             // inline text In this case, we prefer to delete the inline text.
             const navPrime = nav.toNodeNavigator();
@@ -120,7 +120,7 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
   if (!parent || !pathPart) {
     return;
   }
-  const kids = Node.getChildren(parent.node);
+  const kids = NodeUtils.getChildren(parent.node);
   const kidIndex = PathPart.getIndex(pathPart);
 
   if (!kids) {
@@ -128,7 +128,7 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
   }
 
   // Unregister all child nodes and the node itself
-  if (!Node.isGrapheme(node)) {
+  if (!NodeUtils.isGrapheme(node)) {
     nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
       skipGraphemes: true,
     });

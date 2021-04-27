@@ -1,7 +1,7 @@
 import { Chain, NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
 import { NodeLayoutReporter } from "../layout-reporting";
-import { Node } from "../nodes";
+import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
 
 // -----------------------------------------------------------------------------
 // There are three or so places where a cursor may be placed GENERALLY:
@@ -37,14 +37,18 @@ enum PositionClassificationBase {
 export type PositionClassification = PositionClassificationBase;
 export const PositionClassification = enumWithMethods(PositionClassificationBase, {
   isEmptyInsertionPoint(node: Node): boolean {
-    return Node.getChildren(node)?.length === 0;
+    return NodeUtils.getChildren(node)?.length === 0;
   },
 
   isInBetweenInsertionPoint(node: Node, adjacentSiblingNode?: Node): boolean {
     return (
-      Node.isInline(node) &&
-      !Node.isInlineText(node) &&
-      (!adjacentSiblingNode || (Node.isInline(adjacentSiblingNode) && !Node.isInlineText(adjacentSiblingNode)))
+      NodeUtils.isObject(node) &&
+      node.layoutType === NodeLayoutType.Inline &&
+      !(node instanceof InlineText) &&
+      (!adjacentSiblingNode ||
+        (NodeUtils.isObject(adjacentSiblingNode) &&
+          adjacentSiblingNode.layoutType === NodeLayoutType.Inline &&
+          !(adjacentSiblingNode instanceof InlineText)))
     );
   },
 
@@ -56,7 +60,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
     const parent = Chain.getParentIfPossible(navigator.chain)?.node;
-    if (Node.isGrapheme(el)) {
+    if (NodeUtils.isGrapheme(el)) {
       // For text, we generally prefer after affinity. One case where we don't
       // is when the character is at the end or start of a line that was
       // visually wrapped.
@@ -72,12 +76,12 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
       //
       // For text in other inline nodes, it is simpler and it only matters if it
       // is the first grapheme in that node.
-      if (parent && Node.containsText(parent) && precedingSibling === undefined) {
-        if (Node.isInlineText(parent)) {
+      if (parent && NodeUtils.isTextContainer(parent) && precedingSibling === undefined) {
+        if (parent instanceof InlineText) {
           const parentPrecedingSibling = navigator.precedingParentSiblingNode;
           if (
             !parentPrecedingSibling ||
-            !Node.isInlineText(parentPrecedingSibling) ||
+            !(parentPrecedingSibling instanceof InlineText) ||
             parentPrecedingSibling.text.length === 0
           ) {
             return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
@@ -114,7 +118,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
       if (hasNeutral) {
         result.neutral = true;
       }
-      if (hasAfterBetweenInsertionPoint && (!nextSibling || !Node.isInlineText(nextSibling))) {
+      if (hasAfterBetweenInsertionPoint && (!nextSibling || !(nextSibling instanceof InlineText))) {
         result.after = true;
       }
       return result;

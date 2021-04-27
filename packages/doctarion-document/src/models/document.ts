@@ -1,17 +1,15 @@
 import { Block } from "./blocks";
+import { NodeKind, NodeLayoutType, ObjectNode } from "./node";
 
-export interface Document {
-  readonly title: string;
-  readonly blocks: readonly Block[];
-  // sidebar: Vec<SidebarChunk>,
-  // styles: ResolvedStyleSet,
+export class Document extends ObjectNode {
+  public readonly children: readonly Block[];
+  public readonly kind = NodeKind.Document;
+  public readonly layoutType = NodeLayoutType.Block;
+  public readonly title: string;
+
+  public constructor(title: string, ...blocks: readonly Block[]) {
+    super();
+    this.title = title;
+    this.children = blocks;
+  }
 }
-
-export const Document = {
-  new: (title: string, ...blocks: readonly Block[]): Document => {
-    return {
-      title,
-      blocks: blocks ?? [],
-    };
-  },
-};

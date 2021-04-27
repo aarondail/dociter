@@ -1,7 +1,6 @@
 import * as IterTools from "iter-tools";
 
-import * as Models from "../models";
-import { Node } from "../nodes";
+import { Block, Document, Grapheme, Inline, Node } from "../models";
 
 import { Path, PathPart } from "./path";
 
@@ -25,7 +24,7 @@ export type ChainLink = ChainLinkFirst | ChainLinkNotFirst;
  */
 export interface ChainLinkFirst {
   readonly pathPart: undefined;
-  readonly node: Models.Document;
+  readonly node: Document;
 }
 
 export interface ChainLinkNotFirst<T extends Node = Node> {
@@ -41,13 +40,13 @@ export const ChainLink = (() => {
 
   return {
     newNonFirstLink: build,
-    document: (d: Models.Document): ChainLinkFirst => ({
+    document: (d: Document): ChainLinkFirst => ({
       pathPart: undefined,
       node: d,
     }),
-    block: (b: Models.Block, index: number) => build(PathPart.block(index), b),
-    content: (i: Models.Inline, index: number) => build(PathPart.content(index), i),
-    grapheme: (g: Models.Grapheme, index: number) => build(PathPart.grapheme(index), g),
+    block: (b: Block, index: number) => build(PathPart.block(index), b),
+    content: (i: Inline, index: number) => build(PathPart.content(index), i),
+    grapheme: (g: Grapheme, index: number) => build(PathPart.grapheme(index), g),
   };
 })();
 
@@ -133,7 +132,7 @@ export const Chain = {
     return Chain.getTip(chain).node;
   },
 
-  from(document: Models.Document, path: Path): Chain | undefined {
+  from(document: Document, path: Path): Chain | undefined {
     const results: ChainLink[] = [ChainLink.document(document)];
     let currentNode: Node = document;
     const pathParts = [...path];

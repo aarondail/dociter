@@ -1,6 +1,5 @@
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
-import * as Models from "../models";
-import { Node } from "../nodes";
+import { Document, Node, NodeUtils } from "../models";
 
 export interface Range {
   readonly from: Path;
@@ -19,7 +18,7 @@ export const Range = {
   /**
    * This collects all chains in the range.
    */
-  getChains(document: Models.Document, range: Range): readonly Chain[] {
+  getChains(document: Document, range: Range): readonly Chain[] {
     const results: Chain[] = [];
     Range.walk(document, range, (c) => results.push(c));
     return results;
@@ -33,7 +32,7 @@ export const Range = {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  getChainsCoveringRange(document: Models.Document, { from, to }: Range): Chain[] {
+  getChainsCoveringRange(document: Document, { from, to }: Range): Chain[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
@@ -49,7 +48,7 @@ export const Range = {
     }
 
     // Simple helper method
-    const getKidCount = (node: Node) => Node.getChildren(node)?.length || 0;
+    const getKidCount = (node: Node) => NodeUtils.getChildren(node)?.length || 0;
 
     //----------------------------------------------------------
     // Results and Tracking State definition, and helper methods
@@ -223,7 +222,7 @@ export const Range = {
   /**
    * This walks through all nodes in the range.
    */
-  walk(document: Models.Document, { from, to }: Range, callback: (chain: Chain) => void): void {
+  walk(document: Document, { from, to }: Range, callback: (chain: Chain) => void): void {
     const nav = new NodeNavigator(document);
     if (!nav.navigateTo(from)) {
       return;
