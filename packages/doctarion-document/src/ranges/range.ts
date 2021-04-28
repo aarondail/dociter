@@ -43,7 +43,7 @@ export const Range = {
     if (!nav.navigateTo(from)) {
       return [];
     }
-    if (Path.isEqual(from, to)) {
+    if (from.equalTo(to)) {
       return [nav.chain];
     }
 
@@ -88,7 +88,7 @@ export const Range = {
 
     const TrackingStack = {
       push(chain: Chain) {
-        const link = Chain.getTip(chain);
+        const link = chain.tip;
         trackingStack.push({ chain, totalKidCount: getKidCount(link.node), foundKidChains: [] });
       },
       /**
@@ -133,7 +133,7 @@ export const Range = {
     // Setup TrackingStack
     // -------------------
     for (let i = 0; i < nav.chain.length - 1; i++) {
-      const chain = (nav.chain.slice(0, i + 1) as unknown) as Chain;
+      const chain = new Chain(...nav.chain.links.slice(0, i + 1));
       TrackingStack.push(chain);
     }
 
@@ -161,10 +161,10 @@ export const Range = {
       if (chainLengthBefore + 1 === chainLengthAfter) {
         // Parent --> Child
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const p = Chain.getParentIfPossible(nav.chain)!.node;
+        const p = nav.chain.parent!.node;
         const totalKidCount = getKidCount(p);
         if (totalKidCount > 0) {
-          TrackingStack.push(Chain.dropTipIfPossible(nav.chain) || nav.chain);
+          TrackingStack.push(nav.chain.dropTipIfPossible() || nav.chain);
         }
       } else if (chainLengthBefore > chainLengthAfter) {
         // Child --> A different parent
@@ -182,7 +182,7 @@ export const Range = {
       }
 
       // Have we reached the end or not?
-      if (Path.isEqual(nav.path, to)) {
+      if (nav.path.equalTo(to)) {
         // Yes we have reached the end.
         break;
       }
@@ -229,7 +229,7 @@ export const Range = {
     }
 
     callback(nav.chain);
-    if (Path.isEqual(from, to)) {
+    if (from.equalTo(to)) {
       return;
     }
     // eslint-disable-next-line no-constant-condition
@@ -238,7 +238,7 @@ export const Range = {
         return;
       }
       callback(nav.chain);
-      if (Path.isEqual(nav.path, to)) {
+      if (nav.path.equalTo(to)) {
         return;
       }
     }

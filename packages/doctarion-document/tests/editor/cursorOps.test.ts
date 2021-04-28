@@ -18,26 +18,26 @@ describe("moveForward", () => {
     const editor = new Editor(testDoc1);
     // Jump to L in the "GOOGLE" text of the url link
     // Note the cursor would be at: GOOG|LE
-    editor.update(Ops.jumpTo("block:3/content:1/cp:4", Before));
+    editor.update(Ops.jumpTo("3/1/4", Before));
     editor.update(Ops.moveForward);
     expect(debugState(editor)).toEqual(`
-CURSOR: block:3/content:1/cp:4 |>
+CURSOR: 3/1/4 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
     editor.update(Ops.moveForward);
     expect(debugState(editor)).toEqual(`
-CURSOR: block:3/content:1/cp:5 |>
+CURSOR: 3/1/5 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
     editor.update(Ops.moveForward);
     expect(debugState(editor)).toEqual(`
-CURSOR: block:3/content:1 |>
+CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
     // This next moveForward should have no effect
     editor.update(Ops.moveForward);
     expect(debugState(editor)).toEqual(`
-CURSOR: block:3/content:1 |>
+CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
   });
 });
@@ -46,27 +46,27 @@ describe("jump", () => {
   it("errors on jumping to invalid paths", () => {
     const editor = new Editor(testDoc1);
 
-    expect(() => editor.update(Ops.jumpTo("block:4", Before))).toThrowError(OperationError);
+    expect(() => editor.update(Ops.jumpTo("4", Before))).toThrowError(OperationError);
 
-    expect(() => editor.update(Ops.jumpTo("block:1/content:2/cp:99", Before))).toThrowError(OperationError);
+    expect(() => editor.update(Ops.jumpTo("1/2/99", Before))).toThrowError(OperationError);
   });
 
   it("jumping to non-graphemes non insertion-points is handled gracefully", () => {
     const editor = new Editor(testDoc1);
 
-    editor.update(Ops.jumpTo("block:0", Before));
+    editor.update(Ops.jumpTo("0", Before));
     expect(debugState(editor)).toEqual(`
-CURSOR: <| block:0/content:0/cp:0
+CURSOR: <| 0/0/0
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
     editor.update(Ops.jumpTo("", After));
     expect(debugState(editor)).toEqual(`
-CURSOR: block:3/content:1 |>
+CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
-    editor.update(Ops.jumpTo("block:1/content:2", Before));
+    editor.update(Ops.jumpTo("1/2", Before));
     expect(debugState(editor)).toEqual(`
-CURSOR: block:1/content:1
+CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
   });
 });

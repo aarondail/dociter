@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-/* eslint-disable @typescript-eslint/unbound-method */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../src/cursor";
@@ -24,11 +23,11 @@ export const paragraph = (...args: any[]) => new ParagraphBlock(...args);
 export const inlineText = (text: string | Text, modifiers?: Partial<TextModifiers>) => new InlineText(text, modifiers);
 export const inlineUrlLink = (url: string, text: string | Text) => new InlineUrlLink(url, text);
 
-export const debugPath = (nav: { path: Path }): string => Path.toString(nav.path);
+export const debugPath = (nav: { path: Path }): string => nav.path.toString();
 
 export const debugCursorNavigator = (nav: CursorNavigator): string => {
   const c = nav.cursor;
-  const p = Path.toString(c.at);
+  const p = c.at.toString();
   if (c.affinity === CursorAffinity.Before) {
     return `<| ` + p;
   } else if (c.affinity === CursorAffinity.After) {
@@ -88,7 +87,7 @@ export const DebugEditorHelpers = (() => {
     }
 
     const chunks = [];
-    for (const { node } of chain) {
+    for (const { node } of chain.links) {
       if (node instanceof Document) {
         continue;
       } else if (NodeUtils.isGrapheme(node)) {
@@ -147,8 +146,8 @@ ${JSON.stringify(state.document.children, undefined, 4)}
   };
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
-    let path = "block:";
-    path += editor.cursor.at?.[0][1];
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    const path = "" + editor.cursor.at?.parts[0].index;
     //   case DocumentInteractionLocationKind.SELECTION:
     //     path += editor.interloc.selection?.[0][0][1];
     //     break;

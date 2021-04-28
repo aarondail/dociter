@@ -1,17 +1,8 @@
 import * as immer from "immer";
 
-import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
+import { NodeNavigator } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
-import {
-  Document,
-  InlineContainingNode,
-  InlineText,
-  InlineUrlLink,
-  Node,
-  NodeUtils,
-  ParagraphBlock,
-  Text,
-} from "../models";
+import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
@@ -38,7 +29,7 @@ export const insertText = (text: string | Text) => (
 
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
-      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
+      ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (!NodeUtils.isTextContainer(parent.node)) {
           throw new Error(
             "Found a grapheme whole parent that apparently does not have text which should be impossible"
@@ -47,7 +38,7 @@ export const insertText = (text: string | Text) => (
 
         const offset = state.cursor.affinity === CursorAffinity.Before ? 0 : 1;
 
-        castDraft(parent.node.text).splice(PathPart.getIndex(tip.pathPart) + offset, 0, ...graphemes);
+        castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
         for (let i = 0; i < graphemes.length; i++) {
           nav.navigateToNextCursorPosition();
         }
@@ -80,10 +71,10 @@ export const insertText = (text: string | Text) => (
       break;
 
     case PositionClassification.BeforeInBetweenInsertionPoint:
-      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
+      ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (NodeUtils.isInlineContainer(parent.node)) {
           const newInline = new InlineText(graphemes);
-          castDraft(parent.node.children).splice(PathPart.getIndex(tip.pathPart), 0, castDraft(newInline));
+          castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav = refreshNavigator(nav);
           nav.navigateToLastDescendantCursorPosition();
@@ -95,10 +86,10 @@ export const insertText = (text: string | Text) => (
       break;
 
     case PositionClassification.AfterInBetweenInsertionPoint:
-      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
+      ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (NodeUtils.isInlineContainer(parent.node)) {
           const newInline = new InlineText(graphemes);
-          castDraft(parent.node.children).splice(PathPart.getIndex(tip.pathPart) + 1, 0, castDraft(newInline));
+          castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
           services.tracking.register(newInline, node);
           nav.navigateToNextSiblingLastDescendantCursorPosition();
           state.cursor = castDraft(nav.cursor);
@@ -129,7 +120,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
 
   switch (startingNav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
-      ifLet(Chain.getGrandParentToTipIfPossible(startingNav.chain), ([grandParent, parent, tip]) => {
+      ifLet(startingNav.chain.getGrandParentToTipIfPossible(), ([grandParent, parent, tip]) => {
         if (!NodeUtils.isTextContainer(parent.node) || !NodeUtils.isInlineContainer(grandParent.node)) {
           throw new Error(
             "Found grapheme outside of a parent that contains text or a grand parent that contains inline content."
@@ -144,7 +135,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
           throw new Error("Found a grapheme or inline text without a pathPart");
         }
 
-        const index = PathPart.getIndex(tip.pathPart) + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+        const index = tip.pathPart.index + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
         const shouldSplitText = index !== 0 && index < parent.node.text.length;
         if (shouldSplitText) {
           // Split the inline text node
@@ -154,7 +145,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
           services.tracking.register(rightInlineText, grandParent.node);
 
           castDraft(grandParent.node.children).splice(
-            PathPart.getIndex(parent.pathPart),
+            parent.pathPart.index,
             1,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ...castDraft([leftInlineText, rightInlineText])
@@ -162,8 +153,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
         }
 
         destinationInsertIndex =
-          PathPart.getIndex(parent.pathPart) +
-          (shouldSplitText ? 1 : state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+          parent.pathPart.index + (shouldSplitText ? 1 : state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
         destinationBlock = grandParent.node;
         destinationNavigator = startingNav.toNodeNavigator();
         destinationNavigator.navigateToParent();
@@ -193,10 +183,9 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
       break;
     case PositionClassification.BeforeInBetweenInsertionPoint:
     case PositionClassification.AfterInBetweenInsertionPoint:
-      ifLet(Chain.getParentAndTipIfPossible(startingNav.chain), ([parent, tip]) => {
+      ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (NodeUtils.isInlineContainer(parent.node)) {
-          destinationInsertIndex =
-            PathPart.getIndex(tip.pathPart) + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+          destinationInsertIndex = tip.pathPart.index + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
           destinationBlock = parent.node;
           destinationNavigator = startingNav.toNodeNavigator();
           destinationNavigator.navigateToParent();

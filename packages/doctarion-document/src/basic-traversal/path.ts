@@ -1,76 +1,21 @@
-import * as IterTools from "iter-tools";
+import lodash from "lodash";
 
-import { Document, HeaderBlock, InlineText, InlineUrlLink, Node, NodeUtils, ParagraphBlock } from "../models";
+import { PathPart } from "./pathPart";
 
 // -----------------------------------------------------------------------------
 // This file defines Path types and functions which are used to locate Nodes in
 // a Document.
 // -----------------------------------------------------------------------------
 
-export type Path = readonly PathPart[];
-export enum PathPartLabel {
-  Block = "block",
-  Content = "content",
-  Grapheme = "cp",
-}
-export type PathPart = readonly [PathPartLabel, number];
-
 export type PathString = string;
 
-export const PathPart = {
-  block: (index: number): PathPart => [PathPartLabel.Block, index],
+export class Path {
+  public constructor(public readonly parts: readonly PathPart[]) {}
 
-  content: (index: number): PathPart => [PathPartLabel.Content, index],
+  public compareTo(other: Path): PathComparison {
+    const from = this.parts;
+    const to = other.parts;
 
-  getLabel(pathPart: PathPart): PathPartLabel {
-    return pathPart[0];
-  },
-
-  getIndex(pathPart: PathPart): number {
-    return pathPart[1];
-  },
-
-  grapheme: (index: number): PathPart => [PathPartLabel.Grapheme, index],
-
-  isEqual(left: PathPart, right: PathPart): boolean {
-    return left[0] === right[0] && left[1] === right[1];
-  },
-
-  resolveToChild(parentNode: Node, pathPart: PathPart): Node | undefined {
-    // Technically since labels don't factor into the code below we could just call:
-    // getChildren()[getIndex(pathPart)]...
-    return PathPart.resolve<Node | undefined>(parentNode, pathPart, {
-      onDocument: (d, _label, index) => d.children[index],
-      onHeaderBlock: (b: HeaderBlock, _label, index) => b.children[index],
-      onParagraphBlock: (b: ParagraphBlock, _label, index) => b.children[index],
-      onInlineText: (e: InlineText, _label, index) => e.text[index],
-      onInlineUrlLink: (e: InlineUrlLink, _label, index) => e.text[index],
-    });
-  },
-
-  resolve<T>(parentNode: Node, pathPart: PathPart, handlers: ResolvePathPartHandlers<T>): T | undefined {
-    const resolve = resolvePathPartHelper;
-
-    return NodeUtils.switch<T | undefined>(parentNode, {
-      onDocument: (d: Document) =>
-        resolve(pathPart, PathPartLabel.Block, (idx) => handlers.onDocument(d, PathPartLabel.Block, idx)),
-      onGrapheme: () =>
-        // There is nothing further we can unpack into here.  There are no "parts" of a Grapheme...
-        undefined,
-      onHeaderBlock: (b: HeaderBlock) =>
-        resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onHeaderBlock(b, PathPartLabel.Content, idx)),
-      onParagraphBlock: (b: ParagraphBlock) =>
-        resolve(pathPart, PathPartLabel.Content, (idx) => handlers.onParagraphBlock(b, PathPartLabel.Content, idx)),
-      onInlineUrlLink: (e: InlineUrlLink) =>
-        resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineUrlLink(e, PathPartLabel.Grapheme, idx)),
-      onInlineText: (e: InlineText) =>
-        resolve(pathPart, PathPartLabel.Grapheme, (idx) => handlers.onInlineText(e, PathPartLabel.Grapheme, idx)),
-    });
-  },
-};
-
-export const Path = {
-  compareTo(from: Path, to: Path): PathComparison {
     if (from.length === 0 && to.length === 0) {
       return PathComparison.Incomparable;
     }
@@ -87,18 +32,12 @@ export const Path = {
         return PathComparison.Descendent;
       } else if (!b) {
         return PathComparison.Ancestor;
-      } else if (PathPart.isEqual(a, b)) {
+      } else if (a.equalTo(b)) {
         continue;
       } else {
-        const aLabel = PathPart.getLabel(a);
-        const aIndex = PathPart.getIndex(a);
-        const bLabel = PathPart.getLabel(b);
-        const bIndex = PathPart.getIndex(b);
-        if (aLabel !== bLabel) {
-          // We don't expect this to happen at this point. All Nodes
-          // have children where the labels are the same.
-          return PathComparison.Incomparable;
-        } else if (i < maxLen - 1) {
+        const aIndex = a.index;
+        const bIndex = b.index;
+        if (i < maxLen - 1) {
           // OK we are still in the middle of the paths
           // This also covers the cases where the two paths have unequal lengths
           return aIndex < bIndex ? PathComparison.EarlierBranch : PathComparison.LaterBranch;
@@ -109,47 +48,51 @@ export const Path = {
       }
     }
     return PathComparison.Equal;
-  },
+  }
 
-  isEqual(left: Path, right: Path): boolean {
-    return IterTools.deepEqual(left, right);
-  },
+  public equalTo(other: Path): boolean {
+    return lodash.isEqual(this.parts, other.parts);
+  }
 
-  parse(s: PathString): Path {
+  // replaceParent(path: Path, fn: (label: PathPartLabel, index: number) => PathPart): Path {
+  //   if (path.length <= 1) {
+  //     return path;
+  //   }
+  //   const newPath = [...path];
+  //   const parent = newPath[newPath.length - 2];
+  //   newPath[newPath.length - 2] = fn(parent[0], parent[1]);
+  //   return newPath;
+  // },
+
+  public replaceTip(newTip: PathPart): Path {
+    if (this.parts.length <= 1) {
+      return this;
+    }
+    const newParts = [...this.parts];
+    newParts[newParts.length - 1] = newTip;
+    return new Path(newParts);
+  }
+
+  public toString(): string {
+    return this.parts.map((p) => p.toString()).join("/");
+  }
+
+  public static parse(s: PathString): Path {
     if (s === "") {
-      return [];
+      return new Path([]);
     }
     const parts = s.split("/");
-    return parts.map((p) => {
-      const subParts = p.split(":");
-      return ([subParts[0], parseInt(subParts[1], 10)] as unknown) as PathPart;
-    });
-  },
+    return new Path(
+      parts.map((p) => {
+        return new PathPart(parseInt(p, 10));
+      })
+    );
+  }
+}
 
-  replaceParent(path: Path, fn: (label: PathPartLabel, index: number) => PathPart): Path {
-    if (path.length <= 1) {
-      return path;
-    }
-    const newPath = [...path];
-    const parent = newPath[newPath.length - 2];
-    newPath[newPath.length - 2] = fn(parent[0], parent[1]);
-    return newPath;
-  },
-
-  replaceTip(path: Path, fn: (label: PathPartLabel, index: number) => PathPart): Path {
-    if (path.length <= 1) {
-      return path;
-    }
-    const newPath = [...path];
-    const tip = newPath[newPath.length - 1];
-    newPath[newPath.length - 1] = fn(tip[0], tip[1]);
-    return newPath;
-  },
-
-  toString(path: Path): string {
-    return path.map((p) => `${p[0]}:${p[1]}`).join("/");
-  },
-};
+// -----------------------------------------------------------------------------
+// Utility types
+// -----------------------------------------------------------------------------
 
 export enum PathComparison {
   Equal = "EQUAL",
@@ -160,29 +103,4 @@ export enum PathComparison {
   EarlierBranch = "EARLIER_BRANCH",
   LaterBranch = "LATER_BRANCH",
   Incomparable = "INCOMPARABLE",
-}
-
-export type ResolvePathPartHandlers<T> = {
-  onDocument: (d: Document, pathLabel: PathPartLabel.Block, pathIndex: number) => T;
-  onHeaderBlock: (b: HeaderBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
-  onParagraphBlock: (b: ParagraphBlock, pathLabel: PathPartLabel.Content, pathIndex: number) => T;
-  onInlineText: (e: InlineText, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
-  onInlineUrlLink: (e: InlineUrlLink, pathLabel: PathPartLabel.Grapheme, pathIndex: number) => T;
-  // Note that graphemes never have any children so they can't be "walked" into
-};
-
-// ----------------------------------------------------------------------------
-// PRIVATE UTILITY FUNCTIONS
-// ----------------------------------------------------------------------------
-
-function resolvePathPartHelper<T>(
-  pathPart: PathPart,
-  expectedLabel: string,
-  processCallback: (index: number) => T
-): T | undefined {
-  if (pathPart.length !== 2 || pathPart[0] !== expectedLabel || typeof pathPart[1] !== "number") {
-    return undefined;
-  }
-  const idx = pathPart[1];
-  return processCallback(idx);
 }

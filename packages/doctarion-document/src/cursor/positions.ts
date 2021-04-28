@@ -1,4 +1,4 @@
-import { Chain, NodeNavigator } from "../basic-traversal";
+import { NodeNavigator } from "../basic-traversal";
 import { enumWithMethods } from "../enumUtils";
 import { NodeLayoutReporter } from "../layout-reporting";
 import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
@@ -59,7 +59,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const el = navigator.tip.node;
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
-    const parent = Chain.getParentIfPossible(navigator.chain)?.node;
+    const parent = navigator.chain.parent?.node;
     if (NodeUtils.isGrapheme(el)) {
       // For text, we generally prefer after affinity. One case where we don't
       // is when the character is at the end or start of a line that was

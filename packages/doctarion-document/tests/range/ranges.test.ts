@@ -14,7 +14,7 @@ test("getMostAncestorialElementsInRange", () => {
   const check = (s1: string, s2: string) => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const p = Path.parse;
-    const f = (results: readonly Chain[]) => results.map((chain) => Path.toString(Chain.getPath(chain)));
+    const f = (results: readonly Chain[]) => results.map((chain) => chain.path.toString());
     const r = Range.getChainsCoveringRange(testDoc1, Range.new(p(s1), p(s2)));
     if (r) {
       return f(r);
@@ -22,44 +22,19 @@ test("getMostAncestorialElementsInRange", () => {
     return undefined;
   };
 
-  expect(check("block:0/content:0/cp:0", "block:0/content:0/cp:0")).toEqual(["block:0/content:0/cp:0"]);
-  expect(check("block:0/content:0/cp:0", "block:0/content:0/cp:1")).toEqual([
-    "block:0/content:0/cp:0",
-    "block:0/content:0/cp:1",
-  ]);
-  expect(check("block:0/content:0/cp:1", "block:0/content:0/cp:2")).toEqual([
-    "block:0/content:0/cp:1",
-    "block:0/content:0/cp:2",
-  ]);
-  expect(check("block:0/content:0/cp:0", "block:0/content:0/cp:2")).toEqual(["block:0"]);
-  expect(check("block:0/content:0/cp:2", "block:1/content:0/cp:0")).toEqual([
-    "block:0/content:0/cp:2",
-    "block:1/content:0/cp:0",
-  ]);
-  expect(check("block:0/content:0", "block:1/content:0/cp:0")).toEqual(["block:0", "block:1/content:0/cp:0"]);
-  expect(check("block:1/content:0/cp:0", "block:1/content:0/cp:1")).toEqual(["block:1/content:0"]);
-  expect(check("block:1/content:0", "block:1/content:1")).toEqual(["block:1/content:0", "block:1/content:1"]);
-  expect(check("block:1/content:0", "block:1/content:2")).toEqual(["block:1"]);
-  expect(check("block:0/content:0", "block:3/content:1/cp:3")).toEqual([
-    "block:0",
-    "block:1",
-    "block:2",
-    "block:3/content:0",
-    "block:3/content:1/cp:0",
-    "block:3/content:1/cp:1",
-    "block:3/content:1/cp:2",
-    "block:3/content:1/cp:3",
-  ]);
-  expect(check("block:0", "block:2")).toEqual(["block:0", "block:1", "block:2"]);
-  expect(check("block:2", "block:3")).toEqual(["block:2", "block:3"]);
-  expect(check("block:2", "block:3/content:1/cp:3")).toEqual([
-    "block:2",
-    "block:3/content:0",
-    "block:3/content:1/cp:0",
-    "block:3/content:1/cp:1",
-    "block:3/content:1/cp:2",
-    "block:3/content:1/cp:3",
-  ]);
-  expect(check("block:0", "block:3")).toEqual([""]);
-  expect(check("block:0/content:0/cp:0", "block:3/content:1/cp:5")).toEqual([""]);
+  expect(check("0/0/0", "0/0/0")).toEqual(["0/0/0"]);
+  expect(check("0/0/0", "0/0/1")).toEqual(["0/0/0", "0/0/1"]);
+  expect(check("0/0/1", "0/0/2")).toEqual(["0/0/1", "0/0/2"]);
+  expect(check("0/0/0", "0/0/2")).toEqual(["0"]);
+  expect(check("0/0/2", "1/0/0")).toEqual(["0/0/2", "1/0/0"]);
+  expect(check("0/0", "1/0/0")).toEqual(["0", "1/0/0"]);
+  expect(check("1/0/0", "1/0/1")).toEqual(["1/0"]);
+  expect(check("1/0", "1/1")).toEqual(["1/0", "1/1"]);
+  expect(check("1/0", "1/2")).toEqual(["1"]);
+  expect(check("0/0", "3/1/3")).toEqual(["0", "1", "2", "3/0", "3/1/0", "3/1/1", "3/1/2", "3/1/3"]);
+  expect(check("0", "2")).toEqual(["0", "1", "2"]);
+  expect(check("2", "3")).toEqual(["2", "3"]);
+  expect(check("2", "3/1/3")).toEqual(["2", "3/0", "3/1/0", "3/1/1", "3/1/2", "3/1/3"]);
+  expect(check("0", "3")).toEqual([""]);
+  expect(check("0/0/0", "3/1/5")).toEqual([""]);
 });

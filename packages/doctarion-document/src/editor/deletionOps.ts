@@ -1,6 +1,6 @@
 import * as immer from "immer";
 
-import { Chain, NodeNavigator, PathPart } from "../basic-traversal";
+import { NodeNavigator } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 import { Range } from "../ranges";
@@ -19,12 +19,12 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
 
   switch (nav.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
-      ifLet(Chain.getParentAndTipIfPossible(nav.chain), ([parent, tip]) => {
+      ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (!NodeUtils.isTextContainer(parent.node)) {
           return false;
         }
 
-        let index = PathPart.getIndex(tip.pathPart);
+        let index = tip.pathPart.index;
         if (state.cursor.affinity === CursorAffinity.Before) {
           index--;
         }
@@ -48,7 +48,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
             // This fixes a bug where we navigate back but the only thing that changes is the CursorAffinity
             if (
               nav.tip.pathPart &&
-              PathPart.getIndex(nav.tip.pathPart) === index &&
+              nav.tip.pathPart.index === index &&
               nav.cursor.affinity === CursorAffinity.Before &&
               nav.toNodeNavigator().navigateToPrecedingSibling()
             ) {
@@ -97,7 +97,7 @@ export function deleteSelection(state: immer.Draft<EditorState>, services: Edito
     elementsToDelete.reverse();
     const nav = new NodeNavigator(state.document);
     for (const chain of elementsToDelete) {
-      nav.navigateTo(Chain.getPath(chain));
+      nav.navigateTo(chain.path);
       deleteNode(nav, services);
     }
   }
@@ -121,7 +121,7 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
     return;
   }
   const kids = NodeUtils.getChildren(parent.node);
-  const kidIndex = PathPart.getIndex(pathPart);
+  const kidIndex = pathPart.index;
 
   if (!kids) {
     return;

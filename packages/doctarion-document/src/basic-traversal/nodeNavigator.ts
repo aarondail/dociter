@@ -1,19 +1,9 @@
-import lodash from "lodash";
+import { Document, Node, NodeUtils } from "../models";
 
-import {
-  Document,
-  Grapheme,
-  HeaderBlock,
-  InlineText,
-  InlineUrlLink,
-  Node,
-  NodeHandlersForSwitch,
-  NodeUtils,
-  ParagraphBlock,
-} from "../models";
-
-import { Chain, ChainLink, ChainLinkNotFirst } from "./chain";
-import { Path, PathPart, PathString } from "./path";
+import { Chain } from "./chain";
+import { ChainLink } from "./chainLink";
+import { Path, PathString } from "./path";
+import { PathPart } from "./pathPart";
 
 /**
  * This class helps with navigating between nodes of a document. It does not
@@ -42,7 +32,7 @@ export class NodeNavigator {
     if (initialChainUnchecked) {
       this.currentChain = initialChainUnchecked;
     } else {
-      this.currentChain = [ChainLink.document(document)];
+      this.currentChain = new Chain(new ChainLink(document));
     }
   }
 
@@ -51,19 +41,19 @@ export class NodeNavigator {
   }
 
   public get parent(): ChainLink | undefined {
-    return Chain.getParentIfPossible(this.currentChain);
+    return this.currentChain.parent;
   }
 
   public get tip(): ChainLink {
-    return Chain.getTip(this.currentChain);
+    return this.currentChain.tip;
   }
 
   public get path(): Path {
-    return Chain.getPath(this.currentChain);
+    return this.currentChain.path;
   }
 
   public get nextSiblingNode(): Node | undefined {
-    const result = Chain.getParentAndTipIfPossible(this.currentChain);
+    const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return undefined;
     }
@@ -73,7 +63,7 @@ export class NodeNavigator {
   }
 
   public get precedingSiblingNode(): Node | undefined {
-    const result = Chain.getParentAndTipIfPossible(this.currentChain);
+    const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return undefined;
     }
@@ -83,7 +73,7 @@ export class NodeNavigator {
   }
 
   public get nextParentSiblingNode(): Node | undefined {
-    const result = Chain.getGrandParentToTipIfPossible(this.currentChain);
+    const result = this.currentChain.getGrandParentToTipIfPossible();
     if (!result) {
       return undefined;
     }
@@ -93,7 +83,7 @@ export class NodeNavigator {
   }
 
   public get precedingParentSiblingNode(): Node | undefined {
-    const result = Chain.getGrandParentToTipIfPossible(this.currentChain);
+    const result = this.currentChain.getGrandParentToTipIfPossible();
     if (!result) {
       return undefined;
     }
@@ -109,7 +99,7 @@ export class NodeNavigator {
 
   public cloneWithoutTip(): NodeNavigator {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-    return new (NodeNavigator as any)(this.document, Chain.dropTipIfPossible(this.currentChain) || this.currentChain);
+    return new (NodeNavigator as any)(this.document, this.currentChain.dropTipIfPossible() || this.currentChain);
   }
 
   public hasNextSibling(): boolean {
@@ -121,7 +111,7 @@ export class NodeNavigator {
   }
 
   public isAtSamePositionAs(other: NodeNavigator): boolean {
-    return Path.isEqual(this.path, other.path);
+    return this.path.equalTo(other.path);
   }
 
   /**
@@ -204,7 +194,8 @@ export class NodeNavigator {
 
   public navigateTo(path: PathString | Path): boolean {
     if (typeof path === "string") {
-      return this.navigateTo(Path.parse(path));
+      const newPath = Path.parse(path);
+      return this.navigateTo(newPath);
     }
 
     const newChain = Chain.from(this.document, path);
@@ -243,7 +234,7 @@ export class NodeNavigator {
    * This will not jump to a different parent node.
    */
   public navigateToNextSibling(): boolean {
-    const result = Chain.getParentAndTipIfPossible(this.currentChain);
+    const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return false;
     }
@@ -251,7 +242,7 @@ export class NodeNavigator {
 
     const sibling = navigateToSiblingHelpers.nextLink(parent, tip.pathPart);
     if (sibling) {
-      const newChain = Chain.replaceTipIfPossible(this.currentChain, sibling);
+      const newChain = this.currentChain.replaceTipIfPossible(sibling);
       if (newChain) {
         this.currentChain = newChain;
         return true;
@@ -262,7 +253,7 @@ export class NodeNavigator {
 
   public navigateToParent(): boolean {
     // This won't ever drop the document link at the start of the chain
-    const newChain = Chain.dropTipIfPossible(this.currentChain);
+    const newChain = this.currentChain.dropTipIfPossible();
     if (newChain) {
       this.currentChain = newChain;
       return true;
@@ -275,7 +266,7 @@ export class NodeNavigator {
    * This will not jump to a different parent node.
    */
   public navigateToPrecedingSibling(): boolean {
-    const result = Chain.getParentAndTipIfPossible(this.currentChain);
+    const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return false;
     }
@@ -283,7 +274,7 @@ export class NodeNavigator {
 
     const sibling = navigateToSiblingHelpers.precedingLink(parent, tip.pathPart);
     if (sibling) {
-      const newChain = Chain.replaceTipIfPossible(this.currentChain, sibling);
+      const newChain = this.currentChain.replaceTipIfPossible(sibling);
       if (newChain) {
         this.currentChain = newChain;
         return true;
@@ -319,7 +310,7 @@ export class NodeNavigator {
   ): void {
     const n = this.clone();
     const ancestor = n.tip.node;
-    while (n.navigateForwardsInDfs() && Chain.contains(n.chain, ancestor)) {
+    while (n.navigateForwardsInDfs() && n.chain.contains(ancestor)) {
       if (options?.skipGraphemes && NodeUtils.isGrapheme(n.tip.node)) {
         // Skip all graphemes
         n.navigateToParent();
@@ -330,82 +321,26 @@ export class NodeNavigator {
     }
   }
 
-  private createLinkForChild(child: Node, index: number): ChainLinkNotFirst | undefined {
-    const p = ChainLink;
-
-    return NodeUtils.switch(child, {
-      onDocument: () => undefined,
-      onGrapheme: (cp: Grapheme) => p.grapheme(cp, index),
-      onHeaderBlock: (b: HeaderBlock) => p.block(b, index),
-      onParagraphBlock: (b: ParagraphBlock) => p.block(b, index),
-      onInlineText: (e: InlineText) => p.content(e, index),
-      onInlineUrlLink: (e: InlineUrlLink) => p.content(e, index),
-    });
-  }
-
   private navigateToChildPrime(children: readonly Node[] | undefined, index: number): boolean {
     const child = children?.[index];
     if (child) {
-      const link = this.createLinkForChild(child, index);
+      const link = new ChainLink(child, new PathPart(index));
       // Link would only be undefined if someone the child was the document
       // which should obviously never happen
       if (!link) {
         return false;
       }
-      this.currentChain = Chain.append(this.currentChain, link);
+      this.currentChain = this.currentChain.append(link);
       return true;
     }
     return false;
   }
 }
 
-// The code below is flying beyond the type checking capabilites of typescript
-// so we have to disable a bunch of rules we normally want on.
-
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 const navigateToSiblingHelpers = (() => {
-  const p = lodash.mapValues(ChainLink, (f) => (...args: any[]) =>
-    args[0] === undefined ? undefined : (f as any)(...args)
-  );
-
-  const createConfigForBuildingLinks = (operand: number) =>
-    ({
-      // @ts-expect-error
-      onDocument: (d, _, idx) => p.block(d.children[idx + operand], idx + operand),
-      // @ts-expect-error
-      onHeaderBlock: (b, _, idx) => p.content(b.children[idx + operand], idx + operand),
-      // @ts-expect-error
-      onParagraphBlock: (b, _, idx) => p.content(b.children[idx + operand], idx + operand),
-      // @ts-expect-error
-      onInlineText: (b, _, idx) => p.grapheme(b.text[idx + operand], idx + operand),
-      // @ts-expect-error
-      onInlineUrlLink: (b, _, idx) => p.grapheme(b.text[idx + operand], idx + operand),
-    } as NodeHandlersForSwitch<ChainLinkNotFirst | undefined>);
-
-  const createConfigJustFindingNode = (operand: number) =>
-    ({
-      // @ts-expect-error
-      onDocument: (d, _, idx) => d.children[idx + operand],
-      // @ts-expect-error
-      onHeaderBlock: (b, _, idx) => b.children[idx + operand],
-      // @ts-expect-error
-      onParagraphBlock: (b, _, idx) => b.children[idx + operand],
-      // @ts-expect-error
-      onInlineText: (b, _, idx) => b.text[idx + operand],
-      // @ts-expect-error
-      onInlineUrlLink: (b, _, idx) => b.text[idx + operand],
-    } as NodeHandlersForSwitch<Node | undefined>);
-
-  const precedingConfigForLinks = createConfigForBuildingLinks(-1);
-  const nextConfigForLinks = createConfigForBuildingLinks(1);
-  const precedingConfigForFinding = createConfigJustFindingNode(-1);
-  const nextConfigForFinding = createConfigJustFindingNode(1);
-
   const nodeOrLinkToNode = (a: Node | ChainLink): Node => {
     if ((a as any).node !== undefined) {
       return (a as any).node;
@@ -413,17 +348,39 @@ const navigateToSiblingHelpers = (() => {
     return a as Node;
   };
 
-  const preceding = (parent: Node | ChainLink, childPath: PathPart): Node | undefined =>
-    PathPart.resolve(nodeOrLinkToNode(parent), childPath, precedingConfigForFinding);
+  const preceding = (parent: Node | ChainLink, childPath: PathPart): Node | undefined => {
+    const parentNode = nodeOrLinkToNode(parent);
+    const newPathPart = childPath.modifyIndex(-1);
+    const childNode = newPathPart.resolve(parentNode);
+    return childNode;
+  };
 
-  const next = (parent: Node | ChainLink, childPath: PathPart): Node | undefined =>
-    PathPart.resolve(nodeOrLinkToNode(parent), childPath, nextConfigForFinding);
+  const next = (parent: Node | ChainLink, childPath: PathPart): Node | undefined => {
+    const parentNode = nodeOrLinkToNode(parent);
+    const newPathPart = childPath.modifyIndex(1);
+    const childNode = newPathPart.resolve(parentNode);
+    return childNode;
+  };
 
-  const precedingLink = (parent: Node | ChainLink, childPath: PathPart): ChainLinkNotFirst | undefined =>
-    PathPart.resolve(nodeOrLinkToNode(parent), childPath, precedingConfigForLinks);
+  const precedingLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined => {
+    const parentNode = nodeOrLinkToNode(parent);
+    const newPathPart = childPath.modifyIndex(-1);
+    const childNode = newPathPart.resolve(parentNode);
+    if (childNode) {
+      return new ChainLink(childNode, newPathPart);
+    }
+    return undefined;
+  };
 
-  const nextLink = (parent: Node | ChainLink, childPath: PathPart): ChainLinkNotFirst | undefined =>
-    PathPart.resolve(nodeOrLinkToNode(parent), childPath, nextConfigForLinks);
+  const nextLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined => {
+    const parentNode = nodeOrLinkToNode(parent);
+    const newPathPart = childPath.modifyIndex(1);
+    const childNode = newPathPart.resolve(parentNode);
+    if (childNode) {
+      return new ChainLink(childNode, newPathPart);
+    }
+    return undefined;
+  };
 
   return { preceding, next, precedingLink, nextLink };
 })();

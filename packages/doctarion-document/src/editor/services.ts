@@ -61,7 +61,7 @@ export class EditorNodeLookupService {
   public getNode(nodeId: NodeId): Node | undefined {
     const chain = this.getChainTo(nodeId);
     if (chain) {
-      const lastLink = lodash.last(chain);
+      const lastLink = lodash.last(chain.links);
       if (lastLink) {
         return lastLink.node;
       }
@@ -72,7 +72,7 @@ export class EditorNodeLookupService {
   public getPathTo(nodeId: NodeId): Path | undefined {
     const chain = this.getChainTo(nodeId);
     if (chain) {
-      return Chain.getPath(chain);
+      return chain.path;
     }
     return undefined;
   }

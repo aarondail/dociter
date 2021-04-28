@@ -103,7 +103,7 @@ export class CursorNavigator {
     return this.complexNavigationHelper({
       init: (nav) => (nav.currentAffinity = CursorAffinity.Before),
       advance: (nav) => nav.navigateToNextCursorPosition(),
-      abort: (nav) => !Chain.contains(nav.nodeNavigator.chain, ancestor),
+      abort: (nav) => !nav.nodeNavigator.chain.contains(ancestor),
       success: (nav) => nav.tip.node !== ancestor,
     });
   }
@@ -117,7 +117,7 @@ export class CursorNavigator {
     return this.complexNavigationHelper({
       init: (nav) => (nav.currentAffinity = CursorAffinity.After),
       advance: (nav) => nav.navigateToPrecedingCursorPosition(),
-      abort: (nav) => !Chain.contains(nav.nodeNavigator.chain, ancestor),
+      abort: (nav) => !nav.nodeNavigator.chain.contains(ancestor),
       success: (nav) => nav.tip.node !== ancestor,
     });
   }
@@ -286,7 +286,7 @@ export class CursorNavigator {
 
     let path: Path;
     let affinity: CursorAffinity;
-    if (Array.isArray(cursorOrPath)) {
+    if ((cursorOrPath as Path).parts?.length >= 0) {
       path = cursorOrPath as Path;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       affinity = maybeAffinity!;
