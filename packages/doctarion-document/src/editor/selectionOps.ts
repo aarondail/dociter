@@ -25,7 +25,7 @@ export const select = (
   }
   const toPrime = nav.path;
 
-  state.selection = castDraft(Range.new(fromPrime, toPrime));
+  state.selection = castDraft(new Range(fromPrime, toPrime));
   state.selectionAnchor = anchor;
 
   if (state.selectionAnchor === SelectionAnchor.End) {

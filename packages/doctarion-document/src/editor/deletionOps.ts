@@ -3,7 +3,6 @@ import * as immer from "immer";
 import { NodeNavigator } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
-import { Range } from "../ranges";
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { EditorState } from "./editor";
@@ -93,7 +92,7 @@ export function deleteSelection(state: immer.Draft<EditorState>, services: Edito
   }
 
   {
-    const elementsToDelete = Range.getChainsCoveringRange(state.document, state.selection);
+    const elementsToDelete = state.selection.getChainsCoveringRange(state.document);
     elementsToDelete.reverse();
     const nav = new NodeNavigator(state.document);
     for (const chain of elementsToDelete) {

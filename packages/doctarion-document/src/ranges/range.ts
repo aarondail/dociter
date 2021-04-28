@@ -1,28 +1,24 @@
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { Document, Node, NodeUtils } from "../models";
 
-export interface Range {
-  readonly from: Path;
-  /**
-   * This should always be after the from, in terms of the DFS the
-   * NodeNavigator does.
-   */
-  readonly to: Path;
-}
-
-export const Range = {
-  new: (from: Path, to: Path): Range => {
-    return { from, to };
-  },
+export class Range {
+  public constructor(
+    public readonly from: Path,
+    /**
+     * This should always be after the from, in terms of the DFS the
+     * NodeNavigator does.
+     */
+    public readonly to: Path
+  ) {}
 
   /**
    * This collects all chains in the range.
    */
-  getChains(document: Document, range: Range): readonly Chain[] {
+  public getChains(document: Document): readonly Chain[] {
     const results: Chain[] = [];
-    Range.walk(document, range, (c) => results.push(c));
+    this.walk(document, (c) => results.push(c));
     return results;
-  },
+  }
 
   /**
    * This gets chains in the range but tries to eliminate chains that are
@@ -32,7 +28,8 @@ export const Range = {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  getChainsCoveringRange(document: Document, { from, to }: Range): Chain[] {
+  public getChainsCoveringRange(document: Document): Chain[] {
+    const { from, to } = this;
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
@@ -217,19 +214,19 @@ export const Range = {
 
     // And we are finally done
     return results;
-  },
+  }
 
   /**
    * This walks through all nodes in the range.
    */
-  walk(document: Document, { from, to }: Range, callback: (chain: Chain) => void): void {
+  public walk(document: Document, callback: (chain: Chain) => void): void {
     const nav = new NodeNavigator(document);
-    if (!nav.navigateTo(from)) {
+    if (!nav.navigateTo(this.from)) {
       return;
     }
 
     callback(nav.chain);
-    if (from.equalTo(to)) {
+    if (this.from.equalTo(this.to)) {
       return;
     }
     // eslint-disable-next-line no-constant-condition
@@ -238,9 +235,9 @@ export const Range = {
         return;
       }
       callback(nav.chain);
-      if (nav.path.equalTo(to)) {
+      if (nav.path.equalTo(this.to)) {
         return;
       }
     }
-  },
-};
+  }
+}
