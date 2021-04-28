@@ -35,7 +35,7 @@ export class CursorNavigator {
   }
 
   public get cursor(): Cursor {
-    return Cursor.new(this.nodeNavigator.path, this.currentAffinity);
+    return new Cursor(this.nodeNavigator.path, this.currentAffinity);
   }
 
   public classifyCurrentPosition(): PositionClassification | undefined {

@@ -12,16 +12,6 @@ export enum CursorAffinity {
   Neutral = "NEUTRAL",
 }
 
-export interface Cursor {
-  readonly at: Path;
-  readonly affinity: CursorAffinity;
+export class Cursor {
+  public constructor(public readonly at: Path, public readonly affinity: CursorAffinity = CursorAffinity.Before) {}
 }
-
-export const Cursor = {
-  new: (at: Path, affinity: CursorAffinity = CursorAffinity.Before): Cursor => {
-    return {
-      at,
-      affinity,
-    };
-  },
-};

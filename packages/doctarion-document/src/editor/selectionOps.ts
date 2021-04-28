@@ -39,7 +39,7 @@ export const select = (
     if (!nav2.navigateTo(fromPrime, CursorAffinity.Before)) {
       throw new Error("Unexpectedly could not navigate a cursor to the selection's end.");
     }
-    state.cursor = castDraft(Cursor.new(fromPrime, CursorAffinity.Before));
+    state.cursor = castDraft(new Cursor(fromPrime, CursorAffinity.Before));
   }
 
   resetCursorMovementHints(state);

@@ -56,7 +56,7 @@ export class Editor {
       // Clone because we are going to assign ids which techncially is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
-      cursor: initialCursor || Cursor.new(new Path([]), CursorAffinity.Before),
+      cursor: initialCursor || new Cursor(new Path([]), CursorAffinity.Before),
       nodeParentMap: {},
     };
     this.historyList = [];
