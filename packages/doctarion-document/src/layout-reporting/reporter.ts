@@ -11,6 +11,10 @@ export class NodeLayoutReporter {
     return followingRect.left < rect.left || (followingRect.left === rect.left && followingRect.top > rect.top);
   }
 
+  /**
+   * Note this detects line WRAPS (line breaks amoung sibling nodes) not all
+   * line BREAKS.
+   */
   public doesLineWrapAfter(nodeNavigator: NodeNavigator): boolean {
     const nav = nodeNavigator.clone();
     const currentLayoutRect = this.getLayout(nav);
@@ -25,6 +29,10 @@ export class NodeLayoutReporter {
     return false;
   }
 
+  /**
+   * Note this detects line WRAPS (line breaks amoung sibling nodes) not all
+   * line BREAKS.
+   */
   public doesLineWrapBefore(nodeNavigator: NodeNavigator): boolean {
     const nav = nodeNavigator.clone();
     const currentLayoutRect = this.getLayout(nav);
