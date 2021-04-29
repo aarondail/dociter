@@ -70,12 +70,12 @@ export class CursorNavigator {
    * navigator may choose to use an earlier point with after affinity.
    */
   public navigateTo(cursor: Cursor): boolean;
-  public navigateTo(path: PathString | Path, affinity: CursorAffinity): boolean;
+  public navigateTo(path: PathString | Path, affinity?: CursorAffinity): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public navigateTo(cursorOrPath: any, maybeAffinity?: CursorAffinity): boolean {
     const temp = this.clone();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!temp.navigateToUnchecked(cursorOrPath, maybeAffinity as any)) {
+    if (!temp.navigateToUnchecked(cursorOrPath, maybeAffinity || CursorAffinity.Neutral)) {
       return false;
     }
 
