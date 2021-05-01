@@ -3,10 +3,11 @@ import { Draft } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
-import { NodeLayoutProvider, NodeLayoutReporter } from "../layout-reporting";
+import { NodeLayoutReporter } from "../layout-reporting";
 import { Node, NodeUtils } from "../models";
 
 import { EditorState } from "./editor";
+import { EditorEvents } from "./events";
 import { NodeId } from "./nodeId";
 
 // -----------------------------------------------------------------------------
@@ -27,8 +28,13 @@ import { NodeId } from "./nodeId";
  * this service never deals with them.
  */
 export class EditorNodeLookupService {
+  private editorState: EditorState;
+
   // Note the editorState can _and will_ be updated by the Editor
-  public constructor(public editorState: EditorState) {}
+  public constructor(initialEditorState: EditorState, private readonly editorEvents: EditorEvents) {
+    this.editorState = initialEditorState;
+    this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
+  }
 
   public getChainTo(nodeId: NodeId): Chain | undefined {
     const idChain = this.getIdChain(nodeId);
@@ -87,6 +93,10 @@ export class EditorNodeLookupService {
     idChain.reverse();
     return idChain;
   }
+
+  private handleEditorUpdateDone = (newState: EditorState) => {
+    this.editorState = newState;
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -104,16 +114,19 @@ export class EditorNodeLookupService {
  * this service never deals with them.
  */
 export class EditorNodeTrackingService {
+  private editorState: Draft<EditorState> | null;
   private idGenerator: FriendlyIdGenerator;
 
-  // Note the editorState can _and will_ be updated by the Editor
-  public constructor(public editorState: Draft<EditorState>) {
+  public constructor(private readonly editorEvents: EditorEvents) {
+    this.editorState = null;
+    this.editorEvents.updateStart.addListener(this.handleEditorUpdateStart);
+    this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
     this.idGenerator = new FriendlyIdGenerator();
   }
 
   public notifyNodeMoved(node: Node, newParentId: NodeId): void {
     const id = NodeId.getId(node);
-    if (id) {
+    if (id && this.editorState) {
       this.editorState.nodeParentMap[id] = newParentId;
     }
   }
@@ -128,7 +141,7 @@ export class EditorNodeTrackingService {
     NodeId.assignId(node, nodeId);
 
     const parentId = parent && NodeId.getId(parent);
-    if (parentId) {
+    if (parentId && this.editorState) {
       this.editorState.nodeParentMap[nodeId] = parentId;
     }
 
@@ -141,72 +154,19 @@ export class EditorNodeTrackingService {
    */
   public unregister(node: Node): void {
     const id = NodeId.getId(node);
-    if (id) {
+    if (id && this.editorState) {
       delete this.editorState.nodeParentMap[id];
     }
   }
-}
 
-// -----------------------------------------------------------------------------
-// Third, the layout service
-// -----------------------------------------------------------------------------
+  private handleEditorUpdateDone = () => {
+    this.editorState = null;
+  };
 
-/**
- * This service provides a way for document rendering code (that exists outside
- * this library and uses the Editor) to inform the Editor and the operations
- * about how the document is being rendered. The rendering code registers
- * `NodeLayoutProvider`s for the nodes (aside from graphemes as they lack
- * ids) as they are rendered. The providers then give the operations the
- * ability to figure out where the nodes are by getting their LayoutRect.
- *
- * This information is used to deal with moving the cursor down visual lines,
- * for positioning the cursor intelligently around line wraps, and other
- * things.
- */
-export class EditorNodeLayoutService extends NodeLayoutReporter {
-  private layoutProviders: Map<NodeId, NodeLayoutProvider>;
-
-  public constructor() {
-    super((node: Node) => this.getProviderForNode(node));
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.layoutProviders = new Map();
-  }
-
-  public getProvider(nodeId: NodeId): NodeLayoutProvider | undefined {
-    return this.getProviderForId(nodeId);
-  }
-
-  public removeProvider(nodeId: NodeId, provider: NodeLayoutProvider): void {
-    if (this.getProviderForId(nodeId) === provider) {
-      this.layoutProviders.delete(nodeId);
-    }
-  }
-
-  public setProvider(nodeId: NodeId, provider: NodeLayoutProvider | undefined): void {
-    if (provider) {
-      this.layoutProviders.set(nodeId, provider);
-    } else {
-      this.layoutProviders.delete(nodeId);
-    }
-  }
-
-  private getProviderForId(nodeId: NodeId): NodeLayoutProvider | undefined {
-    return this.layoutProviders.get(nodeId);
-  }
-
-  private getProviderForNode = (node: Node) => {
-    const id = NodeId.getId(node);
-    if (id) {
-      return this.getProviderForId(id);
-    }
-    return undefined;
+  private handleEditorUpdateStart = (newState: Draft<EditorState>) => {
+    this.editorState = newState;
   };
 }
-
-// -----------------------------------------------------------------------------
-// Finally, types that represent all the services
-// -----------------------------------------------------------------------------
 
 /**
  * These are all the services available to `EditorOperation` functions.
@@ -223,16 +183,23 @@ export interface EditorOperationServices {
    */
   readonly tracking: EditorNodeTrackingService;
   /**
-   * The layout service doesn't layout nodes, rather it records layout
-   * information about nodes.
-   *
-   * Because of that, it has to be populated with information about how the
-   * nodes are laid out and updated as nodes are created and removed.
+   * The layout service doesn't layout nodes, rather it reports layout
+   * information related to nodes.
    */
-  readonly layout: EditorNodeLayoutService;
+  readonly layout?: NodeLayoutReporter;
 }
 
 /**
  * These are all the services available to clients of the Editor.
  */
 export type EditorServices = Pick<EditorOperationServices, "lookup" | "layout">;
+
+/**
+ * These are services that the Editor provides in all cases.
+ */
+export type EditorProvidedServices = Pick<EditorOperationServices, "tracking" | "lookup">;
+
+/**
+ * These are services that have to be provided to the editor
+ */
+export type EditorProvidableServices = Pick<EditorOperationServices, "layout">;

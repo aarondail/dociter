@@ -283,6 +283,24 @@ export class NodeNavigator {
     return false;
   }
 
+  public navigateToRelativeSibling(offset: number): boolean {
+    const result = this.currentChain.getParentAndTipIfPossible();
+    if (!result) {
+      return false;
+    }
+    const [parent, tip] = result;
+
+    const sibling = navigateToSiblingHelpers.relativeLink(parent, tip.pathPart, offset);
+    if (sibling) {
+      const newChain = this.currentChain.replaceTipIfPossible(sibling);
+      if (newChain) {
+        this.currentChain = newChain;
+        return true;
+      }
+    }
+    return false;
+  }
+
   public navigateToRoot(): boolean {
     return this.navigateToStartOfDfs();
   }
@@ -362,9 +380,9 @@ const navigateToSiblingHelpers = (() => {
     return childNode;
   };
 
-  const precedingLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined => {
+  const relativeLink = (parent: Node | ChainLink, childPath: PathPart, offset: number): ChainLink | undefined => {
     const parentNode = nodeOrLinkToNode(parent);
-    const newPathPart = childPath.modifyIndex(-1);
+    const newPathPart = childPath.modifyIndex(offset);
     const childNode = newPathPart.resolve(parentNode);
     if (childNode) {
       return new ChainLink(childNode, newPathPart);
@@ -372,15 +390,11 @@ const navigateToSiblingHelpers = (() => {
     return undefined;
   };
 
-  const nextLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined => {
-    const parentNode = nodeOrLinkToNode(parent);
-    const newPathPart = childPath.modifyIndex(1);
-    const childNode = newPathPart.resolve(parentNode);
-    if (childNode) {
-      return new ChainLink(childNode, newPathPart);
-    }
-    return undefined;
-  };
+  const precedingLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined =>
+    relativeLink(parent, childPath, -1);
 
-  return { preceding, next, precedingLink, nextLink };
+  const nextLink = (parent: Node | ChainLink, childPath: PathPart): ChainLink | undefined =>
+    relativeLink(parent, childPath, 1);
+
+  return { preceding, next, precedingLink, nextLink, relativeLink };
 })();

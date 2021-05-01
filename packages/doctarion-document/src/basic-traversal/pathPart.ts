@@ -7,8 +7,8 @@ export class PathPart {
     return this.index === other.index;
   }
 
-  public modifyIndex(amount: 1 | -1): PathPart {
-    return new PathPart(this.index + amount);
+  public modifyIndex(offset: number): PathPart {
+    return new PathPart(this.index + offset);
   }
 
   public resolve(node: Node): Node | undefined {

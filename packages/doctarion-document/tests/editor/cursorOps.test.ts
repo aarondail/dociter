@@ -15,7 +15,7 @@ const testDoc1 = doc(
 
 describe("moveForward", () => {
   it("behaves correctly at the end of the doc with cursor", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // Jump to L in the "GOOGLE" text of the url link
     // Note the cursor would be at: GOOG|LE
     editor.update(Ops.jumpTo("3/1/4", Before));
@@ -44,7 +44,7 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
 describe("jump", () => {
   it("errors on jumping to invalid paths", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
 
     expect(() => editor.update(Ops.jumpTo("4", Before))).toThrowError(OperationError);
 
@@ -52,7 +52,7 @@ describe("jump", () => {
   });
 
   it("jumping to non-graphemes non insertion-points is handled gracefully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
 
     editor.update(Ops.jumpTo("0", Before));
     expect(debugState(editor)).toEqual(`

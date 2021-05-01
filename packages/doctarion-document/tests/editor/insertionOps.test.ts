@@ -18,7 +18,7 @@ const testDoc1 = doc(
 
 describe("insertText", () => {
   it("inserts into the beginning of inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // Note the cursor affinity is before the charater
     editor.update(Ops.jumpTo("0/0/0", Before));
     editor.update(Ops.insertText("Q"));
@@ -28,7 +28,7 @@ SLICE:  HEADER ONE > TEXT {} > "QH1"`);
   });
 
   it("inserts into the middle of inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/0/1", After));
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
@@ -51,7 +51,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMQSRM"`);
   });
 
   it("inserts into an empty paragraph successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("2", Neutral));
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
@@ -60,7 +60,7 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   });
 
   it("inserts into an empty header successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("5", Neutral));
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
@@ -69,7 +69,7 @@ SLICE:  HEADER ONE > TEXT {} > "Q"`);
   });
 
   it("inserts into an empty inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/1", Neutral));
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
@@ -78,7 +78,7 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   });
 
   it("inserts into an empty inline url link successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("3/1", Neutral));
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
@@ -87,7 +87,7 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "Q"`);
   });
 
   it("inserts into an empty document successfully", () => {
-    const editor = new Editor(doc());
+    const editor = new Editor({ document: doc(paragraph()) });
     editor.update(Ops.insertText("Q"));
     expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
@@ -95,7 +95,7 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   });
 
   it("inserts muliple graphemes successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // Jump to second N in the "NNN" inline text
     editor.update(Ops.jumpTo("1/2/1", After));
     editor.update(Ops.insertText("QST"));
@@ -105,7 +105,7 @@ SLICE:  PARAGRAPH > TEXT {} > "NNQSTN"`);
   });
 
   it("inserts between inline url links successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/0", After));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).toEqual(`
@@ -114,7 +114,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   });
 
   it("inserts between inline url link and the beginning of a paragraph successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/0", Before));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).toEqual(`
@@ -123,7 +123,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   });
 
   it("inserts between inline url link and the end of a paragraph successfully successfully", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/1", After));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).toEqual(`
@@ -132,7 +132,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   });
 
   it("does not insert new text between two inline texts", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/0", After));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).not.toEqual(`
@@ -141,7 +141,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   });
 
   it("does not insert new text before an inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("0/0", Before));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).not.toEqual(`
@@ -150,7 +150,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   });
 
   it("does not insert new text after an inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("0/0", After));
     editor.update(Ops.insertText("QST"));
     expect(debugState(editor)).not.toEqual(`
@@ -164,7 +164,7 @@ describe("insertUrlLink", () => {
   // Insertion at the Paragraph Level
   // ---------------------------------------------------------------------------
   it("should insert into an empty paragraph", () => {
-    const editor = new Editor(doc(paragraph()));
+    const editor = new Editor({ document: doc(paragraph()) });
     editor.update(Ops.jumpTo("0", Neutral));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
     expect(debugState(editor)).toEqual(`
@@ -178,13 +178,13 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
 
   it("should fail to insert into an empty inline text", () => {
     // This could be changed at some later date...
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/1", Neutral));
     expect(() => editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")))).toThrowError(OperationError);
   });
 
   it("should insert before an inline url link", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/0", Before));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
 
@@ -200,7 +200,7 @@ PARAGRAPH > URL_LINK f.com > "FF"`);
   });
 
   it("should insert between inline url links", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/1", Before));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
 
@@ -216,7 +216,7 @@ PARAGRAPH > URL_LINK f.com > "FF"`);
   });
 
   it("should insert after inline url links", () => {
-    let editor = new Editor(testDoc1);
+    let editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/0", After));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
 
@@ -230,7 +230,7 @@ PARAGRAPH > URL_LINK e.com > "EE"
 PARAGRAPH > URL_LINK test.com > "ABC"
 PARAGRAPH > URL_LINK f.com > "FF"`);
 
-    editor = new Editor(testDoc1);
+    editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("4/1", After));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
 
@@ -250,7 +250,7 @@ PARAGRAPH > URL_LINK test.com > "ABC"`);
   // ---------------------------------------------------------------------------
 
   it("should insert into the middle of a inline text with before affinity", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // This is putting the cursor in the middle of the NNN inline text
     editor.update(Ops.jumpTo("1/2/1", Before));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
@@ -267,7 +267,7 @@ PARAGRAPH > TEXT {} > "NN"`);
   });
 
   it("should insert into the middle of a inline text with after affinity", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // This is putting the cursor in the middle of the NNN inline text
     editor.update(Ops.jumpTo("1/2/1", After));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
@@ -284,7 +284,7 @@ PARAGRAPH > TEXT {} > "N"`);
   });
 
   it("should insert at the beginning of an inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/0/0", Before));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
     expect(debugState(editor)).toEqual(`
@@ -299,7 +299,7 @@ PARAGRAPH > TEXT {} > "NNN"`);
   });
 
   it("should insert at the end of an inline text", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/2/2", After));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
     expect(debugState(editor)).toEqual(`
@@ -314,7 +314,7 @@ PARAGRAPH > URL_LINK test.com > "ABC"`);
   });
 
   it("should insert between two inline texts", () => {
-    const editor = new Editor(doc(paragraph(inlineText("AA"), inlineText("BB"))));
+    const editor = new Editor({ document: doc(paragraph(inlineText("AA"), inlineText("BB"))) });
     editor.update(Ops.jumpTo("0/0/1", After));
     editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")));
     expect(debugState(editor)).toEqual(`

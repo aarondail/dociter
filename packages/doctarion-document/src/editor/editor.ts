@@ -4,25 +4,34 @@ import lodash from "lodash";
 
 import { NodeNavigator, Path } from "../basic-traversal";
 import { Cursor, CursorAffinity } from "../cursor";
+import { HorizontalAnchor } from "../layout-reporting";
 import { Document } from "../models";
 import { Range } from "../ranges";
 
 import { moveBack, moveForward } from "./cursorOps";
+import { EditorEventEmitter, EditorEvents } from "./events";
 import { NodeId } from "./nodeId";
 import {
-  EditorNodeLayoutService,
   EditorNodeLookupService,
   EditorNodeTrackingService,
   EditorOperationServices,
+  EditorProvidableServices,
+  EditorProvidedServices,
   EditorServices,
 } from "./services";
+
+export interface EditorConfig {
+  readonly document: Document;
+  readonly cursor?: Cursor;
+  readonly provideService?: (e: EditorProvidedServices) => Partial<EditorProvidableServices>;
+}
+
+export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorOperationServices) => void;
 
 export enum SelectionAnchor {
   Start = "START",
   End = "END",
 }
-
-export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorOperationServices) => void;
 
 export interface EditorState {
   readonly document: Document;
@@ -38,20 +47,23 @@ export interface EditorState {
    * the start of the line movement, so we can intelligently move between lines
    * of different length and have the cursor try to go to the right spot.
    */
-  readonly cursorVisualLineMovementXHint?: number;
+  readonly cursorVisualLineMovementHorizontalAnchor?: HorizontalAnchor;
 
   // This big long object may be a poor fit for immer... not sure what to do about it though
   readonly nodeParentMap: { readonly [id: string /* NodeId */]: NodeId | undefined };
 }
 
 export class Editor {
+  public readonly events: EditorEvents;
   public readonly services: EditorServices;
+
+  private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
   private historyList: EditorState[];
   private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
-  public constructor(initialDocument: Document, initialCursor?: Cursor) {
+  public constructor({ document: initialDocument, cursor: initialCursor, provideService }: EditorConfig) {
     this.state = {
       // Clone because we are going to assign ids which techncially is a
       // mutation
@@ -62,16 +74,24 @@ export class Editor {
     this.historyList = [];
     this.futureList = [];
 
-    this.services = {
-      lookup: new EditorNodeLookupService(this.state),
-      layout: new EditorNodeLayoutService(),
-    };
+    this.eventEmitters = new EditorEventEmitter();
+    this.events = this.eventEmitters;
+
     this.operationServices = {
-      ...this.services,
+      lookup: new EditorNodeLookupService(this.state, this.events),
       // Note the tracking service is supposed to be used only during
       // operations, which is why it wants mutable state
-      tracking: new EditorNodeTrackingService(this.state as Draft<EditorState>),
+      tracking: new EditorNodeTrackingService(this.events),
     };
+
+    if (provideService) {
+      this.operationServices = {
+        ...this.operationServices,
+        ...provideService(this.operationServices),
+      };
+    }
+
+    this.services = this.operationServices;
 
     // Assign initial ids... note this must happen before the calls to update
     // because after that the objects in the state are no longer extensible (and
@@ -129,21 +149,21 @@ export class Editor {
 
   public update(operation: EditorOperation): void {
     const newState = immer.produce(this.state, (draft) => {
-      this.operationServices.lookup.editorState = draft;
-      this.operationServices.tracking.editorState = draft;
+      this.eventEmitters.updateStart.emit(draft);
       operation(draft, this.operationServices);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-      this.operationServices.tracking.editorState = null as any; // JIC
     });
+    const oldState = this.state;
     // If there were no changes, don't do anything
-    if (newState === this.state) {
-      return;
+    if (newState !== this.state) {
+      // This is far too basic...
+      this.historyList.push(this.state);
+      this.state = newState;
+      // Reset future
+      this.futureList.splice(0, this.futureList.length);
     }
-    // This is far too basic...
-    this.historyList.push(this.state);
-    this.state = newState;
-    // Reset future
-    this.futureList.splice(0, this.futureList.length);
-    this.services.lookup.editorState = this.state;
+    this.eventEmitters.updateDone.emit(this.state);
+    if (newState.document !== oldState.document) {
+      this.eventEmitters.documentUpdated.emit(this.state.document);
+    }
   }
 }

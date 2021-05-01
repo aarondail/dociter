@@ -91,10 +91,23 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
         }
       }
       // This handles the visual line wrapping rule
-      if (layoutReporter && layoutReporter.doesLineWrapAfter(navigator)) {
-        return CannedGetValidCursorAffinitiesAtResult.none;
-      } else if (layoutReporter && layoutReporter.doesLineWrapBefore(navigator)) {
-        return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
+      if (layoutReporter) {
+        const nextSiblingNavigator = navigator.clone();
+        const hasNextLineWrap =
+          nextSiblingNavigator.navigateToNextSibling() &&
+          layoutReporter.detectLineWrapOrBreakBetweenNodes(navigator, nextSiblingNavigator);
+        if (hasNextLineWrap) {
+          return CannedGetValidCursorAffinitiesAtResult.none;
+        }
+
+        const preceedingSiblingNavigator = navigator.clone();
+        const hasPreceedingLineWrap =
+          preceedingSiblingNavigator.navigateToPrecedingSibling() &&
+          layoutReporter.detectLineWrapOrBreakBetweenNodes(preceedingSiblingNavigator, navigator);
+
+        if (hasPreceedingLineWrap) {
+          return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
+        }
       }
       return CannedGetValidCursorAffinitiesAtResult.justAfter;
     } else {

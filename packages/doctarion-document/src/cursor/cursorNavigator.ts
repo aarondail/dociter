@@ -272,6 +272,25 @@ export class CursorNavigator {
     return false;
   }
 
+  public navigateToRelativeSibling(offset: number, affinity: CursorAffinity): boolean {
+    const clone = this.clone();
+    if (clone.nodeNavigator.navigateToRelativeSibling(offset)) {
+      clone.currentAffinity = affinity;
+      if (affinity === CursorAffinity.After) {
+        // Make sure cursor is on a valid spot
+        clone.navigateToNextCursorPosition() && clone.navigateToPrecedingCursorPosition();
+        this.currentAffinity = clone.currentAffinity;
+        this.nodeNavigator = clone.nodeNavigator;
+      } else {
+        // Make sure cursor is on a valid spot
+        clone.navigateToPrecedingCursorPosition() && clone.navigateToNextCursorPosition();
+        this.currentAffinity = clone.currentAffinity;
+        this.nodeNavigator = clone.nodeNavigator;
+      }
+    }
+    return false;
+  }
+
   public navigateToUnchecked(cursor: Cursor): boolean;
   public navigateToUnchecked(path: PathString | Path, affinity: CursorAffinity): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any

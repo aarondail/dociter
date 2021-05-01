@@ -1,5 +1,7 @@
+export { EditorEvents } from "./events";
 export * from "./editor";
 export * from "./error";
+export * from "./nodeId";
 export * from "./services";
 
 import * as CursorOps from "./cursorOps";

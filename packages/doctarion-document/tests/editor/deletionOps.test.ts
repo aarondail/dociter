@@ -17,7 +17,7 @@ const testDoc1 = doc(
 
 describe("deleteBackwards", () => {
   it("basically works", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // Jump to L in the "GOOGLE" text of the url link
     // Note the cursor would be at: GOOG|LE
     editor.update(Ops.jumpTo("3/1/3", After));
@@ -47,7 +47,7 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
   });
 
   it("deletes through InlineText and removes empty InlineText", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
     // Jumps here: G|OOGLE
     editor.update(Ops.jumpTo("1/3/1", After));
     editor.update(Ops.deleteBackwards);
@@ -77,7 +77,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
   });
 
   it("from an empty inline text it works ok", () => {
-    const editor = new Editor(testDoc1);
+    const editor = new Editor({ document: testDoc1 });
 
     editor.update(Ops.jumpTo("1/1", Neutral));
     expect(debugState(editor)).toEqual(`
@@ -99,7 +99,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
 
   it("will delete empty paragraph block for cursor with before affinity", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1", After));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -114,7 +114,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
   it("will delete empty paragraph block after empty inline text", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1/0", Neutral));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -134,7 +134,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
   it("will delete empty paragraph block after empty inline url link", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineUrlLink("g.com", "")));
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1/0", Neutral));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -154,7 +154,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
   it("will delete empty header block", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1", Neutral));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -169,7 +169,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
   it("will delete empty inline url link", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineUrlLink("g.com", "")));
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1/1", Neutral));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -184,7 +184,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
   it("will delete empty inline text", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("1/1", Neutral));
     editor.update(Ops.deleteBackwards);
     expect(debugState(editor)).toEqual(`
@@ -199,7 +199,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
   it("will not delete document", () => {
     const d = doc();
-    const editor = new Editor(d);
+    const editor = new Editor({ document: d });
     editor.update(Ops.jumpTo("", Neutral));
 
     // Make sure there is nothing to the right
@@ -211,7 +211,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
 // describe("deleteSelection", () => {
 //   it("basically works", () => {
-//     const editor = new Editor(testDoc1);
+//     const editor = new Editor({ document : testDoc1 });
 //     // Delete the OOG from GOOGLE
 //     editor.update(Ops.select("3/1/1", "3/1/3"));
 //     editor.update(Ops.deleteSelection);
