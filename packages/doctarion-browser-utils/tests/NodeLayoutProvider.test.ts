@@ -5,6 +5,8 @@ import { InlineText } from "doctarion-document";
 import lodash from "lodash";
 
 import { NodeLayoutProvider } from "../src";
+import { NodeTextLayoutAnalyzer } from "../src/nodeTextLayoutAnalyzer";
+import { buildGraphemeToCodeUnitMap } from "../src/utils";
 
 // TESTS TO RUN
 
@@ -61,55 +63,56 @@ interface TestArgs {
   ex: ReturnType<typeof expector>;
   node: InlineText;
   provider: NodeLayoutProvider;
+  ta: NodeTextLayoutAnalyzer;
 }
 
-function test1({ ex, provider }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test1({ ex, ta }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 0);
 }
 
-function test2({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test2({ ta, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 2);
 }
 
-function test3({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test3({ ta, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 3);
 
-  // debugHelper(provider);
+  // debugHelper(ta);
 }
 
-function test4({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test4({ ta, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 23);
-  // debugHelper(provider);
+  // debugHelper(ta);
 }
 
-function test5({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test5({ ta, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 5);
-  // debugHelper(provider);
+  // debugHelper(ta);
 }
 
-function test6({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test6({ ta, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.equal(layout?.size, 3);
-  // debugHelper(provider);
+  // debugHelper(ta);
 }
 
-function test7({ provider, ex }: TestArgs) {
-  const layout = provider.getAllGraphemeLineWraps();
+function test7({ ta, provider, ex }: TestArgs) {
+  const layout = ta.getAllGraphemeLineWraps();
   ex.truthy(layout);
   ex.truthy(provider.getDetailedLayout()?.length || 0 >= 3);
   ex.equal(layout?.size, 5);
-  // debugHelper(provider);
+  // debugHelper(ta);
 }
 
 // TEST RUNNER
@@ -122,6 +125,12 @@ for (const test of tests) {
   const ex = expector(testName, elr);
   const node = new InlineText(el.textContent || "");
   const provider = new NodeLayoutProvider(el, node);
+  const { codeUnitCount, map } = buildGraphemeToCodeUnitMap(node.text);
+  const ta = new NodeTextLayoutAnalyzer(provider.getCodeUnitLayoutProvider(), {
+    codeUnitCount,
+    graphemeCount: node.text.length,
+    graphemeToCodeUnitIndecies: map,
+  });
 
   const args = {
     testName,
@@ -129,6 +138,7 @@ for (const test of tests) {
     ex,
     node,
     provider,
+    ta,
   };
 
   console.time(testName);
@@ -139,9 +149,9 @@ for (const test of tests) {
 // OTHER HELPER
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function debugHelper(p: NodeLayoutProvider) {
-  const rects = p.getAllGraphemeLayoutRects() || [];
-  const interestingGraphemes = p.getAllGraphemeLineWraps();
+function debugHelper(ta: NodeTextLayoutAnalyzer) {
+  const rects = ta.getAllGraphemeRects() || [];
+  const interestingGraphemes = ta.getAllGraphemeLineWraps();
 
   const colors = ["red", "green", "blue", "#B0F"];
   let i = 0;

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "build:w": "tsc --build tsconfig.build.json --watch",
-    "test:w": "concurrently -n bundle,live-server 'yarn test:bundle:w' 'yarn test:server'",
+    "test:w": "yarn test:bundle && concurrently -n bundle,live-server 'yarn test:bundle:w' 'yarn test:server'",
     "test:bundle:w": "chokidar 'src/*.ts' 'tests/*.ts' -c 'yarn test:bundle'",
     "test:bundle": "esbuild tests/NodeLayoutProvider.test.ts --bundle --outfile=temp/test-bundle.js",
     "test:server": "live-server --open=tests/NodeLayoutProvider.html .",
