@@ -1,4 +1,4 @@
-import { LayoutRect, Node } from "doctarion-document";
+import { Node } from "doctarion-document";
 
 import { CodeUnitLayoutProvider } from "./codeUnitLayoutProvder";
 import { adjustRect } from "./utils";
@@ -15,7 +15,7 @@ export class NodeLayoutProvider {
     return new CodeUnitLayoutProvider(this.element);
   }
 
-  public getDetailedLayout(): LayoutRect[] | undefined {
+  public getDetailedLayout(): ClientRect[] | undefined {
     if (!this.element) {
       return undefined;
     }
@@ -27,7 +27,7 @@ export class NodeLayoutProvider {
     return result;
   }
 
-  public getLayout(): LayoutRect | undefined {
+  public getLayout(): ClientRect | undefined {
     if (!this.element) {
       return undefined;
     }

@@ -16,7 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": [ "src/**/*", "tests/**/*" ],
+  "include": [ "custom-types/**/*", "src/**/*", "tests/**/*" ],
   "references": [
     { "path": "../doctarion-document/tsconfig.build.json" },
     { "path": "../doctarion-utils/tsconfig.build.json" }
