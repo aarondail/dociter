@@ -23,7 +23,10 @@ import {
 export interface EditorConfig {
   readonly document: Document;
   readonly cursor?: Cursor;
-  readonly provideService?: (e: EditorProvidedServices) => Partial<EditorProvidableServices>;
+  readonly provideService?: (
+    services: EditorProvidedServices,
+    events: EditorEvents
+  ) => Partial<EditorProvidableServices>;
 }
 
 export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorOperationServices) => void;
@@ -87,7 +90,7 @@ export class Editor {
     if (provideService) {
       this.operationServices = {
         ...this.operationServices,
-        ...provideService(this.operationServices),
+        ...provideService(this.operationServices, this.events),
       };
     }
 

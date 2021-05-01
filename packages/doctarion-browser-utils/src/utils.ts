@@ -1,4 +1,10 @@
-import { Text } from "doctarion-document";
+import { Text, TextContainingNode } from "doctarion-document";
+
+export interface NodeGraphemeInfo {
+  readonly codeUnitCount: number;
+  readonly graphemeCount: number;
+  readonly graphemeToCodeUnitIndecies: number[];
+}
 
 /**
  * Make the rect relative to the document itself rather than the part of the
@@ -45,6 +51,11 @@ export function buildGraphemeToCodeUnitMap(text: Text): { map: number[]; codeUni
     offset += text[i].length;
   }
   return { map: result, codeUnitCount: offset };
+}
+
+export function buildNodeGraphemeInfo(node: TextContainingNode): NodeGraphemeInfo {
+  const { map, codeUnitCount } = buildGraphemeToCodeUnitMap(node.text);
+  return { codeUnitCount, graphemeCount: node.text.length, graphemeToCodeUnitIndecies: map };
 }
 
 export function shallowEqual<A>(a: A[], b: A[]): boolean {

@@ -13,13 +13,7 @@ import memoizee from "memoizee/weak";
 import { NodeLayoutProvider } from "./nodeLayoutProvider";
 import { NodeLayoutProviderRegistry } from "./nodeLayoutProviderRegistry";
 import { NodeTextLayoutAnalyzer } from "./nodeTextLayoutAnalyzer";
-import { areRectsOnSameLine, buildGraphemeToCodeUnitMap } from "./utils";
-
-export interface NodeGraphemeInfo {
-  readonly codeUnitCount: number;
-  readonly graphemeCount: number;
-  readonly graphemeToCodeUnitIndecies: number[];
-}
+import { areRectsOnSameLine, buildGraphemeToCodeUnitMap, buildNodeGraphemeInfo, NodeGraphemeInfo } from "./utils";
 
 export class NodeLayoutReporter implements NodeLayoutReporterInterface {
   private getNodeGraphemeInfo: ((node: Node) => NodeGraphemeInfo | null) &
@@ -40,8 +34,7 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
     // This weakly holds onto a reference to the node
     this.getNodeGraphemeInfo = memoizee((node: Node) => {
       if (NodeUtils.isTextContainer(node)) {
-        const { map, codeUnitCount } = buildGraphemeToCodeUnitMap(node.text);
-        return { codeUnitCount, graphemeCount: node.text.length, graphemeToCodeUnitIndecies: map };
+        return buildNodeGraphemeInfo(node);
       }
       return null;
     }, {});
@@ -71,7 +64,7 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
       }
     }
 
-    const left = this.getLayout(subject);
+    const left = this.getLayout(subject, true);
 
     if (!left) {
       return undefined;
@@ -112,8 +105,8 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
       }
     }
 
-    const left = this.getLayout(preceeding);
-    const right = this.getLayout(subsequent);
+    const left = this.getLayout(preceeding, true);
+    const right = this.getLayout(subsequent, true);
     if (left && right) {
       return !areRectsOnSameLine(left, right);
     }
@@ -124,19 +117,10 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
     this.events.updateDone.removeListener(this.clearPerUpdateCachedInfo);
   }
 
-  public getTargetHorizontalAnchor(target: NodeNavigator | Chain, side: Side): HorizontalAnchor | undefined {
-    const rect = this.getLayout(target);
-    if (!rect) {
-      return undefined;
-    }
-    return side === Side.Left ? rect.left : rect.right;
-  }
-
-  private clearPerUpdateCachedInfo = () => {
-    this.temporaryNodeTextLayoutAnalyzers.clear();
-  };
-
-  private getLayout(at: NodeNavigator | Chain): ClientRect | undefined {
+  /**
+   * This is not exposed in the NodeLayoutReporter interface from doctarion-document.
+   */
+  public getLayout(at: NodeNavigator | Chain, useCachedTextAnalyzer?: boolean): ClientRect | undefined {
     const provider = this.getProvider(at);
     if (!provider || !provider.node) {
       return undefined;
@@ -148,12 +132,26 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
         return undefined;
       }
       const gIndex = tip.pathPart.index;
-      const ta = this.getNodeTextAnalyzer(provider.node, provider);
+      const ta = useCachedTextAnalyzer
+        ? this.getNodeTextAnalyzer(provider.node, provider)
+        : provider.getTextLayoutAnalyzer();
       return ta?.getGraphemeRect(gIndex) || undefined;
     } else {
       return provider.getLayout();
     }
   }
+
+  public getTargetHorizontalAnchor(target: NodeNavigator | Chain, side: Side): HorizontalAnchor | undefined {
+    const rect = this.getLayout(target, true);
+    if (!rect) {
+      return undefined;
+    }
+    return side === Side.Left ? rect.left : rect.right;
+  }
+
+  private clearPerUpdateCachedInfo = () => {
+    this.temporaryNodeTextLayoutAnalyzers.clear();
+  };
 
   private getNodeTextAnalyzer(node: Node, provider: NodeLayoutProvider): NodeTextLayoutAnalyzer | null {
     let analyzer = this.temporaryNodeTextLayoutAnalyzers.get(node);
@@ -162,7 +160,10 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
       if (!info) {
         return null;
       }
-      analyzer = new NodeTextLayoutAnalyzer(provider.getCodeUnitLayoutProvider(), info);
+      analyzer = provider.getTextLayoutAnalyzer(info);
+      if (!analyzer) {
+        return null;
+      }
       this.temporaryNodeTextLayoutAnalyzers.set(node, analyzer);
     }
     return analyzer;

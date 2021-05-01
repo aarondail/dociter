@@ -1,7 +1,8 @@
-import { Node } from "doctarion-document";
+import { Node, NodeUtils } from "doctarion-document";
 
 import { CodeUnitLayoutProvider } from "./codeUnitLayoutProvder";
-import { adjustRect } from "./utils";
+import { NodeTextLayoutAnalyzer } from "./nodeTextLayoutAnalyzer";
+import { NodeGraphemeInfo, adjustRect, buildNodeGraphemeInfo } from "./utils";
 
 export class NodeLayoutProvider {
   public constructor(public element?: HTMLElement, public node?: Node) {}
@@ -32,5 +33,15 @@ export class NodeLayoutProvider {
       return undefined;
     }
     return adjustRect(this.element.getBoundingClientRect());
+  }
+
+  public getTextLayoutAnalyzer(alreadyComputedInfo?: NodeGraphemeInfo): NodeTextLayoutAnalyzer | undefined {
+    if (this.node && NodeUtils.isTextContainer(this.node)) {
+      return new NodeTextLayoutAnalyzer(
+        this.getCodeUnitLayoutProvider(),
+        alreadyComputedInfo ?? buildNodeGraphemeInfo(this.node)
+      );
+    }
+    return undefined;
   }
 }

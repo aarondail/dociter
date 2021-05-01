@@ -1,10 +1,11 @@
+import { NodeLayoutProviderRegistry, NodeLayoutReporter, NodeTextLayoutAnalyzer } from "doctarion-browser-utils";
 import * as DoctarionDocument from "doctarion-document";
 import lodash from "lodash";
 import React from "react";
 
 import { Cursor } from "./Cursor";
 import { DocumentNode, DocumentNodeLayoutProvider } from "./DocumentNode";
-import { EditorContext } from "./EditorContext";
+import { EditorContext, EditorContextType } from "./EditorContext";
 import { InputInterpreter } from "./InputInterpreter";
 
 import "./Editor.css";
@@ -27,10 +28,6 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
-// P1. Perf -- the getLayout getCodePointsLayout stuff used for moving visually up and down doesn't really seem to be that slow.
-//             the main prob with moving visually up and down seems to be really in teh NodeNavigator or CursorNavigator.
-//             ... maybe lettting those two "jump ahead" by X chars would be a good idea... but that is a lot of work.
-//             ... caching the layouts didn't appear to improve things much at all.
 // F1. Enter Key --- Need to support it.
 // B1. Inserting text near EOL - Doesn't work right
 // B2. Keys up in the InputInterpreter get missed sometimes causing wonkyness (due to debugger at least)
@@ -53,10 +50,13 @@ export interface EditorProps {
 export class Editor extends React.PureComponent<EditorProps> {
   private cursorRef?: Cursor | null;
   private editor: DoctarionDocument.Editor;
+  private editorContext: EditorContextType;
   private fontsLoaded?: boolean;
   private inputInterpreter: InputInterpreter;
   private insertionTextareaRef?: HTMLTextAreaElement | null;
   private mainDivRef?: HTMLDivElement | null;
+  private nodeLayoutProviderRegistry: NodeLayoutProviderRegistry;
+  private nodeLayoutReporter: NodeLayoutReporter;
   private throttledHandleWindowResize: () => void;
 
   public constructor(props: EditorProps) {
@@ -64,7 +64,24 @@ export class Editor extends React.PureComponent<EditorProps> {
 
     this.throttledHandleWindowResize = lodash.throttle(this.handleWindowResize, 50);
 
-    this.editor = new DoctarionDocument.Editor(this.props.initialDocument);
+    this.nodeLayoutProviderRegistry = new NodeLayoutProviderRegistry();
+
+    this.editor = new DoctarionDocument.Editor({
+      document: this.props.initialDocument,
+      provideService: (services, events) => {
+        return {
+          layout: new NodeLayoutReporter(this.nodeLayoutProviderRegistry, events),
+        };
+      },
+    });
+
+    this.nodeLayoutReporter = this.editor.services.layout as NodeLayoutReporter;
+
+    this.editorContext = {
+      ...this.editor.services,
+      layoutProviderRegistry: this.nodeLayoutProviderRegistry,
+    };
+
     this.inputInterpreter = new InputInterpreter(this.dispatchEditorOperationOrCommand, InputMode.Command);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -94,6 +111,8 @@ export class Editor extends React.PureComponent<EditorProps> {
   }
 
   public componentWillUnmount(): void {
+    this.nodeLayoutReporter.dispose();
+
     window.removeEventListener("gesturechange", this.handleGestureChange);
     window.removeEventListener("gestureend", this.handleGestureEnd);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -130,7 +149,7 @@ export class Editor extends React.PureComponent<EditorProps> {
         ></textarea>
         <Cursor ref={this.setCursorsRef} />
         {this.fontsLoaded && (
-          <EditorContext.Provider value={this.editor.services}>
+          <EditorContext.Provider value={this.editorContext}>
             <DocumentNode node={this.editor.document} />
           </EditorContext.Provider>
         )}
@@ -194,7 +213,7 @@ export class Editor extends React.PureComponent<EditorProps> {
     if (!id) {
       return;
     }
-    const provider = this.editor.services.layout.getProvider(id);
+    const provider = this.nodeLayoutProviderRegistry.getProviderForId(id);
     if (!provider) {
       return;
     }
@@ -203,15 +222,20 @@ export class Editor extends React.PureComponent<EditorProps> {
       return;
     }
 
-    const p = DoctarionDocument.Chain.getPath(chain);
+    const p = chain.path;
     // console.log(p);
 
-    if (DoctarionDocument.Node.containsText(DoctarionDocument.Chain.getTipNode(chain))) {
+    if (DoctarionDocument.NodeUtils.isTextContainer(chain.tip.node)) {
+      const textAnalyzer = provider.getTextLayoutAnalyzer();
       let found = false;
       let lefter = false;
       let index = 0;
       // Could do a binary search ...
-      for (const rect of provider.getGraphemeLayout() || []) {
+      // TODO
+      for (const rect of textAnalyzer?.getAllGraphemeRects() || []) {
+        if (!rect) {
+          continue;
+        }
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
           found = true;
           if (x <= rect.left + rect.width * 0.5) {
@@ -225,7 +249,7 @@ export class Editor extends React.PureComponent<EditorProps> {
       if (found) {
         this.dispatchEditorOperationOrCommand(
           DoctarionDocument.Ops.jumpTo(
-            [...p, DoctarionDocument.PathPart.grapheme(index)],
+            new DoctarionDocument.Path([...p.parts, new DoctarionDocument.PathPart(index)]),
             // This probably doesn't work right in all cases
             lefter ? DoctarionDocument.CursorAffinity.Before : DoctarionDocument.CursorAffinity.After
           )
@@ -320,11 +344,7 @@ export class Editor extends React.PureComponent<EditorProps> {
   };
 
   private syncCursorPositionAndEtc = () => {
-    const cursorPosition = this.cursorRef?.layout(
-      this.editor.cursor,
-      this.editor.document,
-      this.editor.services.layout
-    );
+    const cursorPosition = this.cursorRef?.layout(this.editor.cursor, this.editor.document, this.nodeLayoutReporter);
     if (this.insertionTextareaRef) {
       this.insertionTextareaRef.style.left = cursorPosition ? `${cursorPosition.left}px` : "";
       this.insertionTextareaRef.style.top = cursorPosition ? `${cursorPosition.top}px` : "";

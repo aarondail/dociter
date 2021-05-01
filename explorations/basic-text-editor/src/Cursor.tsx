@@ -1,3 +1,4 @@
+import { NodeLayoutReporter } from "doctarion-browser-utils";
 import * as DoctarionDocument from "doctarion-document";
 import React from "react";
 
@@ -40,7 +41,7 @@ export class Cursor extends React.PureComponent {
   public layout(
     cursor: DoctarionDocument.Cursor,
     document: DoctarionDocument.Document,
-    layoutService: DoctarionDocument.EditorNodeLayoutService
+    layoutService: NodeLayoutReporter
   ): CursorPosition | undefined {
     this.position = Cursor.calculatePosition(cursor, document, layoutService);
     // console.log("Cursor pos", this.position);
@@ -72,12 +73,13 @@ export class Cursor extends React.PureComponent {
   private static calculatePosition(
     cursor: DoctarionDocument.Cursor,
     document: DoctarionDocument.Document,
-    layoutService: DoctarionDocument.EditorNodeLayoutService
+    layoutService: NodeLayoutReporter
   ): undefined | CursorPosition {
     const chain = DoctarionDocument.Chain.from(document, cursor.at);
     if (!chain) {
       return undefined;
     }
+
     const rect = layoutService.getLayout(chain);
     // console.log("Cursor.tsx", rect);
     if (!rect) {

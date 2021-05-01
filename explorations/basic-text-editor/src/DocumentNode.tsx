@@ -1,14 +1,16 @@
+import { NodeLayoutProvider, adjustRect } from "doctarion-browser-utils";
 import * as DoctarionDocument from "doctarion-document";
-import { LayoutRect } from "doctarion-document";
 import React from "react";
 
 import { EditorContext } from "./EditorContext";
 
-export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutProvider {
+export class DocumentNodeLayoutProvider extends NodeLayoutProvider {
   private debugElements?: HTMLElement[];
   private privateDebugMode = false;
 
-  public constructor(public element?: HTMLElement, public node?: DoctarionDocument.Node) {}
+  public constructor(public element?: HTMLElement, public node?: DoctarionDocument.Node) {
+    super(element, node);
+  }
 
   public set debugMode(value: boolean) {
     if (!this.element || !this.node) {
@@ -25,7 +27,7 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
       const divs = [];
 
       for (const rawRect of rects) {
-        const rect = this.adjustRect(rawRect);
+        const rect = adjustRect(rawRect);
         const div = document.createElement("div");
         div.style.cssText = `position: absolute; pointer-events: none; left: ${rect.left}px; width: ${rect.width}px; top: ${rect.top}px; height: ${rect.height}px; border: solid 1px red;`;
         divs.push(div);
@@ -36,119 +38,6 @@ export class DocumentNodeLayoutProvider implements DoctarionDocument.NodeLayoutP
     }
     this.privateDebugMode = value;
   }
-
-  /**
-   * This is very similar to the below method for code points but, but instead
-   * works for nodes that have other types of children (not code points).
-   *
-   * Also, unlike the code points method, it can return multiple records for a
-   * single node. For example an inline that is split across two different
-   * lines.
-   */
-  public getChildNodeLayouts(
-    startOffset?: number,
-    endOffset?: number
-  ): [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] | undefined {
-    if (!this.element || !this.node) {
-      return undefined;
-    }
-    const r = new Range();
-    r.selectNodeContents(this.element);
-
-    const start = startOffset ?? 0;
-    let end;
-    if (endOffset !== undefined) {
-      end = endOffset;
-    } else {
-      end = (this.element.childNodes?.length || 1) - 1;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const c = this.element.firstChild!;
-    const results: [DoctarionDocument.NodeId, DoctarionDocument.LayoutRect[]][] = [];
-    for (let i = start; i <= end; i++) {
-      r.setStart(c, i);
-      r.setEnd(c, i + 1);
-      const nodeId = (r.startContainer as HTMLElement).id;
-      if (nodeId) {
-        results.push([nodeId, [...r.getClientRects()].map(this.adjustRect)]);
-      }
-    }
-    return results;
-  }
-
-  public getGraphemeLayout(startOffset?: number, endOffset?: number): DoctarionDocument.LayoutRect[] | undefined {
-    if (!this.element || !this.node || !DoctarionDocument.Node.containsText(this.node)) {
-      return undefined;
-    }
-
-    // console.log("Get grapheme layout,", startOffset, endOffset);
-    const r = new Range();
-    r.selectNodeContents(this.element);
-
-    const maxLen = (this.element.textContent?.length || 1) - 1;
-
-    let start = 0;
-    let end = maxLen;
-    if (startOffset !== undefined) {
-      for (let i = 0; i < startOffset; i++) {
-        // Add the CODE UNITS for an individual grapheme to the start
-        start += this.node.text[i].length;
-      }
-    }
-    if (endOffset !== undefined) {
-      end = start;
-      for (let i = startOffset !== undefined ? startOffset : 0; i < endOffset; i++) {
-        // Add the CODE UNITS for an individual grapheme to the start
-        end += this.node.text[i].length;
-      }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const c = this.element.firstChild!;
-    const results = [];
-    for (let i = start; i <= end; i++) {
-      // console.log(i);
-      r.setStart(c, i);
-      r.setEnd(c, i + 1);
-      // Sometimes (with line wrapping, a code point will have multiple rects.
-      // Using getBoundingClientRect inflates to cover the entire pair of lines)
-      //
-      // We use the second rect since that is probably the one we want...
-      const rects = r.getClientRects();
-      // console.log("DocumentNode::getGrapheme rect count = ", rects.length, rects);
-      if (rects.length === 1) {
-        results.push(this.adjustRect(rects[0]));
-      } else if (rects.length === 2) {
-        results.push(this.adjustRect(rects[1]));
-      } else {
-        throw new Error("Unexpected number of rects when getting a code point's layout.");
-      }
-    }
-
-    // console.log("Get grapheme layout, res", results);
-    return results;
-  }
-
-  public getLayout(): LayoutRect | undefined {
-    if (!this.element) {
-      return undefined;
-    }
-    return this.adjustRect(this.element.getBoundingClientRect());
-  }
-
-  private adjustRect(rect: ClientRect): LayoutRect {
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    return {
-      top: rect.top + scrollTop,
-      bottom: rect.bottom + scrollTop,
-      left: rect.left + scrollLeft,
-      right: rect.right + scrollLeft,
-      height: rect.height,
-      width: rect.width,
-    };
-  }
 }
 
 export interface DocumentNodeProps {
@@ -157,17 +46,17 @@ export interface DocumentNodeProps {
 
 export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentNodeProps): JSX.Element | null {
   const editorContext = React.useContext(EditorContext);
-  const id = DoctarionDocument.Node.getId(node);
+  const id = DoctarionDocument.NodeId.getId(node);
 
   let children: React.ReactNode;
-  if (DoctarionDocument.Node.containsText(node)) {
+  if (DoctarionDocument.NodeUtils.isTextContainer(node)) {
     children = node.text.join("");
-  } else if (DoctarionDocument.Node.containsInlineContent(node)) {
-    children = node.content.map((n) => <DocumentNode key={DoctarionDocument.Node.getId(n)} node={n} />);
+  } else if (DoctarionDocument.NodeUtils.isInlineContainer(node)) {
+    children = node.children.map((n) => <DocumentNode key={DoctarionDocument.NodeId.getId(n)} node={n} />);
   } else {
     // This handles e.g. the Document itself
-    children = DoctarionDocument.Node.getChildren(node)?.map((n) => (
-      <DocumentNode key={DoctarionDocument.Node.getId(n)} node={n} />
+    children = DoctarionDocument.NodeUtils.getChildren(node)?.map((n) => (
+      <DocumentNode key={DoctarionDocument.NodeId.getId(n)} node={n} />
     ));
   }
 
@@ -187,7 +76,7 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
 
       // I sure hope these callbacks get called with null for cleanup...
       if (providerRef.current?.element) {
-        editorContext.layout.removeProvider(id, providerRef.current);
+        editorContext.layoutProviderRegistry.removeProvider(id, providerRef.current);
         providerRef.current.element = undefined;
       }
 
@@ -198,12 +87,12 @@ export const DocumentNode = React.memo(function DocumentNode({ node }: DocumentN
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       providerRef.current!.element = element;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      editorContext.layout.setProvider(id, providerRef.current!);
+      editorContext.layoutProviderRegistry.setProvider(id, providerRef.current!);
     },
-    [editorContext.layout, id, providerRef]
+    [editorContext.layoutProviderRegistry, id, providerRef]
   );
 
-  return DoctarionDocument.Node.switch(node, {
+  return DoctarionDocument.NodeUtils.switch(node, {
     onDocument: (doc) => (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <div id={id} ref={elementRef as any}>

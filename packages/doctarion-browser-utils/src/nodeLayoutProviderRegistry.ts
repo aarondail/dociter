@@ -14,7 +14,7 @@ export class NodeLayoutProviderRegistry {
     return this.layoutProviders.get(nodeId);
   }
 
-  public getProviderForNode = (node: Node) => {
+  public getProviderForNode = (node: Node): NodeLayoutProvider | undefined => {
     const id = NodeId.getId(node);
     if (id) {
       return this.getProviderForId(id);

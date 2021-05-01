@@ -1,14 +1,9 @@
 import { HorizontalAnchor } from "doctarion-document";
 
 import { CodeUnitLayoutProvider } from "./codeUnitLayoutProvder";
-import { NodeGraphemeInfo } from "./nodeLayoutReporter";
-import { areRectsOnSameLine } from "./utils";
+import { areRectsOnSameLine, NodeGraphemeInfo } from "./utils";
 
 const EMPTY_NUMBER_SET: ReadonlySet<number> = new Set();
-
-// 4. Fix tests in this file
-// 5. Double check code in document-doc
-// 6. Wire all this into the browser editor experiemt
 
 /**
  * These are indecies of graphemes in the containing node that are FOLLOWED

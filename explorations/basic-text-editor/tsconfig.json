@@ -24,6 +24,7 @@
     "src"
   ],
   "references": [
-    { "path": "../../packages/doctarion-document/tsconfig.build.json" }
+    { "path": "../../packages/doctarion-document/tsconfig.build.json" },
+    { "path": "../../packages/doctarion-browser-utils/tsconfig.build.json" }
   ]
 }
