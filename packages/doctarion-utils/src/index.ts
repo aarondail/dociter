@@ -1,1 +1,2 @@
-export * from "./FriendlyIdGenerator";
+export * from "./events";
+export * from "./friendlyIdGenerator";
