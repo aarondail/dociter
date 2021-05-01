@@ -64,57 +64,51 @@ interface TestArgs {
 }
 
 function test1({ ex, provider }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 0);
+  ex.equal(layout?.size, 0);
 }
 
 function test2({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 2);
+  ex.equal(layout?.size, 2);
 }
 
 function test3({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 3);
+  ex.equal(layout?.size, 3);
 
   // debugHelper(provider);
 }
 
 function test4({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 23);
+  ex.equal(layout?.size, 23);
   // debugHelper(provider);
 }
 
 function test5({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 5);
+  ex.equal(layout?.size, 5);
   // debugHelper(provider);
 }
 
 function test6({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.equal(layout?.layoutRects.length, 1);
-  ex.equal(layout?.graphemeLineBreaks?.size, 3);
+  ex.equal(layout?.size, 3);
   // debugHelper(provider);
 }
 
 function test7({ provider, ex }: TestArgs) {
-  const layout = provider.getDetailedLayoutForNodeContainingOnlyText();
+  const layout = provider.getAllGraphemeLineWraps();
   ex.truthy(layout);
-  ex.truthy(layout?.layoutRects.length || 0 >= 3);
-  ex.equal(layout?.graphemeLineBreaks?.size, 5);
+  ex.truthy(provider.getDetailedLayout()?.length || 0 >= 3);
+  ex.equal(layout?.size, 5);
   // debugHelper(provider);
 }
 
@@ -126,7 +120,7 @@ for (const test of tests) {
   const el = document.getElementById(testName)!;
   const elr = document.getElementById(testName + "r")!;
   const ex = expector(testName, elr);
-  const node = InlineText.new(el.textContent || "");
+  const node = new InlineText(el.textContent || "");
   const provider = new NodeLayoutProvider(el, node);
 
   const args = {
@@ -146,8 +140,8 @@ for (const test of tests) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function debugHelper(p: NodeLayoutProvider) {
-  const rects = p.getAllGraphemeLayoutRectsForNodeContainingOnlyText() || [];
-  const interestingGraphemes = p.getDetailedLayoutForNodeContainingOnlyText()?.graphemeLineBreaks;
+  const rects = p.getAllGraphemeLayoutRects() || [];
+  const interestingGraphemes = p.getAllGraphemeLineWraps();
 
   const colors = ["red", "green", "blue", "#B0F"];
   let i = 0;

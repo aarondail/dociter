@@ -1,6 +1,6 @@
 import { Node, NodeId } from "doctarion-document";
 
-import { NodeLayoutProvider } from "./rawNodeLayoutProvider";
+import { NodeLayoutProvider } from "./nodeLayoutProvider";
 
 export class NodeLayoutProviderRegistry {
   private layoutProviders: Map<NodeId, NodeLayoutProvider>;
