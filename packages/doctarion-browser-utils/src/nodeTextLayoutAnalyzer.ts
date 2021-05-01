@@ -1,4 +1,4 @@
-import { HorizontalAnchor } from "doctarion-document";
+import { HorizontalAnchor, Side } from "doctarion-document";
 
 import { CodeUnitLayoutProvider } from "./codeUnitLayoutProvder";
 import { areRectsOnSameLine, NodeGraphemeInfo } from "./utils";
@@ -34,13 +34,16 @@ export class NodeTextLayoutAnalyzer {
     this.graphemeRects = new Array(this.graphemeCount);
   }
 
-  public findGraphemeOnSameLineButAt(target: HorizontalAnchor, startIndex: number): number | undefined {
+  public findGraphemeIndexOnSameLineButAt(
+    target: HorizontalAnchor,
+    startIndex: number
+  ): { index: number; side: Side } | undefined {
     const startingRect = this.getGraphemeRect(startIndex);
     if (!startingRect) {
       return undefined;
     }
     if (startingRect.left <= target && startingRect.right >= target) {
-      return startIndex;
+      return { index: startIndex, side: target <= startingRect.left + startingRect.width / 2 ? Side.Left : Side.Right };
     }
 
     // Reverse meaning going left
@@ -48,7 +51,7 @@ export class NodeTextLayoutAnalyzer {
 
     const lineWraps = this.getAllGraphemeLineWraps();
     let searchEndIndex;
-    if (lineWraps) {
+    if (lineWraps && lineWraps.size > 0) {
       let priorIndex = 0;
       for (const index of [...lineWraps].sort()) {
         if (startIndex < index) {
@@ -61,22 +64,22 @@ export class NodeTextLayoutAnalyzer {
       searchEndIndex = reverse ? 0 : this.graphemeCount - 1;
     }
 
-    if (!searchEndIndex) {
+    if (searchEndIndex === undefined) {
       return undefined;
     }
 
     if (reverse) {
       for (let i = startIndex - 1; i >= searchEndIndex; i--) {
-        const rect = this.getGraphemeRect(startIndex);
+        const rect = this.getGraphemeRect(i);
         if (rect && rect.left <= target && rect.right >= target) {
-          return i;
+          return { index: i, side: target <= rect.left + rect.width / 2 ? Side.Left : Side.Right };
         }
       }
     } else {
       for (let i = startIndex + 1; i <= searchEndIndex; i++) {
-        const rect = this.getGraphemeRect(startIndex);
+        const rect = this.getGraphemeRect(i);
         if (rect && rect.left <= target && rect.right >= target) {
-          return i;
+          return { index: i, side: target <= rect.left + rect.width / 2 ? Side.Left : Side.Right };
         }
       }
     }

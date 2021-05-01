@@ -49,8 +49,11 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
     subject: NodeNavigator | Chain,
     subjectSide: Side,
     target: HorizontalAnchor
-  ): { distance: number; estimatedSubjectSiblingsToTarget?: number } | undefined {
+  ):
+    | { distance: number; estimatedSubjectSiblingsToTarget?: number; estimatedSubjectSiblingSideClosestToTarget?: Side }
+    | undefined {
     let estimatedSubjectSiblingsToTarget = undefined;
+    let estimatedSubjectSiblingSideClosestToTarget = undefined;
     if (
       subject.parent?.node &&
       NodeUtils.isTextContainer(subject.parent.node) &&
@@ -60,7 +63,14 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
       const ta = provider && provider.node && this.getNodeTextAnalyzer(provider.node, provider);
       // Fast mode?
       if (ta) {
-        estimatedSubjectSiblingsToTarget = ta.findGraphemeOnSameLineButAt(target, subject.tip.pathPart.index);
+        const startIndex = subject.tip.pathPart.index;
+        const findGraphemeResult = ta.findGraphemeIndexOnSameLineButAt(target, startIndex);
+        if (findGraphemeResult !== undefined) {
+          const { index, side } = findGraphemeResult;
+          console.log("found esimated", index, side);
+          estimatedSubjectSiblingsToTarget = index - startIndex;
+          estimatedSubjectSiblingSideClosestToTarget = side;
+        }
       }
     }
 
@@ -74,7 +84,7 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
 
     const distance = target - leftSide;
 
-    return { distance, estimatedSubjectSiblingsToTarget };
+    return { distance, estimatedSubjectSiblingsToTarget, estimatedSubjectSiblingSideClosestToTarget };
   }
 
   public detectLineWrapOrBreakBetweenNodes(
@@ -94,10 +104,12 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
         const rightIndex = subsequent.tip.pathPart.index;
         const lineWraps = ta.getAllGraphemeLineWraps();
         if (lineWraps) {
-          // Note the line wraps indecies PRECEED a line wrap
-          for (const index of lineWraps) {
-            if (index >= leftIndex && index <= rightIndex) {
-              return true;
+          if (lineWraps.size > 0) {
+            // Note the line wraps indecies PRECEED a line wrap
+            for (const index of lineWraps) {
+              if (index >= leftIndex && index <= rightIndex) {
+                return true;
+              }
             }
           }
           return false;

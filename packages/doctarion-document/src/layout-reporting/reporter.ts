@@ -9,7 +9,9 @@ export interface NodeLayoutReporter {
     subject: NodeNavigator | Chain,
     subjectSide: Side,
     target: HorizontalAnchor
-  ): { distance: number; estimatedSubjectSiblingsToTarget?: number } | undefined;
+  ):
+    | { distance: number; estimatedSubjectSiblingsToTarget?: number; estimatedSubjectSiblingSideClosestToTarget?: Side }
+    | undefined;
 
   detectLineWrapOrBreakBetweenNodes(
     preceeding: NodeNavigator | Chain,
