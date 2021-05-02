@@ -53,7 +53,7 @@ export class NodeTextLayoutAnalyzer {
     let searchEndIndex;
     if (lineWraps && lineWraps.size > 0) {
       let priorIndex = 0;
-      for (const index of [...lineWraps].sort()) {
+      for (const index of [...lineWraps].sort((a, b) => a - b)) {
         if (startIndex < index) {
           searchEndIndex = reverse ? priorIndex : index - 1;
           break;
