@@ -60,12 +60,12 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const precedingSibling = navigator.precedingSiblingNode;
     const nextSibling = navigator.nextSiblingNode;
     const parent = navigator.chain.parent?.node;
-    console.log("here 1");
+
     if (NodeUtils.isGrapheme(el)) {
-      console.log("here 2");
-      // For text, we generally prefer after affinity. One case where we don't
+      // For text, we generally prefer after affinity.  One case where we don't
       // is when the character is at the end or start of a line that was
-      // visually wrapped.
+      // visually wrapped.  In that case the grapheme before the wrap generally
+      // has no affinities and the one after has before.
       //
       // There are some additional cases but they are more complicated and there
       // are different rules for text inside an InlineText and for text in other
@@ -74,13 +74,12 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
       // For InlineText we only suggest before affinity if the grapheme is the
       // first in the InlineText node and the preceding parent node (e.g. some
       // other inline node) is NOT an InlineText OR is an InlineText that has no
-      // children
+      // children OR is at the start of the line.
       //
       // For text in other inline nodes, it is simpler and it only matters if it
       // is the first grapheme in that node.
       let beforeIsValid;
       if (parent && NodeUtils.isTextContainer(parent) && precedingSibling === undefined) {
-        console.log("here 2.1");
         if (parent instanceof InlineText) {
           const parentPrecedingSibling = navigator.precedingParentSiblingNode;
           if (
@@ -89,26 +88,21 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
             parentPrecedingSibling.text.length === 0
           ) {
             beforeIsValid = true;
-            // return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
           }
         } else {
           beforeIsValid = true;
-          // return CannedGetValidCursorAffinitiesAtResult.beforeAfter;
         }
       }
       // This handles the visual line wrapping rule
       if (layoutReporter) {
         {
-          console.log("here 3");
           let hasNextLineWrap;
-          console.log(navigator.tip.node);
           const nextNavigator = navigator.clone();
           if (nextNavigator.hasNextSibling()) {
             hasNextLineWrap =
               nextNavigator.navigateToNextSibling() &&
               layoutReporter.detectLineWrapOrBreakBetweenNodes(navigator, nextNavigator);
           } else {
-            console.log("here 4");
             if (
               nextNavigator.navigateToParent() &&
               nextNavigator.navigateToNextSibling() &&
@@ -116,12 +110,10 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
               nextNavigator.tip.node instanceof InlineText &&
               nextNavigator.navigateToFirstChild()
             ) {
-              console.log("here 5");
               hasNextLineWrap = layoutReporter.detectLineWrapOrBreakBetweenNodes(navigator, nextNavigator);
             }
           }
           if (hasNextLineWrap) {
-            console.log("here 6");
             return beforeIsValid
               ? CannedGetValidCursorAffinitiesAtResult.justBefore
               : CannedGetValidCursorAffinitiesAtResult.none;
@@ -150,11 +142,12 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
           }
         }
       }
-      console.log("here 16");
+
       return beforeIsValid
         ? CannedGetValidCursorAffinitiesAtResult.beforeAfter
         : CannedGetValidCursorAffinitiesAtResult.justAfter;
     } else {
+      // Node is not a grapheme
       const hasNeutral = this.isEmptyInsertionPoint(el);
       const hasBeforeBetweenInsertionPoint = PositionClassification.isInBetweenInsertionPoint(el, precedingSibling);
       const hasAfterBetweenInsertionPoint = PositionClassification.isInBetweenInsertionPoint(el, nextSibling);
@@ -163,7 +156,6 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
         return CannedGetValidCursorAffinitiesAtResult.none;
       }
 
-      console.log("XXXX", hasNeutral, hasBeforeBetweenInsertionPoint, hasAfterBetweenInsertionPoint);
       const result: GetValidCursorAffinitiesAtResult = {};
       // For in between insertion points, we ignore those in case there the
       // preceding or next sibiling element is an InlineText. Because in this

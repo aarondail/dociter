@@ -123,10 +123,12 @@ export class CursorNavigator {
   }
 
   public navigateToNextCursorPosition(): boolean {
-    console.log("navigateToNextCursorPosition at:", this.tip.node, this.currentAffinity);
     const affinity = this.currentAffinity;
     let skipDescendants = false;
 
+    // This block of code is responsible for changing the cursor affinity from
+    // before or neutral to another affinity without changing the node that the
+    // navigator is on
     if (affinity === CursorAffinity.Before) {
       const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (positions.neutral) {
@@ -152,17 +154,24 @@ export class CursorNavigator {
           return true;
         }
       }
+      // We set this to true because if the current node HAS children, e.g.
+      // this is an InlineUrlLink w/ text then the navigateForwardsInDfs below
+      // will move INTO the children instead of PAST this entire node.  This is
+      // because the NodeNavigator just thinks we are on an InlineUrlLink node
+      // in its DFS and the next step of the DFS is normally to dive into
+      // any children.
       skipDescendants = true;
     }
 
+    // This loop basically just navigates through the DFS until we find the next
+    // node that has cursor positions.  If we find something with just an after
+    // position AND it has children we skip that and instead dive into the
+    // children.  That after position will eventually (as
+    // navigateToNextCursorPosition is called) come up again and be handled in
+    // the block above this loop.
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsInDfs({ skipDescendants })) {
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      console.log("nav fowardin DFS to: " + this.nodeNavigator.tip.node);
-
       const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      console.log("MOVE FORWARD, " + this.nodeNavigator.tip.node + ") NEW POS: ", newPositions);
       if (newPositions.before) {
         this.currentAffinity = CursorAffinity.Before;
         return true;

@@ -2,7 +2,15 @@ import { Chain, NodeLayoutReporter, NodeNavigator } from "../../src";
 import { CursorAffinity } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
 import { HeaderLevel, NodeUtils } from "../../src/models";
-import { debugCursorNavigator, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
+import {
+  debugCursorNavigator,
+  debugCursorNavigator2,
+  doc,
+  header,
+  inlineText,
+  inlineUrlLink,
+  paragraph,
+} from "../utils";
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("Header1")),
@@ -380,7 +388,6 @@ describe("navigateToNextCursorPosition", () => {
 
   it("should navigate through line breaks nicely", () => {
     const nav = new CursorNavigator(testDoc4, new TestDoc4LayoutReporter());
-    // TODO deal with navigate thorugh empty inline url link at start of firs tblock
     const next = nextPrime.bind(undefined, nav);
     next(1);
     expect(nav.tip.node).toEqual("A");
@@ -448,8 +455,6 @@ describe("navigateToNextCursorPosition", () => {
     next(2);
     expect(nav.tip.node).toEqual("X");
     expect(debugCursorNavigator(nav)).toEqual("0/6/2 |>");
-
-    // TODO do the reverse for preceeding :yikes:
   });
 });
 
@@ -633,6 +638,67 @@ describe("navigateToPrecedingCursorPosition", () => {
     expect(debugCursorNavigator(nav)).toEqual("<| 0/0");
 
     expect(nav.navigateToPrecedingCursorPosition()).toBeFalsy();
+  });
+
+  it("should navigate through line breaks nicely", () => {
+    const nav = new CursorNavigator(testDoc4, new TestDoc4LayoutReporter());
+    nav.navigateToLastDescendantCursorPosition();
+    const back = backPrime.bind(undefined, nav);
+    // Make sure we are starting at the end ;)
+    expect(debugCursorNavigator2(nav)).toEqual(`0/6 |> :: URL_LINK g.com > "VWX"`);
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/6/2 |> :: X");
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("0/6/0 |> :: V");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/6/0 :: V");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/5/2 |> :: U");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/5/1 |> :: T");
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/5/0 :: S");
+
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/4/2 |> :: R");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/4/1 |> :: Q");
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/4/0 :: P");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual(`<| 0/4 :: URL_LINK g.com > "PQR"`);
+
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/3/3 |> :: O");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/3/2 |> :: N");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/3/1 |> :: M");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/3/1 :: M");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/3/0 :: L");
+
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/2/1 |> :: K");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/2/0 |> :: J");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/2/0 :: J");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/1/2 |> :: H");
+
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/1/1 :: G");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/0/4 |> :: E");
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/0/3 :: D");
+
+    back(2);
+    expect(debugCursorNavigator2(nav)).toEqual("0/0/0 |> :: A");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/0/0 :: A");
   });
 });
 

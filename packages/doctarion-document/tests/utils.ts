@@ -36,8 +36,13 @@ export const debugCursorNavigator = (nav: CursorNavigator): string => {
   return p;
 };
 
+export const debugCursorNavigator2 = (nav: CursorNavigator): string => {
+  const n = nav.tip.node;
+  return debugCursorNavigator(nav) + " :: " + (NodeUtils.isGrapheme(n) ? n : DebugEditorHelpers.debugSoloNode(n));
+};
+
 export const DebugEditorHelpers = (() => {
-  const debugNodeSolo = (node: Node): string => {
+  const debugSoloNode = (node: Node): string => {
     const modifiersToString = (m?: Partial<TextModifiers>) => {
       if (!m) {
         return "";
@@ -95,7 +100,7 @@ export const DebugEditorHelpers = (() => {
         break;
       }
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      chunks.push(debugNodeSolo(node));
+      chunks.push(debugSoloNode(node));
     }
     return chunks.join(" > ");
   };
@@ -155,5 +160,5 @@ ${JSON.stringify(state.document.children, undefined, 4)}
     return debugBlockSimple(editor.document, path);
   };
 
-  return { debugEditorStateSimple, debugCurrentBlock };
+  return { debugSoloNode, debugEditorStateSimple, debugCurrentBlock };
 })();

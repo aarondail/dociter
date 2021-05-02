@@ -101,7 +101,6 @@ function moveVisualUpOrDownHelper(
     return;
   }
 
-  console.log("#########33");
   const advance = () =>
     direction === "DOWN"
       ? currentNavigator.navigateToNextCursorPosition()
@@ -125,13 +124,13 @@ function moveVisualUpOrDownHelper(
     // works so that it doesn't have to compute all the line breaks in a
     // InlineText to do its work
 
-    console.log("cursorOps:loop1:advance ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
+    // console.log("cursorOps:loop1:advance ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
     if (didLineWrap(startNavigator)) {
       foundNewLine = true;
       break;
     }
   }
-  console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
+  // console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
 
   if (!foundNewLine) {
     return;
@@ -160,9 +159,9 @@ function moveVisualUpOrDownHelper(
     const newLineStartNavigator = currentNavigator.toNodeNavigator();
 
     while (advance()) {
-      console.log("curos:loop2:advance");
+      // console.log("curos:loop2:advance");
       if (didLineWrap(newLineStartNavigator)) {
-        console.log("curos:loop2:line wrap detected");
+        // console.log("curos:loop2:line wrap detected");
         retreat();
         break;
       }
@@ -173,21 +172,23 @@ function moveVisualUpOrDownHelper(
         targetAnchor
       );
       if (!newDistance) {
-        console.log("curos:loop2:dist null");
+        // console.log("curos:loop2:dist null");
         retreat();
         break;
       }
-      if (Math.abs(newDistance.distance) >= Math.abs(distance.distance)) {
-        console.log("curos:loop2:dist ok");
+      if (Math.abs(newDistance.distance) > Math.abs(distance.distance)) {
+        // console.log("curos:loop2:dist ok");
         retreat();
         break;
       }
       if (newDistance.estimatedSubjectSiblingsToTarget) {
         currentNavigator.navigateToRelativeSibling(
           newDistance.estimatedSubjectSiblingsToTarget,
-          direction === "DOWN" ? CursorAffinity.Before : CursorAffinity.After
+          newDistance.estimatedSubjectSiblingSideClosestToTarget === Side.Left
+            ? CursorAffinity.Before
+            : CursorAffinity.After
+          // direction === "DOWN" ? CursorAffinity.Before : CursorAffinity.After
         );
-        console.log("curos:loop2:MOVERELSib");
         break;
       }
 
