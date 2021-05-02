@@ -23,6 +23,10 @@ export function adjustRect(rect: ClientRect): ClientRect {
   };
 }
 
+// This effectivly says, in the algorithm below, that if two rects vertically
+// overlap by up to 4 pixels, that still counts as a new line
+const LINE_DETECTION_RESTRICTION_HALF = 2;
+
 /**
  * This takes two LayoutRects corresponding to code units from a single
  * element/node (that only contains text), and guesses if they are on the same
@@ -33,11 +37,7 @@ export function areRectsOnSameLine(earlier: ClientRect, later: ClientRect): bool
   if (earlier.left > later.left) {
     return false;
   }
-  const r = earlier.bottom > later.top;
-  // if (r) {
-  //   debugger;
-  // }
-  return r;
+  return earlier.bottom - LINE_DETECTION_RESTRICTION_HALF > later.top + LINE_DETECTION_RESTRICTION_HALF;
 }
 
 export function buildGraphemeToCodeUnitMap(text: Text): { map: number[]; codeUnitCount: number } {

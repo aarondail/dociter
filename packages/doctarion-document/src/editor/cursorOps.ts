@@ -101,8 +101,6 @@ export function resetCursorMovementHints(state: immer.Draft<EditorState>): void 
 
 //   const targetXValue = state.cursorVisualLineMovementXHint ?? selectRectSide(state.cursor, startingLayoutRect);
 
-//   // console.log( "moveVisualUpDown", direction, "node", nav.tip.node, "startingLayoutRect:", startingLayoutRect, "targetXValue: ", targetXValue);
-
 //   // Part 1 of this algorithm is to detect the start of the next line ... by
 //   // relatively simply just advancing the cursor until it "seems like" we are on
 //   // a different line.
@@ -215,11 +213,13 @@ function moveVisualUpOrDownHelper(
 
   let foundNewLine = false;
   while (advance()) {
+    // console.log("cursorOps:loop1:advance ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
     if (didLineWrap(startNavigator)) {
       foundNewLine = true;
       break;
     }
   }
+  // console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
 
   if (!foundNewLine) {
     return;
@@ -239,11 +239,6 @@ function moveVisualUpOrDownHelper(
   }
 
   if (distance.estimatedSubjectSiblingsToTarget) {
-    console.log(
-      "bailing early",
-      distance.estimatedSubjectSiblingsToTarget,
-      distance.estimatedSubjectSiblingSideClosestToTarget
-    );
     currentNavigator.navigateToRelativeSibling(
       distance.estimatedSubjectSiblingsToTarget,
       distance.estimatedSubjectSiblingSideClosestToTarget === Side.Left ? CursorAffinity.Before : CursorAffinity.After

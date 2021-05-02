@@ -1,6 +1,10 @@
+import { immerable } from "immer";
+
 import { Node, NodeUtils } from "../models";
 
 export class PathPart {
+  [immerable] = true;
+
   public constructor(readonly index: number) {}
 
   public equalTo(other: PathPart): boolean {

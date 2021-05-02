@@ -1,3 +1,4 @@
+import { immerable } from "immer";
 import lodash from "lodash";
 
 import { PathPart } from "./pathPart";
@@ -10,6 +11,8 @@ import { PathPart } from "./pathPart";
 export type PathString = string;
 
 export class Path {
+  [immerable] = true;
+
   public constructor(public readonly parts: readonly PathPart[]) {}
 
   public compareTo(other: Path): PathComparison {

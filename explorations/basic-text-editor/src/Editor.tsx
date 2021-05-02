@@ -1,4 +1,4 @@
-import { NodeLayoutProviderRegistry, NodeLayoutReporter, NodeTextLayoutAnalyzer } from "doctarion-browser-utils";
+import { NodeLayoutProviderRegistry, NodeLayoutReporter } from "doctarion-browser-utils";
 import * as DoctarionDocument from "doctarion-document";
 import lodash from "lodash";
 import React from "react";
@@ -27,6 +27,14 @@ export enum EditorCommand {
 export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
+
+// Testing before we call it quits:
+// Inline w/ line breaks
+// Multi inline paragraph
+// Wrapped inline
+// End of line, start of line or wrapped lines, broken lines, and blocks
+// ???
+// Click to put cursor
 
 // F1. Enter Key --- Need to support it.
 // B1. Inserting text near EOL - Doesn't work right
@@ -161,7 +169,10 @@ export class Editor extends React.PureComponent<EditorProps> {
     operationOrCommand: DoctarionDocument.EditorOperation | EditorCommand
   ) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    console.log("dispatchEditorOperationOrCommand", (operationOrCommand as any).name);
+    console.log(
+      "dispatchEditorOperationOrCommand",
+      typeof operationOrCommand === "function" ? operationOrCommand.name : EditorCommand[operationOrCommand]
+    );
     switch (operationOrCommand) {
       case EditorCommand.InputCompositionModeEnd:
         this.forceUpdate(); // Re-render so that the class name of the textarea is updated

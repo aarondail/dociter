@@ -1,3 +1,5 @@
+import { immerable } from "immer";
+
 import { Path } from "../basic-traversal";
 
 /**
@@ -13,5 +15,7 @@ export enum CursorAffinity {
 }
 
 export class Cursor {
+  [immerable] = true;
+
   public constructor(public readonly at: Path, public readonly affinity: CursorAffinity = CursorAffinity.Before) {}
 }

@@ -1,7 +1,11 @@
+import { immerable } from "immer";
+
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { Document, Node, NodeUtils } from "../models";
 
 export class Range {
+  [immerable] = true;
+
   public constructor(
     public readonly from: Path,
     /**
@@ -69,19 +73,6 @@ export class Range {
       // elements do not appear here... I think.
       foundKidChains: Chain[];
     }[] = [];
-
-    // const debugAlg = (s?: string) => {
-    //   console.log(
-    //     `${s} - FOUND KID CHAINS in tracking`,
-    //     trackingStack.map((l) =>
-    //       l.foundKidChains
-    //         .map(Chain.getPath)
-    //         .map(Path.toString)
-    //     ),
-    //     " ... and results ... ",
-    //     results.map(Chain.getPath).map(Path.toString)
-    //   );
-    // };
 
     const TrackingStack = {
       push(chain: Chain) {

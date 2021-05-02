@@ -1,5 +1,6 @@
+import { immerable } from "immer";
+
 import { Grapheme } from "./grapheme";
-import { Text } from "./text";
 
 // -----------------------------------------------------------------------------
 // You can think of a document as a tree like structure of Nodes. The Nodes
@@ -31,6 +32,7 @@ export type Node = ObjectNode | Grapheme;
  * All document nodes are ObjectNodes except for Graphemes.
  */
 export abstract class ObjectNode {
+  [immerable] = true;
   public abstract children?: readonly Node[];
   public abstract kind: Omit<NodeKind, NodeKind.Grapheme>;
   public abstract layoutType: NodeLayoutType;

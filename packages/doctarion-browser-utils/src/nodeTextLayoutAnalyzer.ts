@@ -1,13 +1,13 @@
 import { HorizontalAnchor, Side } from "doctarion-document";
 
 import { CodeUnitLayoutProvider } from "./codeUnitLayoutProvder";
-import { areRectsOnSameLine, NodeGraphemeInfo } from "./utils";
+import { NodeGraphemeInfo, areRectsOnSameLine } from "./utils";
 
 const EMPTY_NUMBER_SET: ReadonlySet<number> = new Set();
 
 /**
- * These are indecies of graphemes in the containing node that are FOLLOWED
- * by a line break.
+ * These are indecies of graphemes in the containing node that are PRECEEDED
+ * by a line break. In other words, these graphemes START lines.
  */
 export type GraphemeLineWraps = ReadonlySet<number>;
 
@@ -86,6 +86,9 @@ export class NodeTextLayoutAnalyzer {
     return undefined;
   }
 
+  /**
+   * This returns the index of the next grapheme that STARTS a new line.
+   */
   public findNextLineWrap(startIndex: number): number | undefined {
     let leftIndex = startIndex;
     let leftRect = this.getGraphemeRect(leftIndex);
@@ -145,9 +148,10 @@ export class NodeTextLayoutAnalyzer {
         }
       }
 
-      // console.log(leftRect.top, rightRect.top);
+      // console.log(leftRect.top, rightRect.top, "b", leftRect.bottom, rightRect.bottom);
       // There is a right rect, is it on the same line as the leftRect?
       const sameLine = areRectsOnSameLine(leftRect, rightRect);
+      // console.log("sameLine = ", sameLine);
 
       if (leftIndex === rightIndex - 1 || allRectsBetweenLeftAndRightAreNull) {
         if (!sameLine) {

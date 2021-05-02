@@ -13,7 +13,7 @@ import memoizee from "memoizee/weak";
 import { NodeLayoutProvider } from "./nodeLayoutProvider";
 import { NodeLayoutProviderRegistry } from "./nodeLayoutProviderRegistry";
 import { NodeTextLayoutAnalyzer } from "./nodeTextLayoutAnalyzer";
-import { areRectsOnSameLine, buildGraphemeToCodeUnitMap, buildNodeGraphemeInfo, NodeGraphemeInfo } from "./utils";
+import { NodeGraphemeInfo, areRectsOnSameLine, buildGraphemeToCodeUnitMap, buildNodeGraphemeInfo } from "./utils";
 
 export class NodeLayoutReporter implements NodeLayoutReporterInterface {
   private getNodeGraphemeInfo: ((node: Node) => NodeGraphemeInfo | null) &
@@ -67,7 +67,6 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
         const findGraphemeResult = ta.findGraphemeIndexOnSameLineButAt(target, startIndex);
         if (findGraphemeResult !== undefined) {
           const { index, side } = findGraphemeResult;
-          console.log("found esimated", index, side);
           estimatedSubjectSiblingsToTarget = index - startIndex;
           estimatedSubjectSiblingSideClosestToTarget = side;
         }
@@ -105,9 +104,10 @@ export class NodeLayoutReporter implements NodeLayoutReporterInterface {
         const lineWraps = ta.getAllGraphemeLineWraps();
         if (lineWraps) {
           if (lineWraps.size > 0) {
-            // Note the line wraps indecies PRECEED a line wrap
+            // Note the line wraps indecies FOLLOW a line wrap (i.e.  start a
+            // new line)
             for (const index of lineWraps) {
-              if (index >= leftIndex && index <= rightIndex) {
+              if (index > leftIndex && index <= rightIndex) {
                 return true;
               }
             }

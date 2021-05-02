@@ -276,22 +276,9 @@ export class CursorNavigator {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToRelativeSibling(offset)) {
       clone.currentAffinity = affinity;
-      console.log("nav rel", clone.tip.node, clone.currentAffinity);
-      // if (affinity === CursorAffinity.After) {
-      // Make sure cursor is on a valid spot
-      clone.navigateToNextCursorPosition();
-      console.log("nav rel 2", clone.tip.node, clone.currentAffinity);
-      clone.navigateToPrecedingCursorPosition();
-      console.log("nav rel 3", clone.tip.node, clone.currentAffinity);
+      clone.navigateToNextCursorPosition() && clone.navigateToPrecedingCursorPosition();
       this.currentAffinity = clone.currentAffinity;
       this.nodeNavigator = clone.nodeNavigator;
-      // } else {
-      //   // Make sure cursor is on a valid spot
-      //   clone.navigateToNextCursorPosition() && clone.navigateToPrecedingCursorPosition();
-      //   // clone.navigateToPrecedingCursorPosition() && clone.navigateToNextCursorPosition();
-      //   this.currentAffinity = clone.currentAffinity;
-      //   this.nodeNavigator = clone.nodeNavigator;
-      // }
     }
     return false;
   }
