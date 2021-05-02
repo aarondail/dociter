@@ -14,7 +14,7 @@ export interface NodeLayoutReporter {
     | undefined;
 
   detectLineWrapOrBreakBetweenNodes(
-    preceeding: NodeNavigator | Chain,
+    preceding: NodeNavigator | Chain,
     subsequent: NodeNavigator | Chain
   ): boolean | undefined;
 

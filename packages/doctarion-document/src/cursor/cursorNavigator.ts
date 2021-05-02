@@ -123,11 +123,12 @@ export class CursorNavigator {
   }
 
   public navigateToNextCursorPosition(): boolean {
+    console.log("navigateToNextCursorPosition at:", this.tip.node, this.currentAffinity);
     const affinity = this.currentAffinity;
     let skipDescendants = false;
-    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
 
     if (affinity === CursorAffinity.Before) {
+      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (positions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
@@ -136,6 +137,7 @@ export class CursorNavigator {
         return true;
       }
     } else if (affinity === CursorAffinity.Neutral) {
+      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (positions.after) {
         this.currentAffinity = CursorAffinity.After;
         return true;
@@ -155,7 +157,12 @@ export class CursorNavigator {
 
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsInDfs({ skipDescendants })) {
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      console.log("nav fowardin DFS to: " + this.nodeNavigator.tip.node);
+
       const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      console.log("MOVE FORWARD, " + this.nodeNavigator.tip.node + ") NEW POS: ", newPositions);
       if (newPositions.before) {
         this.currentAffinity = CursorAffinity.Before;
         return true;
@@ -204,9 +211,9 @@ export class CursorNavigator {
   public navigateToPrecedingCursorPosition(): boolean {
     const affinity = this.currentAffinity;
     let skipDescendants = false;
-    const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
 
     if (affinity === CursorAffinity.After) {
+      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (positions.neutral) {
         this.currentAffinity = CursorAffinity.Neutral;
         return true;
@@ -215,6 +222,7 @@ export class CursorNavigator {
         return true;
       }
     } else if (affinity === CursorAffinity.Neutral) {
+      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
       if (positions.before) {
         this.currentAffinity = CursorAffinity.Before;
         return true;
@@ -276,7 +284,16 @@ export class CursorNavigator {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToRelativeSibling(offset)) {
       clone.currentAffinity = affinity;
-      clone.navigateToNextCursorPosition() && clone.navigateToPrecedingCursorPosition();
+
+      if (clone.navigateToNextCursorPosition()) {
+        clone.navigateToPrecedingCursorPosition();
+      } else {
+        const positions = PositionClassification.getValidCursorAffinitiesAt(clone.nodeNavigator, this.layoutReporter);
+        if (!positions.before && !positions.neutral && !positions.after) {
+          clone.navigateToPrecedingCursorPosition();
+        }
+      }
+
       this.currentAffinity = clone.currentAffinity;
       this.nodeNavigator = clone.nodeNavigator;
     }

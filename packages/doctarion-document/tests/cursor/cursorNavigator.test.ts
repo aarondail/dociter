@@ -1,6 +1,7 @@
+import { Chain, NodeLayoutReporter, NodeNavigator } from "../../src";
 import { CursorAffinity } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
-import { HeaderLevel } from "../../src/models";
+import { HeaderLevel, NodeUtils } from "../../src/models";
 import { debugCursorNavigator, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
@@ -23,6 +24,46 @@ const testDoc3 = doc(
   paragraph(inlineText("A"), inlineUrlLink("j.com", "B"), inlineText("C")),
   paragraph(inlineText("D"))
 );
+
+// For use with line wrapping (3 chars per line)
+const testDoc4 = doc(
+  paragraph(
+    inlineText("ABCDE"), // LINE 1 + 2
+    inlineText("FGHI"), // LINE 2 + 3 (EOL 3)
+    inlineText("JK"), // LINE 4
+    inlineUrlLink("g.com", "LMNO"), // LINE 4 + 5 (EOL 5)
+    inlineUrlLink("g.com", "PQR"), // LINE 6 (EOL 6)
+    inlineText("STU"), // LINE 7
+    inlineUrlLink("g.com", "VWX") // LINE 8
+  )
+);
+
+class TestDoc4LayoutReporter implements NodeLayoutReporter {
+  detectHorizontalDistanceFromTargetHorizontalAnchor(): never {
+    throw new Error("Method not implemented.");
+  }
+  detectLineWrapOrBreakBetweenNodes(
+    preceding: Chain | NodeNavigator,
+    subsequent: Chain | NodeNavigator
+  ): boolean | undefined {
+    // Every three chars is a new line
+    let inlineIndexToLine = (i: number) => i + 1;
+    const line1 = NodeUtils.isGrapheme(preceding.tip.node)
+      ? Math.floor((preceding.tip.node.toString().charCodeAt(0) - 65) / 3)
+      : inlineIndexToLine(preceding.tip.pathPart.index);
+
+    inlineIndexToLine = (i: number) => (i <= 1 ? i : i === 2 || i === 3 ? 3 : i + 1);
+    const line2 = NodeUtils.isGrapheme(subsequent.tip.node)
+      ? Math.floor((subsequent.tip.node.toString().charCodeAt(0) - 65) / 3)
+      : inlineIndexToLine(subsequent.tip.pathPart.index);
+
+    // console.log(preceding.tip, subsequent.tip, line1, line2);
+    return line1 !== line2;
+  }
+  getTargetHorizontalAnchor(): never {
+    throw new Error("Method not implemented.");
+  }
+}
 
 const coreInlineToInlineScenariosForNext = [
   ["A", "00<,00>"],
@@ -335,6 +376,80 @@ describe("navigateToNextCursorPosition", () => {
     expect(debugCursorNavigator(nav)).toEqual("2/0/0 |>");
 
     expect(nav.navigateToNextCursorPosition()).toBeFalsy();
+  });
+
+  it("should navigate through line breaks nicely", () => {
+    const nav = new CursorNavigator(testDoc4, new TestDoc4LayoutReporter());
+    // TODO deal with navigate thorugh empty inline url link at start of firs tblock
+    const next = nextPrime.bind(undefined, nav);
+    next(1);
+    expect(nav.tip.node).toEqual("A");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/0/0");
+    next(1);
+    expect(nav.tip.node).toEqual("A");
+    expect(debugCursorNavigator(nav)).toEqual("0/0/0 |>");
+    next(2); // Wrap line, skip C
+    expect(nav.tip.node).toEqual("D");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/0/3");
+    next(2);
+    expect(nav.tip.node).toEqual("E");
+    expect(debugCursorNavigator(nav)).toEqual("0/0/4 |>");
+    next(1); // Normally we'd move to the after position on F but since its at EOL we move one ahead
+    expect(nav.tip.node).toEqual("G");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/1/1");
+    next(2);
+    expect(nav.tip.node).toEqual("H");
+    expect(debugCursorNavigator(nav)).toEqual("0/1/2 |>");
+    next(1); // Normally this would move to the last character but we move to the next inline because of the line wrap
+    expect(nav.tip.node).toEqual("J");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/2/0");
+    next(2);
+    expect(nav.tip.node).toEqual("K");
+    expect(debugCursorNavigator(nav)).toEqual("0/2/1 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("L");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/3/0");
+    next(1);
+    expect(nav.tip.node).toEqual("M");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/3/1");
+    next(2);
+    expect(nav.tip.node).toEqual("N");
+    expect(debugCursorNavigator(nav)).toEqual("0/3/2 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("O");
+    expect(debugCursorNavigator(nav)).toEqual("0/3/3 |>");
+    next(1);
+    expect(nav.tip.node).toEqual(inlineUrlLink("g.com", "PQR"));
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/4");
+    next(1);
+    expect(nav.tip.node).toEqual("P");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/4/0");
+    next(2);
+    expect(nav.tip.node).toEqual("Q");
+    expect(debugCursorNavigator(nav)).toEqual("0/4/1 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("R");
+    expect(debugCursorNavigator(nav)).toEqual("0/4/2 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("S");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/5/0");
+    next(2);
+    expect(nav.tip.node).toEqual("T");
+    expect(debugCursorNavigator(nav)).toEqual("0/5/1 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("U");
+    expect(debugCursorNavigator(nav)).toEqual("0/5/2 |>");
+    next(1);
+    expect(nav.tip.node).toEqual("V");
+    expect(debugCursorNavigator(nav)).toEqual("<| 0/6/0");
+    next(1);
+    expect(nav.tip.node).toEqual("V");
+    expect(debugCursorNavigator(nav)).toEqual("0/6/0 |>");
+    next(2);
+    expect(nav.tip.node).toEqual("X");
+    expect(debugCursorNavigator(nav)).toEqual("0/6/2 |>");
+
+    // TODO do the reverse for preceeding :yikes:
   });
 });
 

@@ -28,13 +28,9 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
-// Testing before we call it quits:
-// Inline w/ line breaks
-// Multi inline paragraph
-// Wrapped inline
-// End of line, start of line or wrapped lines, broken lines, and blocks
-// ???
+// Goofy editing at end of line
 // Click to put cursor
+// Scrolling to cursor kinda weird
 
 // F1. Enter Key --- Need to support it.
 // B1. Inserting text near EOL - Doesn't work right

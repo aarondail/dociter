@@ -9,7 +9,33 @@ function App(): JSX.Element {
   const [doc /*, setDoc*/] = React.useState(
     new DoctarionDocument.Document(
       "A",
-      new DoctarionDocument.ParagraphBlock(new DoctarionDocument.InlineText("test")),
+      new DoctarionDocument.ParagraphBlock(new DoctarionDocument.InlineText("This line is test")),
+      // Block w/ lots of diff text
+      new DoctarionDocument.ParagraphBlock(
+        new DoctarionDocument.InlineText("Lorem Ipsum "),
+        new DoctarionDocument.InlineText("is simply dummy text", {
+          bold: true,
+        }),
+        new DoctarionDocument.InlineText(" of the printing "),
+        new DoctarionDocument.InlineText("and typesetting industry.", {
+          backgroundColor: "blue",
+        }),
+        new DoctarionDocument.InlineText(
+          " Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
+          {
+            italic: true,
+            foregroundColor: "white",
+            backgroundColor: "black",
+          }
+        ),
+        new DoctarionDocument.InlineText(
+          ", when an unknown printer took a galley of type and scrambled it to make a type specimen book. "
+        ),
+        new DoctarionDocument.InlineUrlLink("It has survived", "http://abcdef.com"),
+        new DoctarionDocument.InlineText(
+          "This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
+        )
+      ),
       new DoctarionDocument.ParagraphBlock(
         new DoctarionDocument.InlineText(
           "This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum." +
@@ -52,34 +78,7 @@ function App(): JSX.Element {
       new DoctarionDocument.ParagraphBlock(
         new DoctarionDocument.InlineText("Overwrtie selection on insert (and delete works)")
       ),
-      new DoctarionDocument.ParagraphBlock(new DoctarionDocument.InlineText("Turn document types into classes")),
-
-      // Block w/ lots of diff text
-      new DoctarionDocument.ParagraphBlock(
-        new DoctarionDocument.InlineText("Lorem Ipsum "),
-        new DoctarionDocument.InlineText("is simply dummy text", {
-          bold: true,
-        }),
-        new DoctarionDocument.InlineText(" of the printing "),
-        new DoctarionDocument.InlineText("and typesetting industry.", {
-          backgroundColor: "blue",
-        }),
-        new DoctarionDocument.InlineText(
-          " Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
-          {
-            italic: true,
-            foregroundColor: "white",
-            backgroundColor: "black",
-          }
-        ),
-        new DoctarionDocument.InlineText(
-          ", when an unknown printer took a galley of type and scrambled it to make a type specimen book. "
-        ),
-        new DoctarionDocument.InlineUrlLink("It has survived", "http://abcdef.com"),
-        new DoctarionDocument.InlineText(
-          "This is a really long block of text. , when an unknown printer took a galley of type and scrambled it to make a type specimen book.  not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
-        )
-      )
+      new DoctarionDocument.ParagraphBlock(new DoctarionDocument.InlineText("Turn document types into classes"))
     )
   );
 
