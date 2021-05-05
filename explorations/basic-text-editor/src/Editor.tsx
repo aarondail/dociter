@@ -28,16 +28,22 @@ export interface EditorProps {
   readonly initialDocument: DoctarionDocument.Document;
 }
 
-// Goofy editing at end of line
-// Click to put cursor
-// Scrolling to cursor kinda weird
+// * Consider (refactor) ops into actions + ops
+// B2. Keys up in the InputInterpreter get missed sometimes causing wonkyness (due to debugger at least)
+// B4. Too hard to debug stuff!
+// Debug:
+// .  * Color showing if window has focus or not
+// .  * zone that gives you place to click
+// .    --> Shows heap size? Last operation took ms, operation list?
+
+// * Possibly more signifngant issue: after insert (or modification), cursor
+// repositioning probably should adjust (slightly?) based on layout UPDATES (after rerender happenss)
 
 // F1. Enter Key --- Need to support it.
-// B1. Inserting text near EOL - Doesn't work right
-// B2. Keys up in the InputInterpreter get missed sometimes causing wonkyness (due to debugger at least)
 // B3. Source maps for typescript LIBRARY code messed up
-// B4. Too hard to debug stuff!
 // B5. Clicking to place cursor... wrong often.
+// B6. Click to put cursor not really working
+// B7. Scrolling to cursor kinda weird
 
 /**
  * Why aren't we using React state?
@@ -126,38 +132,57 @@ export class Editor extends React.PureComponent<EditorProps> {
 
   public render(): JSX.Element {
     return (
-      <div
-        ref={this.setMainDivRef}
-        className={`Editor ${this.inputInterpreter.inputMode === InputMode.Command ? "command-mode" : "insert-mode"}`}
-        tabIndex={0}
-        onKeyDown={this.handleKeyDown}
-        onKeyUp={this.handleKeyUp}
-        onClick={this.handleClick}
-      >
-        <textarea
-          ref={this.setInsertionTextareaRef}
-          className={`Editor-textarea ${this.inputInterpreter.isComposting ? "Editor-textarea-composting" : ""}`}
-          // disabled={this.inputInterpreter.inputMode !== InputMode.Insert}
+      <>
+        <div
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            color: "white",
+            backgroundColor: "purple",
+            height: 40,
+            opacity: "80%",
+            backdropFilter: "blur(1px)",
+          }}
+        >
+          Debug Bar
+        </div>
+        <div
+          ref={this.setMainDivRef}
+          className={`Editor ${this.inputInterpreter.inputMode === InputMode.Command ? "command-mode" : "insert-mode"}`}
           tabIndex={0}
-          wrap="off"
-          autoComplete="off"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck="false"
-          onBlur={this.handleTextareaBlur}
-          onCompositionStart={this.handleTextareaCompositionStart}
-          onCompositionUpdate={this.handleTextareaCompositionUpdate}
-          onCompositionEnd={this.handleTextareaCompositionEnd}
-          onInput={this.handleTextareaInput}
-          onChange={this.handleTextareaChange}
-        ></textarea>
-        <Cursor ref={this.setCursorsRef} />
-        {this.fontsLoaded && (
-          <EditorContext.Provider value={this.editorContext}>
-            <DocumentNode node={this.editor.document} />
-          </EditorContext.Provider>
-        )}
-      </div>
+          onKeyDown={this.handleKeyDown}
+          onKeyUp={this.handleKeyUp}
+          onClick={this.handleClick}
+          onBlur={this.handleMainDivBlur}
+          style={{ paddingTop: 40, paddingLeft: 100, paddingRight: 100 }}
+        >
+          <textarea
+            ref={this.setInsertionTextareaRef}
+            className={`Editor-textarea ${this.inputInterpreter.isComposting ? "Editor-textarea-composting" : ""}`}
+            // disabled={this.inputInterpreter.inputMode !== InputMode.Insert}
+            tabIndex={0}
+            wrap="off"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+            onBlur={this.handleTextareaBlur}
+            onCompositionStart={this.handleTextareaCompositionStart}
+            onCompositionUpdate={this.handleTextareaCompositionUpdate}
+            onCompositionEnd={this.handleTextareaCompositionEnd}
+            onInput={this.handleTextareaInput}
+            onChange={this.handleTextareaChange}
+          ></textarea>
+          <Cursor ref={this.setCursorsRef} />
+          {this.fontsLoaded && (
+            <EditorContext.Provider value={this.editorContext}>
+              <DocumentNode node={this.editor.document} />
+            </EditorContext.Provider>
+          )}
+        </div>
+      </>
     );
   }
 
@@ -294,6 +319,13 @@ export class Editor extends React.PureComponent<EditorProps> {
   };
 
   private handleKeyUp = (e: React.KeyboardEvent<HTMLElement>) => this.inputInterpreter?.keyUp(e);
+
+  private handleMainDivBlur = () => {
+    // Keep focus on the main area
+    if (this.inputInterpreter.inputMode === InputMode.Command) {
+      this.mainDivRef?.focus();
+    }
+  };
 
   private handleTextareaBlur = () => {
     // Keep focus on the text area

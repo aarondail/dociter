@@ -27,9 +27,32 @@ export class Cursor extends React.PureComponent {
 
   public componentDidUpdate(): void {
     if (this.ref.current) {
-      if (!isElementInViewport(this.ref.current)) {
-        this.ref.current.scrollIntoView({ behavior: "smooth" });
+      // if (!isElementInViewport(this.ref.current, 0, 40)) {
+      // const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      // const rect = this.ref.current.getBoundingClientRect();
+      const rect = this.position;
+      if (!rect) {
+        return;
       }
+      const actualElX = rect.top;
+      const actualElXBott = rect.top + rect.height;
+      const relativeX = rect.top - scrollTop;
+      const PAD = 80;
+      // console.log("###");
+      console.log(relativeX, actualElX, actualElXBott);
+      if (relativeX < PAD && scrollTop > 0) {
+        // console.log("case1");
+        window.scrollTo({ top: actualElX - PAD * 1.3, behavior: "smooth" });
+      } else if (actualElXBott + PAD > scrollTop + window.innerHeight) {
+        // console.log("case2");
+        const bottomActualPadded = actualElXBott + PAD * 1.3;
+        window.scrollTo({ top: bottomActualPadded - window.innerHeight, behavior: "smooth" });
+      }
+      // const d = window.scrollX - window.innerHeight - rect.top;
+      // console.log("scrolling into view");
+      // this.ref.current.scrollIntoView({ block: "start", inline: "nearest", behavior: "smooth" }); // ).scrollIntoView({ behavior: "smooth" });
+      // window.scrollTo({ top: (this.a += 10), behavior: "smooth" });
     }
   }
 

@@ -36,7 +36,7 @@ export const insertText = (text: string | Text) => (
           );
         }
 
-        const offset = state.cursor.affinity === CursorAffinity.Before ? 0 : 1;
+        const offset = nav.cursor.affinity === CursorAffinity.Before ? 0 : 1;
 
         castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
         for (let i = 0; i < graphemes.length; i++) {
@@ -135,7 +135,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
           throw new Error("Found a grapheme or inline text without a pathPart");
         }
 
-        const index = tip.pathPart.index + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+        const index = tip.pathPart.index + (startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
         const shouldSplitText = index !== 0 && index < parent.node.text.length;
         if (shouldSplitText) {
           // Split the inline text node
@@ -153,7 +153,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
         }
 
         destinationInsertIndex =
-          parent.pathPart.index + (shouldSplitText ? 1 : state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+          parent.pathPart.index + (shouldSplitText ? 1 : startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
         destinationBlock = grandParent.node;
         destinationNavigator = startingNav.toNodeNavigator();
         destinationNavigator.navigateToParent();
@@ -185,7 +185,7 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
     case PositionClassification.AfterInBetweenInsertionPoint:
       ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (NodeUtils.isInlineContainer(parent.node)) {
-          destinationInsertIndex = tip.pathPart.index + (state.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+          destinationInsertIndex = tip.pathPart.index + (startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
           destinationBlock = parent.node;
           destinationNavigator = startingNav.toNodeNavigator();
           destinationNavigator.navigateToParent();

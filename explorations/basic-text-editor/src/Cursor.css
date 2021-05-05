@@ -65,3 +65,12 @@
   transition-duration: 0.03s;
   transition-timing-function: ease-in-out;
 }
+
+.Editor:not(:focus-within) .Cursor-cursor-blink1,
+.Editor:not(:focus-within) .Cursor-cursor-blink2 {
+  animation: none;
+  background-color: #666;
+  border: solid 1px #666;
+  /* background-color: #ccc; */
+  /* transition-duration: 1000s; */
+}

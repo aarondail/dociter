@@ -95,7 +95,7 @@ function moveVisualUpOrDownHelper(
     state.cursorVisualLineMovementHorizontalAnchor ??
     services.layout.getTargetHorizontalAnchor(
       startNavigator,
-      state.cursor.affinity === CursorAffinity.After ? Side.Right : Side.Left
+      currentNavigator.cursor.affinity === CursorAffinity.After ? Side.Right : Side.Left
     );
   if (targetAnchor === undefined) {
     return;

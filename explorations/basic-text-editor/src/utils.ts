@@ -1,4 +1,4 @@
-export function isElementInViewport(element: HTMLElement, horizontalSlop = 0, verticalSlop = 0) {
+export function isElementInViewport(element: HTMLElement, horizontalSlop = 0, verticalSlop = 0): boolean {
   const rect = element.getBoundingClientRect();
   return (
     rect.top >= horizontalSlop &&

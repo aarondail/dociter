@@ -4,27 +4,19 @@ import { NodeLayoutReporter } from "../layout-reporting";
 import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
 
 // -----------------------------------------------------------------------------
-// There are three or so places where a cursor may be placed GENERALLY:
+// There are three or so kinds of places where a cursor may be placed GENERALLY:
 // 1. Between, before, and after graphemes.
-// 3. On an node that can contain children but does not currently have any
+// 2. On an node that can contain children but does not currently have any
 //    children.  This could be an empty InlineText or InlineUrlLink but could
 //    be a ParagraphBlock or HeaderBlock or even the Document itself.
-// 4. Between, before, or after any Inline node that is not an InlineText
+// 3. Between, before, or after any Inline node that is not an InlineText
 //    node (e.g. InlineUrlLink) when the sibling is also not an InlineText
 //    node (or there is no sibling).
 //
 // We refer to 1 as "graphemes", 2 as "empty insertion points", and 3 as
 // "in-between insertion points".
 //
-// Also one thing to note is that some cursor positions are different but
-// equivalent.  E.g. if two nodes are siblings, a position on the first
-// node w/ after affinity is the same as a position on the second node
-// with before affinity.
-//
-// Because of that, to make the behavior of things like navigation more
-// deterministic we prefer some cursor positions to others even when they are
-// equivalent. Specifically we bias towards positions after nodes and we prefer
-// to those that relate to a grapheme vs not realted to one.
+// See design/CURSOR.md for more info.
 // -----------------------------------------------------------------------------
 
 enum PositionClassificationBase {

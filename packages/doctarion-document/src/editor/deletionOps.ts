@@ -24,7 +24,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
         }
 
         let index = tip.pathPart.index;
-        if (state.cursor.affinity === CursorAffinity.Before) {
+        if (nav.cursor.affinity === CursorAffinity.Before) {
           index--;
         }
 
