@@ -5,8 +5,8 @@ import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
 import { Range } from "../ranges";
 
 import { resetCursorMovementHints } from "./cursorOps";
-import { EditorState, SelectionAnchor } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
+import { EditorState, SelectionAnchor } from "./state";
 
 const castDraft = immer.castDraft;
 

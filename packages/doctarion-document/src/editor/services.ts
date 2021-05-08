@@ -6,9 +6,9 @@ import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { NodeLayoutReporter } from "../layout-reporting";
 import { Node, NodeUtils } from "../models";
 
-import { EditorState } from "./editor";
 import { EditorEvents } from "./events";
 import { NodeId } from "./nodeId";
+import { EditorState } from "./state";
 
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and clients of

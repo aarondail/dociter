@@ -6,9 +6,9 @@ import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, P
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
-import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;

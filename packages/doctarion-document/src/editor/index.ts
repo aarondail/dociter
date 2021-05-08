@@ -3,6 +3,7 @@ export * from "./editor";
 export * from "./error";
 export * from "./nodeId";
 export * from "./services";
+export * from "./state";
 
 import * as CursorOps from "./cursorOps";
 import * as DeletionOps from "./deletionOps";

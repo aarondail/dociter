@@ -3,7 +3,7 @@ import { Draft } from "immer";
 
 import { Document } from "../models";
 
-import { EditorState } from "./editor";
+import { EditorState } from "./state";
 
 export interface EditorEvents {
   updateDone: EventChannel<EditorState>;

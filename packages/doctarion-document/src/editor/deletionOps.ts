@@ -5,10 +5,10 @@ import { CursorAffinity, CursorNavigator, PositionClassification } from "../curs
 import { InlineText, NodeUtils } from "../models";
 
 import { resetCursorMovementHints } from "./cursorOps";
-import { EditorState } from "./editor";
 import { OperationError, OperationErrorCode } from "./error";
 import { clearSelection } from "./selectionOps";
 import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
