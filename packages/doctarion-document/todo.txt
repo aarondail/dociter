@@ -1,6 +1,0 @@
-1. Attempt to change library to split by Grapheme Clusters instead of Code Points (see: https://www.oreilly.com/library/view/unicode-demystified/0201700522/0201700522_ch04lev1sec9.html https://stackoverflow.com/questions/27331819/whats-the-difference-between-a-character-a-code-point-a-glyph-and-a-grapheme and https://www.npmjs.com/package/grapheme-splitter)
-2. For the layout stuff, we need to also change from CP measuing to code UNIT measureing (or Grapheme Cluster but then have to keep a mapping). Actually may need a mapping anyways, but perhaps it can be calculated on demand.
-3. We probably need to refactor some stuff in the library and add tests related to layout/rendering, so this may be a good time for that as well.
-4. Also turn the models into classes...
-5. Update   Grapheme = "cp", in path.ts
-6. Fix   Grapheme = "CODE_POINT", in positions.ts
