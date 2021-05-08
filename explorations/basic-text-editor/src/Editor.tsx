@@ -4,6 +4,7 @@ import lodash from "lodash";
 import React from "react";
 
 import { Cursor } from "./Cursor";
+import { DebugBar } from "./DebugBar";
 import { DocumentNode, DocumentNodeLayoutProvider } from "./DocumentNode";
 import { EditorContext, EditorContextType } from "./EditorContext";
 import { InputInterpreter } from "./InputInterpreter";
@@ -29,7 +30,6 @@ export interface EditorProps {
 }
 
 // * Consider (refactor) ops into actions + ops
-// B2. Keys up in the InputInterpreter get missed sometimes causing wonkyness (due to debugger at least)
 // B4. Too hard to debug stuff!
 // Debug:
 // .  * Color showing if window has focus or not
@@ -133,21 +133,7 @@ export class Editor extends React.PureComponent<EditorProps> {
   public render(): JSX.Element {
     return (
       <>
-        <div
-          style={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            color: "white",
-            backgroundColor: "purple",
-            height: 40,
-            opacity: "80%",
-            backdropFilter: "blur(1px)",
-          }}
-        >
-          Debug Bar
-        </div>
+        <DebugBar />
         <div
           ref={this.setMainDivRef}
           className={`Editor ${this.inputInterpreter.inputMode === InputMode.Command ? "command-mode" : "insert-mode"}`}
@@ -156,7 +142,7 @@ export class Editor extends React.PureComponent<EditorProps> {
           onKeyUp={this.handleKeyUp}
           onClick={this.handleClick}
           onBlur={this.handleMainDivBlur}
-          style={{ paddingTop: 40, paddingLeft: 100, paddingRight: 100 }}
+          style={{ paddingTop: 40, paddingLeft: 10, paddingRight: 10 }}
         >
           <textarea
             ref={this.setInsertionTextareaRef}
@@ -325,12 +311,18 @@ export class Editor extends React.PureComponent<EditorProps> {
     if (this.inputInterpreter.inputMode === InputMode.Command) {
       this.mainDivRef?.focus();
     }
+    if (!document.hasFocus()) {
+      this.inputInterpreter.documentLostFocus();
+    }
   };
 
   private handleTextareaBlur = () => {
     // Keep focus on the text area
     if (this.inputInterpreter.inputMode === InputMode.Insert) {
       this.insertionTextareaRef?.focus();
+    }
+    if (!document.hasFocus()) {
+      this.inputInterpreter.documentLostFocus();
     }
   };
 

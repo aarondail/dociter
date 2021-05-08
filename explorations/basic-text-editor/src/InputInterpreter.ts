@@ -52,6 +52,12 @@ export class InputInterpreter {
     // e.stopPropagation();
   }
 
+  public documentLostFocus(): void {
+    console.log("documentLostFocus");
+    this.keyPressTimes.clear();
+    this.ignoreFurtherPressesUntilNoPresses = false;
+  }
+
   public input(e: React.FormEvent<HTMLTextAreaElement>): void {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const text = (e.nativeEvent as any).data; // null in some cases (Enter)

@@ -6,7 +6,7 @@
     "lib": ["ESNext"],
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "outDir": "./build",
     "composite": true,
     "strict": true,        
