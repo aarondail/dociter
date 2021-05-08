@@ -51,5 +51,12 @@ module.exports = {
         },
       },
     ],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        selector: "enumMember",
+        format: ["PascalCase"],
+      },
+    ],
   },
 };

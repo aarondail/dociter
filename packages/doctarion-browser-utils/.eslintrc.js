@@ -1,5 +1,5 @@
 module.exports = {
-  plugins: ["@typescript-eslint"],
+  plugins: ["@typescript-eslint", "jest"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 2020,
@@ -11,6 +11,7 @@ module.exports = {
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:jest/recommended",
     "prettier",
     "plugin:prettier/recommended",
     "plugin:import/warnings",
@@ -48,6 +49,13 @@ module.exports = {
           ],
           order: "alphabetically",
         },
+      },
+    ],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        selector: "enumMember",
+        format: ["PascalCase"],
       },
     ],
   },

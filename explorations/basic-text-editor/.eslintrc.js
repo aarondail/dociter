@@ -1,20 +1,17 @@
 module.exports = {
-  plugins: ["react", "@typescript-eslint"],
+  plugins: ["@typescript-eslint", "jest"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 2020,
     project: ["./tsconfig.json"],
     tsconfigRootDir: __dirname,
     sourceType: "module",
-    ecmaFeatures: {
-      jsx: true,
-    },
   },
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
-    "react-app",
+    "plugin:jest/recommended",
     "prettier",
     "plugin:prettier/recommended",
     "plugin:import/warnings",
@@ -30,8 +27,7 @@ module.exports = {
     "import/order": ["error", { alphabetize: { order: "asc" }, "newlines-between": "always" }],
     "sort-imports": ["warn", { ignoreDeclarationSort: true }],
     "@typescript-eslint/no-empty-function": ["warn"],
-    "@typescript-eslint/no-unsafe-assignment": ["off"],
-    "@typescript-eslint/unbound-method": ["off"],
+    "@typescript-eslint/no-unsafe-assignment": ["warn"],
     "@typescript-eslint/member-ordering": [
       "error",
       {
@@ -53,6 +49,13 @@ module.exports = {
           ],
           order: "alphabetically",
         },
+      },
+    ],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        selector: "enumMember",
+        format: ["PascalCase"],
       },
     ],
   },
