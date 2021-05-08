@@ -2,6 +2,7 @@ export enum EditorOperationErrorCode {
   InvalidCursorPosition = "INVALID_CURSOR_POSITION",
   SelectionRequired = "SELECTION_REQUIRED",
   InvalidArgument = "INVALID_ARGUMENT",
+  UnknownOperation = "UNKNOWN_OPERATION",
 }
 
 export class EditorOperationError extends Error {

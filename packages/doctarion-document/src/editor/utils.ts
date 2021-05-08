@@ -1,3 +1,5 @@
+import * as immer from "immer";
+
 import { CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
 
@@ -27,4 +29,10 @@ export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
   const n = new CursorNavigator(nav.document);
   n.navigateToUnchecked(nav.cursor);
   return n;
+}
+
+export function resetCursorMovementHints(state: immer.Draft<EditorState>): void {
+  if (state.cursorVisualLineMovementHorizontalAnchor) {
+    state.cursorVisualLineMovementHorizontalAnchor = undefined;
+  }
 }

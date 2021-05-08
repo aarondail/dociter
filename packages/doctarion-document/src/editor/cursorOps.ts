@@ -3,35 +3,45 @@ import * as immer from "immer";
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
-import { Side } from "../layout-reporting/side";
+import { Side } from "../layout-reporting";
 
+import { createCoreOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { clearSelection } from "./selectionOps";
-import { getCursorNavigatorAndValidate } from "./utils";
+import { getCursorNavigatorAndValidate, resetCursorMovementHints } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export function moveBack(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
-  const nav = getCursorNavigatorAndValidate(state, services);
-  if (nav.navigateToPrecedingCursorPosition()) {
-    state.cursor = castDraft(nav.cursor);
-    clearSelection(state);
-    resetCursorMovementHints(state);
+export const moveBack = createCoreOperation(
+  "cursor/moveBack",
+  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
+    const nav = getCursorNavigatorAndValidate(state, services);
+    if (nav.navigateToPrecedingCursorPosition()) {
+      state.cursor = castDraft(nav.cursor);
+      clearSelection(state);
+      resetCursorMovementHints(state);
+    }
   }
-}
+);
 
-export function moveForward(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
-  const nav = getCursorNavigatorAndValidate(state, services);
-  if (nav.navigateToNextCursorPosition()) {
-    state.cursor = castDraft(nav.cursor);
-    clearSelection(state);
-    resetCursorMovementHints(state);
+export const moveForward = createCoreOperation(
+  "cursor/moveForward",
+  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
+    const nav = getCursorNavigatorAndValidate(state, services);
+    if (nav.navigateToNextCursorPosition()) {
+      state.cursor = castDraft(nav.cursor);
+      clearSelection(state);
+      resetCursorMovementHints(state);
+    }
   }
-}
+);
 
-export function moveVisualDown(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
-  moveVisualUpOrDownHelper(state, services, "DOWN");
-}
+export const moveVisualDown = createCoreOperation(
+  "cursor/moveVisualDown",
+  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
+    moveVisualUpOrDownHelper(state, services, "DOWN");
+  }
+);
 
 // export function moveLineDown(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -42,9 +52,12 @@ export function moveVisualDown(state: immer.Draft<EditorState>, services: Editor
 //   }
 // }
 
-export function moveVisualUp(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
-  moveVisualUpOrDownHelper(state, services, "UP");
-}
+export const moveVisualUp = createCoreOperation(
+  "cursor/moveVisualUp",
+  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
+    moveVisualUpOrDownHelper(state, services, "UP");
+  }
+);
 
 // export function moveLineUp(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -55,24 +68,19 @@ export function moveVisualUp(state: immer.Draft<EditorState>, services: EditorOp
 //   }
 // }
 
-export const jumpTo = (path: PathString | Path, affinity: CursorAffinity) => (
-  state: immer.Draft<EditorState>
-): void => {
-  const nav = new CursorNavigator(state.document);
-  if (nav.navigateTo(path, affinity)) {
-    state.cursor = castDraft(nav.cursor);
-    clearSelection(state);
-    resetCursorMovementHints(state);
-  } else {
-    throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
+export const jumpTo = createCoreOperation(
+  "cursor/jumpTo",
+  (state: immer.Draft<EditorState>, _, payload: { path: PathString | Path; affinity: CursorAffinity }): void => {
+    const nav = new CursorNavigator(state.document);
+    if (nav.navigateTo(payload.path, payload.affinity)) {
+      state.cursor = castDraft(nav.cursor);
+      clearSelection(state);
+      resetCursorMovementHints(state);
+    } else {
+      throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
+    }
   }
-};
-
-export function resetCursorMovementHints(state: immer.Draft<EditorState>): void {
-  if (state.cursorVisualLineMovementHorizontalAnchor) {
-    state.cursorVisualLineMovementHorizontalAnchor = undefined;
-  }
-}
+);
 
 // An alternative implementation of this might use:
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/elementFromPoint

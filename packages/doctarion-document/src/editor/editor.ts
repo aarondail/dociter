@@ -5,9 +5,11 @@ import { NodeNavigator, Path } from "../basic-traversal";
 import { Cursor, CursorAffinity } from "../cursor";
 import { Document } from "../models";
 
+import { CORE_OPERATIONS } from "./coreOperations";
 import { moveBack, moveForward } from "./cursorOps";
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { EditorOperation } from "./operation";
+import { EditorOperation, EditorOperationCommand } from "./operation";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import {
   EditorNodeLookupService,
   EditorNodeTrackingService,
@@ -34,6 +36,7 @@ export class Editor {
   private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
   private historyList: EditorState[];
+  private readonly operationRegistry: Map<string, EditorOperation<unknown, string>>;
   private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
@@ -67,6 +70,12 @@ export class Editor {
 
     this.services = this.operationServices;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    this.operationRegistry = new Map();
+    for (const op of CORE_OPERATIONS) {
+      this.operationRegistry.set(op.id, op);
+    }
+
     // Assign initial ids... note this must happen before the calls to update
     // because after that the objects in the state are no longer extensible (and
     // we can't assign ids to them). I think this is something immer does.
@@ -80,8 +89,8 @@ export class Editor {
     if (initialCursor === undefined) {
       // Adjust the cursor so its on a valid position
       try {
-        this.update(moveForward);
-        this.update(moveBack);
+        this.update(moveForward());
+        this.update(moveBack());
       } catch {
         // Intentionally ignore problems
         // Maybe we should throw?
@@ -121,10 +130,15 @@ export class Editor {
     }
   }
 
-  public update(operation: EditorOperation): void {
+  public update(command: EditorOperationCommand<unknown, string>): void {
+    const op = this.operationRegistry.get(command.id);
+    if (!op) {
+      throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
+    }
+
     const newState = immer.produce(this.state, (draft) => {
       this.eventEmitters.updateStart.emit(draft);
-      operation(draft, this.operationServices);
+      op.run(draft, this.operationServices, command.payload);
     });
     const oldState = this.state;
     // If there were no changes, don't do anything
