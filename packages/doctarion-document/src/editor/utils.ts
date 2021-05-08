@@ -1,7 +1,7 @@
 import { CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
 
-import { OperationError, OperationErrorCode } from "./operationError";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
@@ -14,7 +14,7 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
 export function getCursorNavigatorAndValidate(state: EditorState, services: EditorOperationServices): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(state.cursor)) {
-    throw new OperationError(OperationErrorCode.InvalidCursorPosition);
+    throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
   }
   return nav;
 }

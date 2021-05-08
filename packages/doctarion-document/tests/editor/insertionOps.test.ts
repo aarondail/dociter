@@ -1,5 +1,5 @@
 import { CursorAffinity } from "../../src/cursor";
-import { Editor, OperationError, Ops } from "../../src/editor";
+import { Editor, EditorOperationError, Ops } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
@@ -180,7 +180,7 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     // This could be changed at some later date...
     const editor = new Editor({ document: testDoc1 });
     editor.update(Ops.jumpTo("1/1", Neutral));
-    expect(() => editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")))).toThrowError(OperationError);
+    expect(() => editor.update(Ops.insertUrlLink(inlineUrlLink("test.com", "ABC")))).toThrowError(EditorOperationError);
   });
 
   it("should insert before an inline url link", () => {

@@ -6,7 +6,7 @@ import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, P
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
-import { OperationError, OperationErrorCode } from "./operationError";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
@@ -175,8 +175,8 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
         destinationNavigator = startingNav.toNodeNavigator();
         destinationNavigator.navigateToChild(0);
       } else {
-        throw new OperationError(
-          OperationErrorCode.InvalidCursorPosition,
+        throw new EditorOperationError(
+          EditorOperationErrorCode.InvalidCursorPosition,
           "Must be inside a block that can contain inline URLs."
         );
       }
@@ -190,8 +190,8 @@ export const insertUrlLink = (inlineUrlLink: InlineUrlLink) => (
           destinationNavigator = startingNav.toNodeNavigator();
           destinationNavigator.navigateToParent();
         } else {
-          throw new OperationError(
-            OperationErrorCode.InvalidCursorPosition,
+          throw new EditorOperationError(
+            EditorOperationErrorCode.InvalidCursorPosition,
             "Cannot insert inline url link in a between insertion point in a parent that cannot contain inlines."
           );
         }

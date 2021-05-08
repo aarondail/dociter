@@ -5,7 +5,7 @@ import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
 import { Range } from "../ranges";
 
 import { resetCursorMovementHints } from "./cursorOps";
-import { OperationError, OperationErrorCode } from "./operationError";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorState, SelectionAnchor } from "./state";
 
 const castDraft = immer.castDraft;
@@ -17,11 +17,11 @@ export const select = (
 ) => (state: immer.Draft<EditorState>): void => {
   const nav = new NodeNavigator(state.document);
   if (!nav.navigateTo(from)) {
-    throw new OperationError(OperationErrorCode.InvalidArgument, "from is invalid");
+    throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "from is invalid");
   }
   const fromPrime = nav.path;
   if (!nav.navigateTo(to)) {
-    throw new OperationError(OperationErrorCode.InvalidArgument, "to is invalid");
+    throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "to is invalid");
   }
   const toPrime = nav.path;
 

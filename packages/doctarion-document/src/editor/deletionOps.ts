@@ -5,7 +5,7 @@ import { CursorAffinity, CursorNavigator, PositionClassification } from "../curs
 import { InlineText, NodeUtils } from "../models";
 
 import { resetCursorMovementHints } from "./cursorOps";
-import { OperationError, OperationErrorCode } from "./operationError";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { clearSelection } from "./selectionOps";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
@@ -88,7 +88,7 @@ export function deleteBackwards(state: immer.Draft<EditorState>, services: Edito
 
 export function deleteSelection(state: immer.Draft<EditorState>, services: EditorOperationServices): void {
   if (!state.selection || !state.selectionAnchor) {
-    throw new OperationError(OperationErrorCode.SelectionRequired);
+    throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
   }
 
   {

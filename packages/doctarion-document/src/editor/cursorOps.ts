@@ -5,7 +5,7 @@ import { CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { Side } from "../layout-reporting/side";
 
-import { OperationError, OperationErrorCode } from "./operationError";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { clearSelection } from "./selectionOps";
 import { getCursorNavigatorAndValidate } from "./utils";
 
@@ -64,7 +64,7 @@ export const jumpTo = (path: PathString | Path, affinity: CursorAffinity) => (
     clearSelection(state);
     resetCursorMovementHints(state);
   } else {
-    throw new OperationError(OperationErrorCode.InvalidArgument, "path is invalid");
+    throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
   }
 };
 
