@@ -1,6 +1,6 @@
 export { EditorEvents } from "./events";
 export * from "./editor";
-export * from "./error";
+export * from "./operationError";
 export * from "./nodeId";
 export * from "./services";
 export * from "./state";

@@ -1,7 +1,7 @@
 import { CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
 
-import { OperationError, OperationErrorCode } from "./error";
+import { OperationError, OperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {

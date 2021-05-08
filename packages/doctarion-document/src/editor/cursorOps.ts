@@ -5,7 +5,7 @@ import { CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { Side } from "../layout-reporting/side";
 
-import { OperationError, OperationErrorCode } from "./error";
+import { OperationError, OperationErrorCode } from "./operationError";
 import { clearSelection } from "./selectionOps";
 import { getCursorNavigatorAndValidate } from "./utils";
 

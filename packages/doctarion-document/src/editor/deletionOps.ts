@@ -5,7 +5,7 @@ import { CursorAffinity, CursorNavigator, PositionClassification } from "../curs
 import { InlineText, NodeUtils } from "../models";
 
 import { resetCursorMovementHints } from "./cursorOps";
-import { OperationError, OperationErrorCode } from "./error";
+import { OperationError, OperationErrorCode } from "./operationError";
 import { clearSelection } from "./selectionOps";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";

@@ -6,7 +6,7 @@ import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, P
 
 import { resetCursorMovementHints } from "./cursorOps";
 import { deleteSelection } from "./deletionOps";
-import { OperationError, OperationErrorCode } from "./error";
+import { OperationError, OperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";

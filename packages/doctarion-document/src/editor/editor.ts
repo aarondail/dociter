@@ -7,6 +7,7 @@ import { Document } from "../models";
 
 import { moveBack, moveForward } from "./cursorOps";
 import { EditorEventEmitter, EditorEvents } from "./events";
+import { EditorOperation } from "./operation";
 import {
   EditorNodeLookupService,
   EditorNodeTrackingService,
@@ -25,8 +26,6 @@ export interface EditorConfig {
     events: EditorEvents
   ) => Partial<EditorProvidableServices>;
 }
-
-export type EditorOperation = (draft: immer.Draft<EditorState>, services: EditorOperationServices) => void;
 
 export class Editor {
   public readonly events: EditorEvents;
