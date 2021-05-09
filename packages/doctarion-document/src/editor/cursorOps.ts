@@ -5,42 +5,30 @@ import { CursorAffinity, CursorNavigator } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { Side } from "../layout-reporting";
 
-import { createCoreOperation } from "./coreOperations";
+import { createCoreCommonOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { clearSelection } from "./selectionOps";
-import { getCursorNavigatorAndValidate, resetCursorMovementHints } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const moveBack = createCoreOperation(
-  "cursor/moveBack",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
-    const nav = getCursorNavigatorAndValidate(state, services);
-    if (nav.navigateToPrecedingCursorPosition()) {
-      state.cursor = castDraft(nav.cursor);
-      clearSelection(state);
-      resetCursorMovementHints(state);
-    }
+export const moveBack = createCoreCommonOperation("cursor/moveBack", ({ state, navigator }): void => {
+  if (navigator.navigateToPrecedingCursorPosition()) {
+    state.cursor = castDraft(navigator.cursor);
   }
-);
+});
 
-export const moveForward = createCoreOperation(
-  "cursor/moveForward",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
-    const nav = getCursorNavigatorAndValidate(state, services);
-    if (nav.navigateToNextCursorPosition()) {
-      state.cursor = castDraft(nav.cursor);
-      clearSelection(state);
-      resetCursorMovementHints(state);
-    }
+export const moveForward = createCoreCommonOperation("cursor/moveForward", ({ state, navigator }): void => {
+  if (navigator.navigateToNextCursorPosition()) {
+    state.cursor = castDraft(navigator.cursor);
   }
-);
+});
 
-export const moveVisualDown = createCoreOperation(
+// TODO hint
+export const moveVisualDown = createCoreCommonOperation(
   "cursor/moveVisualDown",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
-    moveVisualUpOrDownHelper(state, services, "DOWN");
-  }
+  ({ state, services, navigator }) => {
+    moveVisualUpOrDownHelper(state, services, "DOWN", navigator);
+  },
+  { preserveCursorVisualLineMovementHorizontalAnchor: true }
 );
 
 // export function moveLineDown(state: immer.Draft<EditorState>): void {
@@ -52,11 +40,12 @@ export const moveVisualDown = createCoreOperation(
 //   }
 // }
 
-export const moveVisualUp = createCoreOperation(
+export const moveVisualUp = createCoreCommonOperation(
   "cursor/moveVisualUp",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices): void => {
-    moveVisualUpOrDownHelper(state, services, "UP");
-  }
+  ({ state, services, navigator }) => {
+    moveVisualUpOrDownHelper(state, services, "UP", navigator);
+  },
+  { preserveCursorVisualLineMovementHorizontalAnchor: true }
 );
 
 // export function moveLineUp(state: immer.Draft<EditorState>): void {
@@ -68,14 +57,11 @@ export const moveVisualUp = createCoreOperation(
 //   }
 // }
 
-export const jumpTo = createCoreOperation(
+export const jumpTo = createCoreCommonOperation<{ path: PathString | Path; affinity: CursorAffinity }>(
   "cursor/jumpTo",
-  (state: immer.Draft<EditorState>, _, payload: { path: PathString | Path; affinity: CursorAffinity }): void => {
-    const nav = new CursorNavigator(state.document);
-    if (nav.navigateTo(payload.path, payload.affinity)) {
-      state.cursor = castDraft(nav.cursor);
-      clearSelection(state);
-      resetCursorMovementHints(state);
+  ({ state, payload, navigator }) => {
+    if (navigator.navigateTo(payload.path, payload.affinity)) {
+      state.cursor = castDraft(navigator.cursor);
     } else {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
     }
@@ -89,14 +75,14 @@ export const jumpTo = createCoreOperation(
 function moveVisualUpOrDownHelper(
   state: immer.Draft<EditorState>,
   services: EditorOperationServices,
-  direction: "UP" | "DOWN"
+  direction: "UP" | "DOWN",
+  currentNavigator: CursorNavigator
 ): void {
   if (!services.layout) {
     return;
   }
   const layout = services.layout;
 
-  const currentNavigator = getCursorNavigatorAndValidate(state, services);
   const startNavigator = currentNavigator.clone().toNodeNavigator();
 
   const targetAnchor =
@@ -208,5 +194,4 @@ function moveVisualUpOrDownHelper(
   if (state.cursorVisualLineMovementHorizontalAnchor === undefined) {
     state.cursorVisualLineMovementHorizontalAnchor = targetAnchor;
   }
-  clearSelection(state);
 }

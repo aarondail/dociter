@@ -4,14 +4,14 @@ import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
 import { Range } from "../ranges";
 
-import { createOperation } from "./operation";
+import { createCoreOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorState, SelectionAnchor } from "./state";
 import { resetCursorMovementHints } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const select = createOperation(
+export const select = createCoreOperation(
   "selection/create",
   (
     state: immer.Draft<EditorState>,
@@ -54,7 +54,7 @@ export const select = createOperation(
   }
 );
 
-export function clearSelection(state: immer.Draft<EditorState>): void {
-  state.selection = undefined;
-  state.selectionAnchor = undefined;
-}
+// export function clearSelection(state: immer.Draft<EditorState>): void {
+//   state.selection = undefined;
+//   state.selectionAnchor = undefined;
+// }

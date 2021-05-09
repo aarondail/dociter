@@ -136,11 +136,16 @@ export class Editor {
       throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
     }
 
-    const newState = immer.produce(this.state, (draft) => {
+    const oldState = this.state;
+    let newState = immer.produce(this.state, (draft) => {
       this.eventEmitters.updateStart.emit(draft);
       op.run(draft, this.operationServices, command.payload);
     });
-    const oldState = this.state;
+
+    if (op.postRun) {
+      newState = op.postRun(oldState, newState);
+    }
+
     // If there were no changes, don't do anything
     if (newState !== this.state) {
       // This is far too basic...

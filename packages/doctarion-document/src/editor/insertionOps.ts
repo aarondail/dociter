@@ -4,24 +4,21 @@ import { NodeNavigator } from "../basic-traversal";
 import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
 import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
 
-import { createCoreOperation } from "./coreOperations";
+import { createCoreCommonOperation } from "./coreOperations";
 import { deleteSelection } from "./deletionOps";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorOperationServices } from "./services";
-import { EditorState } from "./state";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator, resetCursorMovementHints } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const insertText = createCoreOperation(
+export const insertText = createCoreCommonOperation<string | Text>(
   "insert/text",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices, text: string | Text): void => {
-    const graphemes = typeof text === "string" ? Text.fromString(text) : text;
+  ({ state, services, payload }): void => {
+    const graphemes = typeof payload === "string" ? Text.fromString(payload) : payload;
 
     if (state.selection) {
       deleteSelection.run(state, services);
     }
-    resetCursorMovementHints(state);
 
     let nav = getCursorNavigatorAndValidate(state, services);
     const node = castDraft(nav.tip.node);
@@ -103,9 +100,9 @@ export const insertText = createCoreOperation(
   }
 );
 
-export const insertUrlLink = createCoreOperation(
+export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
   "insert/urlLink",
-  (state: immer.Draft<EditorState>, services: EditorOperationServices, inlineUrlLink: InlineUrlLink): void => {
+  ({ state, services, payload }): void => {
     if (state.selection) {
       deleteSelection.run(state, services);
     }
@@ -203,8 +200,8 @@ export const insertUrlLink = createCoreOperation(
     if (destinationBlock !== undefined && destinationInsertIndex !== undefined && destinationNavigator !== undefined) {
       // And insert url link
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      castDraft(destinationBlock.children).splice(destinationInsertIndex, 0, castDraft(inlineUrlLink));
-      services.tracking.register(inlineUrlLink, destinationBlock);
+      castDraft(destinationBlock.children).splice(destinationInsertIndex, 0, castDraft(payload));
+      services.tracking.register(payload, destinationBlock);
 
       // Update the cursor
       destinationNavigator.navigateToChild(destinationInsertIndex);
