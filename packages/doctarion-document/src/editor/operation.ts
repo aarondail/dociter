@@ -1,5 +1,4 @@
 import * as immer from "immer";
-import { startCase } from "lodash";
 
 import { CursorNavigator } from "../cursor";
 
