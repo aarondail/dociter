@@ -66,33 +66,37 @@ export const insertText = createCoreCommonOperation<string | Text>(
         }
         break;
 
-      case PositionClassification.BeforeInBetweenInsertionPoint:
-        ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-          if (NodeUtils.isInlineContainer(parent.node)) {
-            const newInline = new InlineText(graphemes);
-            castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
-            services.tracking.register(newInline, node);
-            nav = refreshNavigator(nav);
-            nav.navigateToLastDescendantCursorPosition();
-            state.cursor = castDraft(nav.cursor);
-          } else {
-            throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
-          }
-        });
-        break;
-
-      case PositionClassification.AfterInBetweenInsertionPoint:
-        ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-          if (NodeUtils.isInlineContainer(parent.node)) {
-            const newInline = new InlineText(graphemes);
-            castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
-            services.tracking.register(newInline, node);
-            nav.navigateToNextSiblingLastDescendantCursorPosition();
-            state.cursor = castDraft(nav.cursor);
-          } else {
-            throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
-          }
-        });
+      case PositionClassification.InBetweenInsertionPoint:
+        if (nav.cursor.affinity === CursorAffinity.Before) {
+          ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+            if (NodeUtils.isInlineContainer(parent.node)) {
+              const newInline = new InlineText(graphemes);
+              castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
+              services.tracking.register(newInline, node);
+              nav = refreshNavigator(nav);
+              nav.navigateToLastDescendantCursorPosition();
+              state.cursor = castDraft(nav.cursor);
+            } else {
+              throw new Error(
+                "Cursor is on an in-between insertion point where there is no way to inesrt text somehow"
+              );
+            }
+          });
+        } else if (nav.cursor.affinity === CursorAffinity.After) {
+          ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+            if (NodeUtils.isInlineContainer(parent.node)) {
+              const newInline = new InlineText(graphemes);
+              castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
+              services.tracking.register(newInline, node);
+              nav.navigateToNextSiblingLastDescendantCursorPosition();
+              state.cursor = castDraft(nav.cursor);
+            } else {
+              throw new Error(
+                "Cursor is on an in-between insertion point where there is no way to inesrt text somehow"
+              );
+            }
+          });
+        }
         break;
       default:
         throw new Error("Cursor is at a position where text cannot be inserted");
@@ -178,8 +182,7 @@ export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
           );
         }
         break;
-      case PositionClassification.BeforeInBetweenInsertionPoint:
-      case PositionClassification.AfterInBetweenInsertionPoint:
+      case PositionClassification.InBetweenInsertionPoint:
         ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
           if (NodeUtils.isInlineContainer(parent.node)) {
             destinationInsertIndex =

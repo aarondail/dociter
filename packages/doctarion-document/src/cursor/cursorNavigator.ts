@@ -44,16 +44,8 @@ export class CursorNavigator {
       return PositionClassification.Grapheme;
     } else if (PositionClassification.isEmptyInsertionPoint(el)) {
       return PositionClassification.EmptyInsertionPoint;
-    } else if (
-      this.currentAffinity === CursorAffinity.Before &&
-      PositionClassification.isInBetweenInsertionPoint(el, this.nodeNavigator.precedingSiblingNode)
-    ) {
-      return PositionClassification.BeforeInBetweenInsertionPoint;
-    } else if (
-      this.currentAffinity === CursorAffinity.After &&
-      PositionClassification.isInBetweenInsertionPoint(el, this.nodeNavigator.nextSiblingNode)
-    ) {
-      return PositionClassification.AfterInBetweenInsertionPoint;
+    } else if (PositionClassification.isInBetweenInsertionPoint(el, this.nodeNavigator.precedingSiblingNode)) {
+      return PositionClassification.InBetweenInsertionPoint;
     }
     return undefined;
   }

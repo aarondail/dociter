@@ -22,8 +22,12 @@ import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
 enum PositionClassificationBase {
   Grapheme = "GRAPHEME",
   EmptyInsertionPoint = "EMPTY_INSERTION_POINT",
-  BeforeInBetweenInsertionPoint = "BEFORE_IN_BETWEEN_INSERTION_POINT",
-  AfterInBetweenInsertionPoint = "AFTER_IN_BETWEEN_INSERTION_POINT",
+  InBetweenInsertionPoint = "IN_BETWEEN_INSERTION_POINT",
+  // ADD NavigableNonTextNode
+  // ADD UnconstrainedAnyNode
+
+  // MOVE classify into this file
+  // UPDATE CUrsor.md and comments in this file
 }
 
 export type PositionClassification = PositionClassificationBase;

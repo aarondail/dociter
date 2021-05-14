@@ -73,8 +73,7 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
       navigator.navigateToPrecedingSiblingUnchecked();
       navigator.navigateToLastDescendantCursorPosition();
       break;
-    case PositionClassification.BeforeInBetweenInsertionPoint:
-    case PositionClassification.AfterInBetweenInsertionPoint:
+    case PositionClassification.InBetweenInsertionPoint:
       navigator.navigateToPrecedingCursorPosition();
       break;
   }
