@@ -1,7 +1,7 @@
 import * as immer from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
-import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
+import { CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
 import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
 
 import { createCoreCommonOperation } from "./coreOperations";
@@ -32,7 +32,7 @@ export const insertText = createCoreCommonOperation<string | Text>(
             );
           }
 
-          const offset = nav.cursor.affinity === CursorAffinity.Before ? 0 : 1;
+          const offset = nav.cursor.orientation === CursorOrientation.Before ? 0 : 1;
 
           castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
           for (let i = 0; i < graphemes.length; i++) {
@@ -67,7 +67,7 @@ export const insertText = createCoreCommonOperation<string | Text>(
         break;
 
       case PositionClassification.InBetweenInsertionPoint:
-        if (nav.cursor.affinity === CursorAffinity.Before) {
+        if (nav.cursor.orientation === CursorOrientation.Before) {
           ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
             if (NodeUtils.isInlineContainer(parent.node)) {
               const newInline = new InlineText(graphemes);
@@ -82,7 +82,7 @@ export const insertText = createCoreCommonOperation<string | Text>(
               );
             }
           });
-        } else if (nav.cursor.affinity === CursorAffinity.After) {
+        } else if (nav.cursor.orientation === CursorOrientation.After) {
           ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
             if (NodeUtils.isInlineContainer(parent.node)) {
               const newInline = new InlineText(graphemes);
@@ -135,7 +135,7 @@ export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
             throw new Error("Found a grapheme or inline text without a pathPart");
           }
 
-          const index = tip.pathPart.index + (startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+          const index = tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
           const shouldSplitText = index !== 0 && index < parent.node.text.length;
           if (shouldSplitText) {
             // Split the inline text node
@@ -154,7 +154,7 @@ export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
 
           destinationInsertIndex =
             parent.pathPart.index +
-            (shouldSplitText ? 1 : startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+            (shouldSplitText ? 1 : startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
           destinationBlock = grandParent.node;
           destinationNavigator = startingNav.toNodeNavigator();
           destinationNavigator.navigateToParent();
@@ -186,7 +186,7 @@ export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
         ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
           if (NodeUtils.isInlineContainer(parent.node)) {
             destinationInsertIndex =
-              tip.pathPart.index + (startingNav.cursor.affinity === CursorAffinity.Before ? 0 : 1);
+              tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
             destinationBlock = parent.node;
             destinationNavigator = startingNav.toNodeNavigator();
             destinationNavigator.navigateToParent();
@@ -209,7 +209,7 @@ export const insertUrlLink = createCoreCommonOperation<InlineUrlLink>(
       // Update the cursor
       destinationNavigator.navigateToChild(destinationInsertIndex);
       const updatedCursorNav = new CursorNavigator(state.document);
-      updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorAffinity.Before);
+      updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorOrientation.Before);
       updatedCursorNav.navigateToLastDescendantCursorPosition();
       state.cursor = castDraft(updatedCursorNav.cursor);
     } else {

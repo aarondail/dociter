@@ -3,19 +3,18 @@ import { immerable } from "immer";
 import { Path } from "../basic-traversal";
 
 /**
- * This describes where operations should insert or delete things relative to
- * the cursor position. Neutral is only used when the cursor is on an empty
- * insertion point, which is an empty object that can have children but doesn't
- * currently.
+ * Cursors can be placed on nodes, but also before and after them. Before and
+ * after meaning between this node and its preceeding sibling (if any), or after
+ * this node and its following sibling.
  */
-export enum CursorAffinity {
+export enum CursorOrientation {
   Before = "BEFORE",
   After = "AFTER",
-  Neutral = "NEUTRAL",
+  On = "ON",
 }
 
 export class Cursor {
   [immerable] = true;
 
-  public constructor(public readonly at: Path, public readonly affinity: CursorAffinity = CursorAffinity.Before) {}
+  public constructor(public readonly path: Path, public readonly orientation: CursorOrientation) {}
 }

@@ -1,5 +1,5 @@
 import { Chain, NodeLayoutReporter, NodeNavigator } from "../../src";
-import { CursorAffinity } from "../../src/cursor/cursor";
+import { CursorOrientation } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
 import { HeaderLevel, NodeUtils } from "../../src/models";
 import {
@@ -121,19 +121,19 @@ const TestHelpers = {
   parseConciseExpectation(s: string) {
     return s.split(",").map((s2) => {
       let r = "";
-      let affinity = "";
+      let orientation = "";
       if (s2.length === 3) {
         const [contentIndex, cpIndex] = s2;
-        affinity = s2[2];
+        orientation = s2[2];
         r = `0/${contentIndex}/${cpIndex}`;
       } else if (s2.length === 2) {
         const contentIndex = s2[0];
-        affinity = s2[1];
+        orientation = s2[1];
         r = `0/${contentIndex}`;
       }
-      if (affinity === "<") {
+      if (orientation === "<") {
         return "<| " + r;
-      } else if (affinity === ">") {
+      } else if (orientation === ">") {
         return r + " |>";
       } else {
         return r;
@@ -145,75 +145,75 @@ const TestHelpers = {
 describe("navigateTo", () => {
   it("navigates to graphemes in a fleshed out doc", () => {
     const nav = new CursorNavigator(testDoc1);
-    nav.navigateTo("1/1/2", CursorAffinity.After);
+    nav.navigateTo("1/1/2", CursorOrientation.After);
     expect(debugCursorNavigator(nav)).toEqual("1/1/2 |>");
     expect(nav.tip.node).toEqual("R");
 
-    nav.navigateTo("0/0/0", CursorAffinity.Before);
+    nav.navigateTo("0/0/0", CursorOrientation.Before);
     expect(debugCursorNavigator(nav)).toEqual("<| 0/0/0");
     expect(nav.tip.node).toEqual("H");
 
-    nav.navigateTo("2/2/0", CursorAffinity.Before);
+    nav.navigateTo("2/2/0", CursorOrientation.Before);
     expect(debugCursorNavigator(nav)).toEqual("<| 2/2/0");
     expect(nav.tip.node).toEqual("f");
 
-    nav.navigateTo("2/2/13", CursorAffinity.After);
+    nav.navigateTo("2/2/13", CursorOrientation.After);
     expect(debugCursorNavigator(nav)).toEqual("2/2/13 |>");
     expect(nav.tip.node).toEqual("e");
 
-    // Note that affinity is not honored in some cases
-    nav.navigateTo("2/2/0", CursorAffinity.Before);
+    // Note that orientation is not honored in some cases
+    nav.navigateTo("2/2/0", CursorOrientation.Before);
     expect(debugCursorNavigator(nav)).toEqual("<| 2/2/0");
     expect(nav.tip.node).toEqual("f");
 
     const nav2 = new CursorNavigator(doc(paragraph(inlineText("A"), inlineUrlLink("a.com", ""), inlineText("B"))));
-    nav2.navigateTo("0/2/0", CursorAffinity.Before);
+    nav2.navigateTo("0/2/0", CursorOrientation.Before);
     expect(nav2.tip.node).toEqual("B");
   });
 
-  it("navigates to graphemes and changes affinity in some cases", () => {
+  it("navigates to graphemes and changes orientation in some cases", () => {
     const nav = new CursorNavigator(testDoc1);
-    expect(nav.navigateTo("2/2/3", CursorAffinity.Before)).toBeTruthy();
+    expect(nav.navigateTo("2/2/3", CursorOrientation.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("2/2/2 |>");
     expect(nav.tip.node).toEqual("n");
 
-    expect(nav.navigateTo("1/1/0", CursorAffinity.Before)).toBeTruthy();
+    expect(nav.navigateTo("1/1/0", CursorOrientation.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("1/0/16 |>");
     expect(nav.tip.node).toEqual("t");
   });
 
   it("navigates to empty insertion points", () => {
     const nav = new CursorNavigator(testDoc2);
-    expect(nav.navigateTo("0", CursorAffinity.Neutral)).toBeTruthy();
+    expect(nav.navigateTo("0", CursorOrientation.On)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("0");
 
-    expect(nav.navigateTo("1/1", CursorAffinity.Neutral)).toBeTruthy();
+    expect(nav.navigateTo("1/1", CursorOrientation.On)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("1/1");
 
-    expect(nav.navigateTo("2", CursorAffinity.Neutral)).toBeTruthy();
+    expect(nav.navigateTo("2", CursorOrientation.On)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("2");
   });
 
   it("navigates to between insertion points", () => {
     const nav = new CursorNavigator(testDoc3);
 
-    expect(nav.navigateTo("0/0", CursorAffinity.Before)).toBeTruthy();
+    expect(nav.navigateTo("0/0", CursorOrientation.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("<| 0/0");
-    expect(nav.navigateTo("0/0", CursorAffinity.After)).toBeTruthy();
+    expect(nav.navigateTo("0/0", CursorOrientation.After)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("0/0 |>");
-    expect(nav.navigateTo("0/1", CursorAffinity.Before)).toBeTruthy();
-    // Note the change because the navigator prefers after affinity to before affinity
+    expect(nav.navigateTo("0/1", CursorOrientation.Before)).toBeTruthy();
+    // Note the change because the navigator prefers after orientation to before orientation
     expect(debugCursorNavigator(nav)).toEqual("0/0 |>");
-    expect(nav.navigateTo("0/2", CursorAffinity.Before)).toBeTruthy();
-    // Note the change because the navigator prefers after affinity to before affinity
+    expect(nav.navigateTo("0/2", CursorOrientation.Before)).toBeTruthy();
+    // Note the change because the navigator prefers after orientation to before orientation
     expect(debugCursorNavigator(nav)).toEqual("0/1 |>");
-    expect(nav.navigateTo("0/2", CursorAffinity.After)).toBeTruthy();
+    expect(nav.navigateTo("0/2", CursorOrientation.After)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("0/2 |>");
   });
 
   it("autocorrects navigation in some cases", () => {
     const nav = new CursorNavigator(doc(paragraph(inlineText("ASD"), inlineUrlLink("g.com", ""))));
-    nav.navigateTo("0/1", CursorAffinity.Before);
+    nav.navigateTo("0/1", CursorOrientation.Before);
     expect(debugCursorNavigator(nav)).toEqual("0/0/2 |>");
   });
 });
@@ -497,11 +497,11 @@ describe("navigateToPrecedingCursorPosition", () => {
   it("should navigate through graphemes", () => {
     const nav = new CursorNavigator(testDoc1);
     const back = backPrime.bind(undefined, nav);
-    nav.navigateTo("2/2/1", CursorAffinity.After);
+    nav.navigateTo("2/2/1", CursorOrientation.After);
     expect(nav.tip.node).toEqual("i"); // of final sentence
     back(1);
-    // Note this flips affinity intentionally as we always prefer after
-    // affinity when possible
+    // Note this flips orientation intentionally as we always prefer after
+    // orientation when possible
     expect(debugCursorNavigator(nav)).toEqual("2/2/0 |>");
     expect(nav.tip.node).toEqual("f");
     back(2);
@@ -560,7 +560,7 @@ describe("navigateToPrecedingCursorPosition", () => {
     const nav = new CursorNavigator(testDoc2);
 
     const back = backPrime.bind(undefined, nav);
-    nav.navigateTo("3/0/0", CursorAffinity.Before);
+    nav.navigateTo("3/0/0", CursorOrientation.Before);
     expect(nav.tip.node).toEqual("C"); // of final sentence
     back(1);
     expect(nav.tip.node).toEqual(header(HeaderLevel.One));
@@ -590,7 +590,7 @@ describe("navigateToPrecedingCursorPosition", () => {
   it("should navigate through between insertion points", () => {
     const nav = new CursorNavigator(testDoc3);
     const back = backPrime.bind(undefined, nav);
-    nav.navigateTo("2/0/0", CursorAffinity.Before);
+    nav.navigateTo("2/0/0", CursorOrientation.Before);
     expect(nav.tip.node).toEqual("D"); // of final sentence
     back(1);
     expect(debugCursorNavigator(nav)).toEqual("1/2/0 |>");
@@ -705,7 +705,7 @@ describe("navigateToPrecedingCursorPosition", () => {
 describe("navigateToLastDescendantCursorPosition", () => {
   it("should handle empty insertion points", () => {
     const nav = new CursorNavigator(doc(paragraph(inlineText(""))));
-    nav.navigateToUnchecked("0/0", CursorAffinity.After);
+    nav.navigateToUnchecked("0/0", CursorOrientation.After);
     nav.navigateToLastDescendantCursorPosition();
     expect(debugCursorNavigator(nav)).toEqual("0/0");
   });

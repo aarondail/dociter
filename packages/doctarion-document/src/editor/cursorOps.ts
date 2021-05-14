@@ -1,7 +1,7 @@
 import * as immer from "immer";
 
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
-import { CursorAffinity, CursorNavigator } from "../cursor";
+import { CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { Side } from "../layout-reporting";
 
@@ -57,10 +57,10 @@ export const moveVisualUp = createCoreCommonOperation(
 //   }
 // }
 
-export const jumpTo = createCoreCommonOperation<{ path: PathString | Path; affinity: CursorAffinity }>(
+export const jumpTo = createCoreCommonOperation<{ path: PathString | Path; orientation: CursorOrientation }>(
   "cursor/jumpTo",
   ({ state, payload, navigator }) => {
-    if (navigator.navigateTo(payload.path, payload.affinity)) {
+    if (navigator.navigateTo(payload.path, payload.orientation)) {
       state.cursor = castDraft(navigator.cursor);
     } else {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
@@ -89,7 +89,7 @@ function moveVisualUpOrDownHelper(
     state.cursorVisualLineMovementHorizontalAnchor ??
     services.layout.getTargetHorizontalAnchor(
       startNavigator,
-      currentNavigator.cursor.affinity === CursorAffinity.After ? Side.Right : Side.Left
+      currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
     );
   if (targetAnchor === undefined) {
     return;
@@ -135,7 +135,7 @@ function moveVisualUpOrDownHelper(
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let distance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
     currentNavigator.toNodeNavigator(),
-    currentNavigator.cursor.affinity === CursorAffinity.After ? Side.Right : Side.Left,
+    currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
     targetAnchor
   );
 
@@ -147,7 +147,9 @@ function moveVisualUpOrDownHelper(
   if (distance.estimatedSubjectSiblingsToTarget) {
     currentNavigator.navigateToRelativeSibling(
       distance.estimatedSubjectSiblingsToTarget,
-      distance.estimatedSubjectSiblingSideClosestToTarget === Side.Left ? CursorAffinity.Before : CursorAffinity.After
+      distance.estimatedSubjectSiblingSideClosestToTarget === Side.Left
+        ? CursorOrientation.Before
+        : CursorOrientation.After
     );
   } else {
     const newLineStartNavigator = currentNavigator.toNodeNavigator();
@@ -162,7 +164,7 @@ function moveVisualUpOrDownHelper(
 
       const newDistance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
         currentNavigator.toNodeNavigator(),
-        currentNavigator.cursor.affinity === CursorAffinity.After ? Side.Right : Side.Left,
+        currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
         targetAnchor
       );
       if (!newDistance) {
@@ -179,9 +181,8 @@ function moveVisualUpOrDownHelper(
         currentNavigator.navigateToRelativeSibling(
           newDistance.estimatedSubjectSiblingsToTarget,
           newDistance.estimatedSubjectSiblingSideClosestToTarget === Side.Left
-            ? CursorAffinity.Before
-            : CursorAffinity.After
-          // direction === "DOWN" ? CursorAffinity.Before : CursorAffinity.After
+            ? CursorOrientation.Before
+            : CursorOrientation.After
         );
         break;
       }

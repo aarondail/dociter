@@ -1,9 +1,9 @@
-import { CursorAffinity } from "../../src/cursor";
+import { CursorOrientation } from "../../src/cursor";
 import { Editor, OPS } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
-const { Neutral, After } = CursorAffinity;
+const { On, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 
@@ -20,7 +20,7 @@ describe("deleteBackwards", () => {
     const editor = new Editor({ document: testDoc1 });
     // Jump to L in the "GOOGLE" text of the url link
     // Note the cursor would be at: GOOG|LE
-    editor.update(OPS.jumpTo({ path: "3/1/3", affinity: After }));
+    editor.update(OPS.jumpTo({ path: "3/1/3", orientation: After }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/2 |>
@@ -49,7 +49,7 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
   it("deletes through InlineText and removes empty InlineText", () => {
     const editor = new Editor({ document: testDoc1 });
     // Jumps here: G|OOGLE
-    editor.update(OPS.jumpTo({ path: "1/3/1", affinity: After }));
+    editor.update(OPS.jumpTo({ path: "1/3/1", orientation: After }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/3/0 |>
@@ -79,7 +79,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
   it("from an empty inline text it works ok", () => {
     const editor = new Editor({ document: testDoc1 });
 
-    editor.update(OPS.jumpTo({ path: "1/1", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1/1", orientation: On }));
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
@@ -97,10 +97,10 @@ PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
   });
 
-  it("will delete empty paragraph block for cursor with before affinity", () => {
+  it("will delete empty paragraph block for cursor with before orientation", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1", affinity: After }));
+    editor.update(OPS.jumpTo({ path: "1", orientation: After }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
@@ -115,7 +115,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   it("will delete empty paragraph block after empty inline text", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1/0", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1/0", orientation: On }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 1
@@ -135,7 +135,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   it("will delete empty paragraph block after empty inline url link", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineUrlLink("g.com", "")));
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1/0", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1/0", orientation: On }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 1
@@ -155,7 +155,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   it("will delete empty header block", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1", orientation: On }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
@@ -170,7 +170,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   it("will delete empty inline url link", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineUrlLink("g.com", "")));
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1/1", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1/1", orientation: On }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
@@ -185,7 +185,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
   it("will delete empty inline text", () => {
     const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "1/1", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "1/1", orientation: On }));
     editor.update(OPS.deleteBackwards());
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
@@ -200,7 +200,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
   it("will not delete document", () => {
     const d = doc();
     const editor = new Editor({ document: d });
-    editor.update(OPS.jumpTo({ path: "", affinity: Neutral }));
+    editor.update(OPS.jumpTo({ path: "", orientation: On }));
 
     // Make sure there is nothing to the right
     editor.resetHistory();

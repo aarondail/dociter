@@ -1,14 +1,13 @@
 import * as immer from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
-import { CursorAffinity, CursorNavigator, PositionClassification } from "../cursor";
+import { CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 
-import { createCoreCommonOperation, createCoreOperation } from "./coreOperations";
+import { createCoreCommonOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
-import { EditorState } from "./state";
-import { ifLet, refreshNavigator, resetCursorMovementHints } from "./utils";
+import { ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -21,7 +20,7 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
         }
 
         let index = tip.pathPart.index;
-        if (navigator.cursor.affinity === CursorAffinity.Before) {
+        if (navigator.cursor.orientation === CursorOrientation.Before) {
           index--;
         }
 
@@ -41,11 +40,11 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
             castDraft(parent.node).text.splice(index, 1);
             // Would it be better to just try jumping to something?
             navigator.navigateToPrecedingCursorPosition();
-            // This fixes a bug where we navigate back but the only thing that changes is the CursorAffinity
+            // This fixes a bug where we navigate back but the only thing that changes is the CursorOrientation
             if (
               navigator.tip.pathPart &&
               navigator.tip.pathPart.index === index &&
-              navigator.cursor.affinity === CursorAffinity.Before &&
+              navigator.cursor.orientation === CursorOrientation.Before &&
               navigator.toNodeNavigator().navigateToPrecedingSibling()
             ) {
               navigator.navigateToPrecedingCursorPosition();
@@ -56,7 +55,7 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
           // doesn't need to do anything in the case of non-InlineText's but for
           // InlineTexts it can try to delete the actual prior text. But because
           // of the way the cursor navigator works this genreally won't happen
-          // because it almost always prefers after affinity for graphemes except
+          // because it almost always prefers after orientation for graphemes except
           // when it absolutely cannot make that work.
           //
           // To make our lives easier we just do nothing here for now. I
@@ -98,7 +97,7 @@ export const deleteSelection = createCoreCommonOperation("delete/selection", ({ 
   // This navigator is positioned on the place we will leave the selection after the deletion
   {
     const nav = new CursorNavigator(state.document);
-    nav.navigateTo(state.selection.from, CursorAffinity.Before);
+    nav.navigateTo(state.selection.from, CursorOrientation.Before);
     state.cursor = castDraft(nav.cursor);
   }
   state.selectionAnchor = undefined;

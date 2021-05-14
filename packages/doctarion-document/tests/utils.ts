@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
-import { Cursor, CursorAffinity, CursorNavigator } from "../src/cursor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
 import {
   Block,
@@ -27,10 +27,10 @@ export const debugPath = (nav: { path: Path }): string => nav.path.toString();
 
 export const debugCursorNavigator = (nav: CursorNavigator): string => {
   const c = nav.cursor;
-  const p = c.at.toString();
-  if (c.affinity === CursorAffinity.Before) {
+  const p = c.path.toString();
+  if (c.orientation === CursorOrientation.Before) {
     return `<| ` + p;
-  } else if (c.affinity === CursorAffinity.After) {
+  } else if (c.orientation === CursorOrientation.After) {
     return p + ` |>`;
   }
   return p;
@@ -129,11 +129,11 @@ export const DebugEditorHelpers = (() => {
   const debugEditorStateSimple = (state: { document: Document; cursor: Cursor }) => {
     const nav = new NodeNavigator(state.document);
     const c = state.cursor;
-    if (nav.navigateTo(c.at)) {
+    if (nav.navigateTo(c.path)) {
       const cursorDebug =
-        c.affinity === CursorAffinity.Before
+        c.orientation === CursorOrientation.Before
           ? "<| " + (debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)")
-          : c.affinity === CursorAffinity.After
+          : c.orientation === CursorOrientation.After
           ? (debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)") + " |>"
           : debugPath(nav);
       const elementString = debugElementChainSimple(nav.chain);
@@ -152,7 +152,7 @@ ${JSON.stringify(state.document.children, undefined, 4)}
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
     // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-    const path = "" + editor.cursor.at?.parts[0].index;
+    const path = "" + editor.cursor.path?.parts[0].index;
     //   case DocumentInteractionLocationKind.SELECTION:
     //     path += editor.interloc.selection?.[0][0][1];
     //     break;

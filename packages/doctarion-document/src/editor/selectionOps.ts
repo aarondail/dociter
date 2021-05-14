@@ -1,7 +1,7 @@
 import * as immer from "immer";
 
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
-import { Cursor, CursorAffinity, CursorNavigator } from "../cursor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Range } from "../ranges";
 
 import { createCoreOperation } from "./coreOperations";
@@ -38,16 +38,16 @@ export const select = createCoreOperation(
 
     if (state.selectionAnchor === SelectionAnchor.End) {
       const nav2 = new CursorNavigator(state.document);
-      if (!nav2.navigateTo(toPrime, CursorAffinity.After)) {
+      if (!nav2.navigateTo(toPrime, CursorOrientation.After)) {
         throw new Error("Unexpectedly could not navigate a cursor to the selection's end.");
       }
       state.cursor = castDraft(nav2.cursor);
     } else {
       const nav2 = new CursorNavigator(state.document);
-      if (!nav2.navigateTo(fromPrime, CursorAffinity.Before)) {
+      if (!nav2.navigateTo(fromPrime, CursorOrientation.Before)) {
         throw new Error("Unexpectedly could not navigate a cursor to the selection's end.");
       }
-      state.cursor = castDraft(new Cursor(fromPrime, CursorAffinity.Before));
+      state.cursor = castDraft(new Cursor(fromPrime, CursorOrientation.Before));
     }
 
     resetCursorMovementHints(state);

@@ -2,7 +2,7 @@ import * as immer from "immer";
 import lodash from "lodash";
 
 import { NodeNavigator, Path } from "../basic-traversal";
-import { Cursor, CursorAffinity } from "../cursor";
+import { Cursor, CursorOrientation } from "../cursor";
 import { Document } from "../models";
 
 import { CORE_OPERATIONS } from "./coreOperations";
@@ -45,7 +45,7 @@ export class Editor {
       // Clone because we are going to assign ids which techncially is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
-      cursor: initialCursor || new Cursor(new Path([]), CursorAffinity.Before),
+      cursor: initialCursor || new Cursor(new Path([]), CursorOrientation.On),
       nodeParentMap: {},
     };
     this.historyList = [];

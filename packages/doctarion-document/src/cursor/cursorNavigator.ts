@@ -2,7 +2,7 @@ import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-trav
 import { NodeLayoutReporter } from "../layout-reporting";
 import { Document, NodeUtils } from "../models";
 
-import { Cursor, CursorAffinity } from "./cursor";
+import { Cursor, CursorOrientation } from "./cursor";
 import { PositionClassification } from "./positions";
 
 /**
@@ -16,13 +16,13 @@ import { PositionClassification } from "./positions";
  * a grapheme vs not realted to one.
  */
 export class CursorNavigator {
-  private currentAffinity: CursorAffinity;
+  private currentOrientation: CursorOrientation;
   // This nodeNavigator stores the current node the cursor is on
   private nodeNavigator: NodeNavigator;
 
   public constructor(public readonly document: Document, private readonly layoutReporter?: NodeLayoutReporter) {
     // The document is always at the root of the chain
-    this.currentAffinity = CursorAffinity.Neutral;
+    this.currentOrientation = CursorOrientation.On;
     this.nodeNavigator = new NodeNavigator(document);
   }
 
@@ -35,7 +35,7 @@ export class CursorNavigator {
   }
 
   public get cursor(): Cursor {
-    return new Cursor(this.nodeNavigator.path, this.currentAffinity);
+    return new Cursor(this.nodeNavigator.path, this.currentOrientation);
   }
 
   public classifyCurrentPosition(): PositionClassification | undefined {
@@ -52,32 +52,32 @@ export class CursorNavigator {
 
   public clone(): CursorNavigator {
     const navigator = new CursorNavigator(this.document, this.layoutReporter);
-    navigator.currentAffinity = this.currentAffinity;
+    navigator.currentOrientation = this.currentOrientation;
     navigator.nodeNavigator = this.nodeNavigator.clone();
     return navigator;
   }
 
   /**
-   * Note that when navigating to a grapheme with before affinity, the
-   * navigator may choose to use an earlier point with after affinity.
+   * Note that when navigating to a grapheme with before orientation, the
+   * navigator may choose to use an earlier point with after orientation.
    */
   public navigateTo(cursor: Cursor): boolean;
-  public navigateTo(path: PathString | Path, affinity?: CursorAffinity): boolean;
+  public navigateTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  public navigateTo(cursorOrPath: any, maybeAffinity?: CursorAffinity): boolean {
+  public navigateTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     const temp = this.clone();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!temp.navigateToUnchecked(cursorOrPath, maybeAffinity || CursorAffinity.Neutral)) {
+    if (!temp.navigateToUnchecked(cursorOrPath, maybeOrientation || CursorOrientation.On)) {
       return false;
     }
 
     this.nodeNavigator = temp.nodeNavigator;
-    this.currentAffinity = temp.currentAffinity;
+    this.currentOrientation = temp.currentOrientation;
 
     if (this.navigateToNextCursorPosition()) {
       this.navigateToPrecedingCursorPosition();
     } else {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (!positions.before && !positions.neutral && !positions.after) {
         this.navigateToPrecedingCursorPosition();
       }
@@ -89,11 +89,11 @@ export class CursorNavigator {
   public navigateToFirstDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
     if (PositionClassification.isEmptyInsertionPoint(this.nodeNavigator.tip.node)) {
-      this.currentAffinity = CursorAffinity.Neutral;
+      this.currentOrientation = CursorOrientation.On;
       return true;
     }
     return this.complexNavigationHelper({
-      init: (nav) => (nav.currentAffinity = CursorAffinity.Before),
+      init: (nav) => (nav.currentOrientation = CursorOrientation.Before),
       advance: (nav) => nav.navigateToNextCursorPosition(),
       abort: (nav) => !nav.nodeNavigator.chain.contains(ancestor),
       success: (nav) => nav.tip.node !== ancestor,
@@ -103,11 +103,11 @@ export class CursorNavigator {
   public navigateToLastDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
     if (PositionClassification.isEmptyInsertionPoint(this.nodeNavigator.tip.node)) {
-      this.currentAffinity = CursorAffinity.Neutral;
+      this.currentOrientation = CursorOrientation.On;
       return true;
     }
     return this.complexNavigationHelper({
-      init: (nav) => (nav.currentAffinity = CursorAffinity.After),
+      init: (nav) => (nav.currentOrientation = CursorOrientation.After),
       advance: (nav) => nav.navigateToPrecedingCursorPosition(),
       abort: (nav) => !nav.nodeNavigator.chain.contains(ancestor),
       success: (nav) => nav.tip.node !== ancestor,
@@ -115,32 +115,35 @@ export class CursorNavigator {
   }
 
   public navigateToNextCursorPosition(): boolean {
-    const affinity = this.currentAffinity;
+    const orientation = this.currentOrientation;
     let skipDescendants = false;
 
-    // This block of code is responsible for changing the cursor affinity from
-    // before or neutral to another affinity without changing the node that the
+    // This block of code is responsible for changing the cursor orientation from
+    // before or neutral to another orientation without changing the node that the
     // navigator is on
-    if (affinity === CursorAffinity.Before) {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+    if (orientation === CursorOrientation.Before) {
+      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.neutral) {
-        this.currentAffinity = CursorAffinity.Neutral;
+        this.currentOrientation = CursorOrientation.On;
         return true;
       } else if (positions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
-        this.currentAffinity = CursorAffinity.After;
+        this.currentOrientation = CursorOrientation.After;
         return true;
       }
-    } else if (affinity === CursorAffinity.Neutral) {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+    } else if (orientation === CursorOrientation.On) {
+      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.after) {
-        this.currentAffinity = CursorAffinity.After;
+        this.currentOrientation = CursorOrientation.After;
         return true;
       }
-    } else if (affinity === CursorAffinity.After) {
+    } else if (orientation === CursorOrientation.After) {
       if (this.nodeNavigator.nextSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator, this.layoutReporter);
+        const parentPositions = PositionClassification.getValidCursorOrientationsAt(
+          parentNavigator,
+          this.layoutReporter
+        );
         if (parentPositions.after) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -163,15 +166,15 @@ export class CursorNavigator {
     // the block above this loop.
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsInDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+      const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.before) {
-        this.currentAffinity = CursorAffinity.Before;
+        this.currentOrientation = CursorOrientation.Before;
         return true;
       } else if (newPositions.neutral) {
-        this.currentAffinity = CursorAffinity.Neutral;
+        this.currentOrientation = CursorOrientation.On;
         return true;
       } else if (newPositions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
-        this.currentAffinity = CursorAffinity.After;
+        this.currentOrientation = CursorOrientation.After;
         return true;
       }
       skipDescendants = false;
@@ -185,7 +188,7 @@ export class CursorNavigator {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToNextSibling()) {
       if (clone.navigateToLastDescendantCursorPosition()) {
-        this.currentAffinity = clone.currentAffinity;
+        this.currentOrientation = clone.currentOrientation;
         this.nodeNavigator = clone.nodeNavigator;
         return true;
       }
@@ -195,7 +198,7 @@ export class CursorNavigator {
 
   public navigateToNextSiblingUnchecked(): boolean {
     if (this.nodeNavigator.navigateToNextSibling()) {
-      this.currentAffinity = CursorAffinity.Before;
+      this.currentOrientation = CursorOrientation.Before;
       return true;
     }
     return false;
@@ -203,36 +206,39 @@ export class CursorNavigator {
 
   public navigateToParentUnchecked(): boolean {
     if (this.nodeNavigator.navigateToParent()) {
-      this.currentAffinity = CursorAffinity.Neutral;
+      this.currentOrientation = CursorOrientation.On;
       return true;
     }
     return false;
   }
 
   public navigateToPrecedingCursorPosition(): boolean {
-    const affinity = this.currentAffinity;
+    const orientation = this.currentOrientation;
     let skipDescendants = false;
 
-    if (affinity === CursorAffinity.After) {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+    if (orientation === CursorOrientation.After) {
+      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.neutral) {
-        this.currentAffinity = CursorAffinity.Neutral;
+        this.currentOrientation = CursorOrientation.On;
         return true;
       } else if (positions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
-        this.currentAffinity = CursorAffinity.Before;
+        this.currentOrientation = CursorOrientation.Before;
         return true;
       }
-    } else if (affinity === CursorAffinity.Neutral) {
-      const positions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+    } else if (orientation === CursorOrientation.On) {
+      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.before) {
-        this.currentAffinity = CursorAffinity.Before;
+        this.currentOrientation = CursorOrientation.Before;
         return true;
       }
-    } else if (affinity === CursorAffinity.Before) {
+    } else if (orientation === CursorOrientation.Before) {
       if (this.nodeNavigator.precedingSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorAffinitiesAt(parentNavigator, this.layoutReporter);
+        const parentPositions = PositionClassification.getValidCursorOrientationsAt(
+          parentNavigator,
+          this.layoutReporter
+        );
         if (parentPositions.before) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -243,15 +249,15 @@ export class CursorNavigator {
 
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateBackwardsInDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorAffinitiesAt(this.nodeNavigator, this.layoutReporter);
+      const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.after) {
-        this.currentAffinity = CursorAffinity.After;
+        this.currentOrientation = CursorOrientation.After;
         return true;
       } else if (newPositions.neutral) {
-        this.currentAffinity = CursorAffinity.Neutral;
+        this.currentOrientation = CursorOrientation.On;
         return true;
       } else if (newPositions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
-        this.currentAffinity = CursorAffinity.Before;
+        this.currentOrientation = CursorOrientation.Before;
         return true;
       }
       skipDescendants = false;
@@ -265,7 +271,7 @@ export class CursorNavigator {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToPrecedingSibling()) {
       if (clone.navigateToFirstDescendantCursorPosition()) {
-        this.currentAffinity = clone.currentAffinity;
+        this.currentOrientation = clone.currentOrientation;
         this.nodeNavigator = clone.nodeNavigator;
         return true;
       }
@@ -275,53 +281,53 @@ export class CursorNavigator {
 
   public navigateToPrecedingSiblingUnchecked(): boolean {
     if (this.nodeNavigator.navigateToPrecedingSibling()) {
-      this.currentAffinity = CursorAffinity.After;
+      this.currentOrientation = CursorOrientation.After;
       return true;
     }
     return false;
   }
 
-  public navigateToRelativeSibling(offset: number, affinity: CursorAffinity): boolean {
+  public navigateToRelativeSibling(offset: number, orientation: CursorOrientation): boolean {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToRelativeSibling(offset)) {
-      clone.currentAffinity = affinity;
+      clone.currentOrientation = orientation;
 
       if (clone.navigateToNextCursorPosition()) {
         clone.navigateToPrecedingCursorPosition();
       } else {
-        const positions = PositionClassification.getValidCursorAffinitiesAt(clone.nodeNavigator, this.layoutReporter);
+        const positions = PositionClassification.getValidCursorOrientationsAt(clone.nodeNavigator, this.layoutReporter);
         if (!positions.before && !positions.neutral && !positions.after) {
           clone.navigateToPrecedingCursorPosition();
         }
       }
 
-      this.currentAffinity = clone.currentAffinity;
+      this.currentOrientation = clone.currentOrientation;
       this.nodeNavigator = clone.nodeNavigator;
     }
     return false;
   }
 
   public navigateToUnchecked(cursor: Cursor): boolean;
-  public navigateToUnchecked(path: PathString | Path, affinity: CursorAffinity): boolean;
+  public navigateToUnchecked(path: PathString | Path, orientation: CursorOrientation): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  public navigateToUnchecked(cursorOrPath: any, maybeAffinity?: CursorAffinity): boolean {
+  public navigateToUnchecked(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     if (typeof cursorOrPath === "string") {
       return this.navigateToUnchecked(
         Path.parse(cursorOrPath),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        maybeAffinity as any
+        maybeOrientation as any
       );
     }
 
     let path: Path;
-    let affinity: CursorAffinity;
+    let orientation: CursorOrientation;
     if ((cursorOrPath as Path).parts?.length >= 0) {
       path = cursorOrPath as Path;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      affinity = maybeAffinity!;
+      orientation = maybeOrientation!;
     } else {
-      path = (cursorOrPath as Cursor).at;
-      affinity = (cursorOrPath as Cursor).affinity;
+      path = (cursorOrPath as Cursor).path;
+      orientation = (cursorOrPath as Cursor).orientation;
     }
 
     const n = new NodeNavigator(this.document);
@@ -329,7 +335,7 @@ export class CursorNavigator {
       return false;
     }
     this.nodeNavigator = n;
-    this.currentAffinity = affinity;
+    this.currentOrientation = orientation;
     return true;
   }
 
@@ -352,7 +358,7 @@ export class CursorNavigator {
           return false;
         }
         if (options.success(clone)) {
-          this.currentAffinity = clone.currentAffinity;
+          this.currentOrientation = clone.currentOrientation;
           this.nodeNavigator = clone.nodeNavigator;
           return true;
         }
