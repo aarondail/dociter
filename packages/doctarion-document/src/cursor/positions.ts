@@ -43,15 +43,25 @@ enum PositionClassificationBase {
   Grapheme = "GRAPHEME",
   EmptyInsertionPoint = "EMPTY_INSERTION_POINT",
   InBetweenInsertionPoint = "IN_BETWEEN_INSERTION_POINT",
-  // ADD NavigableNonTextNode
-  // ADD UnconstrainedAnyNode
-
+  NavigableNonTextNode = "NAVIGABLE_NON_TEXT_NODE",
+  UnconstrainedAnyNode = "UNCONSTRAINED_ANY_NODE",
   // MOVE classify into this file
-  // UPDATE CUrsor.md and comments in this file
 }
 
 export type PositionClassification = PositionClassificationBase;
 export const PositionClassification = enumWithMethods(PositionClassificationBase, {
+  classify(nav: NodeNavigator): PositionClassification {
+    const el = nav.tip.node;
+    if (NodeUtils.isGrapheme(el)) {
+      return PositionClassification.Grapheme;
+    } else if (PositionClassification.isEmptyInsertionPoint(el)) {
+      return PositionClassification.EmptyInsertionPoint;
+    } else if (PositionClassification.isInBetweenInsertionPoint(el, nav.precedingSiblingNode)) {
+      return PositionClassification.InBetweenInsertionPoint;
+    }
+    return PositionClassification.UnconstrainedAnyNode;
+  },
+
   isEmptyInsertionPoint(node: Node): boolean {
     return NodeUtils.getChildren(node)?.length === 0;
   },

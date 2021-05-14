@@ -38,16 +38,8 @@ export class CursorNavigator {
     return new Cursor(this.nodeNavigator.path, this.currentOrientation);
   }
 
-  public classifyCurrentPosition(): PositionClassification | undefined {
-    const el = this.nodeNavigator.tip.node;
-    if (NodeUtils.isGrapheme(el)) {
-      return PositionClassification.Grapheme;
-    } else if (PositionClassification.isEmptyInsertionPoint(el)) {
-      return PositionClassification.EmptyInsertionPoint;
-    } else if (PositionClassification.isInBetweenInsertionPoint(el, this.nodeNavigator.precedingSiblingNode)) {
-      return PositionClassification.InBetweenInsertionPoint;
-    }
-    return undefined;
+  public classifyCurrentPosition(): PositionClassification {
+    return PositionClassification.classify(this.nodeNavigator);
   }
 
   public clone(): CursorNavigator {
