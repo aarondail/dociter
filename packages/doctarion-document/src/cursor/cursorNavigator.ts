@@ -70,7 +70,7 @@ export class CursorNavigator {
       this.navigateToPrecedingCursorPosition();
     } else {
       const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
-      if (!positions.before && !positions.neutral && !positions.after) {
+      if (!positions.before && !positions.on && !positions.after) {
         this.navigateToPrecedingCursorPosition();
       }
     }
@@ -106,6 +106,11 @@ export class CursorNavigator {
     });
   }
 
+  /**
+   * This method along with its counterparts navigateToPreceedingCursorPosition
+   * are in some ways the core functionality of the navigator. For determinging
+   * where the cursor really goes, these two methods are responsible.
+   */
   public navigateToNextCursorPosition(): boolean {
     const orientation = this.currentOrientation;
     let skipDescendants = false;
@@ -115,10 +120,10 @@ export class CursorNavigator {
     // navigator is on
     if (orientation === CursorOrientation.Before) {
       const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
-      if (positions.neutral) {
+      if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (positions.after && !NodeUtils.hasSomeChildren(this.nodeNavigator.tip.node)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -162,10 +167,10 @@ export class CursorNavigator {
       if (newPositions.before) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
-      } else if (newPositions.neutral) {
+      } else if (newPositions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.after && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (newPositions.after && !NodeUtils.hasSomeChildren(this.nodeNavigator.tip.node)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -204,16 +209,21 @@ export class CursorNavigator {
     return false;
   }
 
+  /**
+   * This method along with its counterparts navigateToNextCursorPosition
+   * are in some ways the core functionality of the navigator. For determining
+   * where the cursor really goes, these two methods are responsible.
+   */
   public navigateToPrecedingCursorPosition(): boolean {
     const orientation = this.currentOrientation;
     let skipDescendants = false;
 
     if (orientation === CursorOrientation.After) {
       const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
-      if (positions.neutral) {
+      if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (positions.before && !NodeUtils.hasSomeChildren(this.nodeNavigator.tip.node)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
@@ -245,10 +255,10 @@ export class CursorNavigator {
       if (newPositions.after) {
         this.currentOrientation = CursorOrientation.After;
         return true;
-      } else if (newPositions.neutral) {
+      } else if (newPositions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.before && !NodeUtils.hasChildren(this.nodeNavigator.tip.node)) {
+      } else if (newPositions.before && !NodeUtils.hasSomeChildren(this.nodeNavigator.tip.node)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
@@ -288,7 +298,7 @@ export class CursorNavigator {
         clone.navigateToPrecedingCursorPosition();
       } else {
         const positions = PositionClassification.getValidCursorOrientationsAt(clone.nodeNavigator, this.layoutReporter);
-        if (!positions.before && !positions.neutral && !positions.after) {
+        if (!positions.before && !positions.on && !positions.after) {
           clone.navigateToPrecedingCursorPosition();
         }
       }

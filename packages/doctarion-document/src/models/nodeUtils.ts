@@ -1,7 +1,7 @@
 import { HeaderBlock, InlineContainingNode, ParagraphBlock } from "./blocks";
 import { Document } from "./document";
 import { Grapheme } from "./grapheme";
-import { Inline, InlineText, InlineUrlLink, TextContainingNode } from "./inlines";
+import { Inline, InlineEmoji, InlineText, InlineUrlLink, TextContainingNode } from "./inlines";
 import { Node, NodeKind, ObjectNode } from "./node";
 
 export const NodeUtils = {
@@ -19,7 +19,7 @@ export const NodeUtils = {
   /**
    * Returns true if the node has one or more children.
    */
-  hasChildren(node: Node): boolean {
+  hasSomeChildren(node: Node): boolean {
     const children = NodeUtils.getChildren(node);
     return children ? children.length > 0 : false;
   },
@@ -29,13 +29,17 @@ export const NodeUtils = {
   },
 
   isInline(node: Node): node is Inline {
-    return node instanceof InlineText || node instanceof InlineUrlLink;
+    return node instanceof InlineText || node instanceof InlineUrlLink || node instanceof InlineEmoji;
   },
 
   isInlineContainer(node: Node): node is InlineContainingNode {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const k = (node as any).kind;
     return k === NodeKind.ParagraphBlock || k === NodeKind.HeaderBlock;
+  },
+
+  isInlineNonTextContainer(node: Node): boolean {
+    return node instanceof InlineEmoji;
   },
 
   isObject(node: Node): node is ObjectNode {
@@ -59,6 +63,8 @@ export const NodeUtils = {
       return handlers.onInlineText(node);
     } else if (node instanceof InlineUrlLink) {
       return handlers.onInlineUrlLink(node);
+    } else if (node instanceof InlineEmoji) {
+      return handlers.onInlineEmoji(node);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return handlers.onDocument(node as any);
@@ -78,4 +84,5 @@ export type NodeHandlersForSwitch<T> = {
   onParagraphBlock: (b: ParagraphBlock) => T;
   onInlineText: (e: InlineText) => T;
   onInlineUrlLink: (e: InlineUrlLink) => T;
+  onInlineEmoji: (e: InlineEmoji) => T;
 };

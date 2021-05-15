@@ -77,4 +77,17 @@ export class InlineUrlLink extends TextContainingNode {
   }
 }
 
-export type Inline = InlineText | InlineUrlLink;
+// TODO some text modifiers (e.g. size, background color?)
+export class InlineEmoji extends ObjectNode {
+  public readonly children: undefined;
+  public readonly emojiId: string;
+  public readonly kind = NodeKind.InlineEmoji;
+  public readonly layoutType = NodeLayoutType.Inline;
+
+  public constructor(emojiId: string) {
+    super();
+    this.emojiId = emojiId;
+  }
+}
+
+export type Inline = InlineText | InlineUrlLink | InlineEmoji;

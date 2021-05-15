@@ -16,6 +16,7 @@ export enum NodeKind {
   Document = "DOCUMENT",
   ParagraphBlock = "PARAGRAPH",
   HeaderBlock = "HEADER",
+  InlineEmoji = "EMOJI",
   InlineText = "TEXT",
   InlineUrlLink = "URL_LINK",
   Grapheme = "GRAPHEME",

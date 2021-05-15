@@ -67,6 +67,7 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
       });
       break;
     case PositionClassification.EmptyInsertionPoint:
+    case PositionClassification.NavigableNonTextNode:
       deleteNode(navigator.toNodeNavigator(), services);
       navigator = refreshNavigator(navigator);
       navigator.navigateToPrecedingSiblingUnchecked();

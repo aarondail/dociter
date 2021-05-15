@@ -8,6 +8,7 @@ import {
   Block,
   Document,
   HeaderBlock,
+  InlineEmoji,
   InlineText,
   InlineUrlLink,
   Node,
@@ -22,6 +23,7 @@ export const header = (...args: any[]) => new HeaderBlock(...args);
 export const paragraph = (...args: any[]) => new ParagraphBlock(...args);
 export const inlineText = (text: string | Text, modifiers?: Partial<TextModifiers>) => new InlineText(text, modifiers);
 export const inlineUrlLink = (url: string, text: string | Text) => new InlineUrlLink(url, text);
+export const inlineEmoji = (emoji: string) => new InlineEmoji(emoji);
 
 export const debugPath = (nav: { path: Path }): string => nav.path.toString();
 
@@ -75,6 +77,7 @@ export const DebugEditorHelpers = (() => {
       onParagraphBlock: () => `PARAGRAPH`,
       onInlineText: (e) => `TEXT {${modifiersToString(e.modifiers)}}`,
       onInlineUrlLink: ({ url }) => `URL_LINK ${url}`,
+      onInlineEmoji: ({ emojiId }) => `EMOJI ${emojiId}`,
       onGrapheme: () => {
         throw new Error("Should never hit this.");
       },

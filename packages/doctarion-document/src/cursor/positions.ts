@@ -45,7 +45,6 @@ enum PositionClassificationBase {
   InBetweenInsertionPoint = "IN_BETWEEN_INSERTION_POINT",
   NavigableNonTextNode = "NAVIGABLE_NON_TEXT_NODE",
   UnconstrainedAnyNode = "UNCONSTRAINED_ANY_NODE",
-  // MOVE classify into this file
 }
 
 export type PositionClassification = PositionClassificationBase;
@@ -54,6 +53,8 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
     const el = nav.tip.node;
     if (NodeUtils.isGrapheme(el)) {
       return PositionClassification.Grapheme;
+    } else if (NodeUtils.isInlineNonTextContainer(el)) {
+      return PositionClassification.NavigableNonTextNode;
     } else if (PositionClassification.isEmptyInsertionPoint(el)) {
       return PositionClassification.EmptyInsertionPoint;
     } else if (PositionClassification.isInBetweenInsertionPoint(el, nav.precedingSiblingNode)) {
@@ -174,11 +175,11 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
         : CannedGetValidCursorAffinitiesAtResult.justAfter;
     } else {
       // Node is not a grapheme
-      const hasNeutral = this.isEmptyInsertionPoint(el);
+      const hasOn = this.isEmptyInsertionPoint(el) || NodeUtils.isInlineNonTextContainer(el);
       const hasBeforeBetweenInsertionPoint = PositionClassification.isInBetweenInsertionPoint(el, precedingSibling);
       const hasAfterBetweenInsertionPoint = PositionClassification.isInBetweenInsertionPoint(el, nextSibling);
 
-      if (!hasNeutral && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
+      if (!hasOn && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
         return CannedGetValidCursorAffinitiesAtResult.none;
       }
 
@@ -202,8 +203,8 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
           result.before = true;
         }
       }
-      if (hasNeutral) {
-        result.neutral = true;
+      if (hasOn) {
+        result.on = true;
       }
       if (hasAfterBetweenInsertionPoint && (!nextSibling || !(nextSibling instanceof InlineText))) {
         // Also make sure next inline is on the same line before saying we have after
@@ -226,7 +227,7 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
 export type GetValidCursorOrientationsAtResult = {
   before?: boolean;
   after?: boolean;
-  neutral?: boolean;
+  on?: boolean;
 };
 
 const CannedGetValidCursorAffinitiesAtResult = {

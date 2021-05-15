@@ -7,6 +7,7 @@ import {
   debugCursorNavigator2,
   doc,
   header,
+  inlineEmoji,
   inlineText,
   inlineUrlLink,
   paragraph,
@@ -44,6 +45,12 @@ const testDoc4 = doc(
     inlineText("STU"), // LINE 7
     inlineUrlLink("g.com", "VWX") // LINE 8
   )
+);
+
+// Has emoji
+const testDoc5 = doc(
+  paragraph(inlineText("ABC"), inlineEmoji("🙂"), inlineText("DEF")),
+  paragraph(inlineEmoji("🙂"), inlineUrlLink("j.com", "GHI"), inlineEmoji("🙂"))
 );
 
 class TestDoc4LayoutReporter implements NodeLayoutReporter {
@@ -456,6 +463,39 @@ describe("navigateToNextCursorPosition", () => {
     expect(nav.tip.node).toEqual("X");
     expect(debugCursorNavigator(nav)).toEqual("0/6/2 |>");
   });
+
+  it("should navigate through emoji", () => {
+    const nav = new CursorNavigator(testDoc5);
+
+    const next = nextPrime.bind(undefined, nav);
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/0/0 :: A");
+    next(3);
+    expect(debugCursorNavigator2(nav)).toEqual("0/0/2 |> :: C");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/1 :: EMOJI 🙂");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/2/0 :: D");
+    next(3);
+    expect(debugCursorNavigator2(nav)).toEqual("0/2/2 |> :: F");
+
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 1/0 :: EMOJI 🙂");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/0 :: EMOJI 🙂");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/0 |> :: EMOJI 🙂");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 1/1/0 :: G");
+    next(3);
+    expect(debugCursorNavigator2(nav)).toEqual("1/1/2 |> :: I");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual('1/1 |> :: URL_LINK j.com > "GHI"');
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/2 :: EMOJI 🙂");
+    next(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/2 |> :: EMOJI 🙂");
+  });
 });
 
 describe("navigateToPrecedingCursorPosition", () => {
@@ -698,6 +738,37 @@ describe("navigateToPrecedingCursorPosition", () => {
     back(2);
     expect(debugCursorNavigator2(nav)).toEqual("0/0/0 |> :: A");
     back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/0/0 :: A");
+  });
+
+  it("should navigate through emoji", () => {
+    const nav = new CursorNavigator(testDoc5);
+    nav.navigateToLastDescendantCursorPosition();
+    const back = backPrime.bind(undefined, nav);
+
+    expect(debugCursorNavigator2(nav)).toEqual("1/2 |> :: EMOJI 🙂");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/2 :: EMOJI 🙂");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual('1/1 |> :: URL_LINK j.com > "GHI"');
+    back(4);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 1/1/0 :: G");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/0 |> :: EMOJI 🙂");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("1/0 :: EMOJI 🙂");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 1/0 :: EMOJI 🙂");
+
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/2/2 |> :: F");
+    back(3);
+    expect(debugCursorNavigator2(nav)).toEqual("<| 0/2/0 :: D");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/1 :: EMOJI 🙂");
+    back(1);
+    expect(debugCursorNavigator2(nav)).toEqual("0/0/2 |> :: C");
+    back(3);
     expect(debugCursorNavigator2(nav)).toEqual("<| 0/0/0 :: A");
   });
 });
