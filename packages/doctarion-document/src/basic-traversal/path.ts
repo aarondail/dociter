@@ -53,6 +53,28 @@ export class Path {
     return PathComparison.Equal;
   }
 
+  compareToSimple(other: Path): SimplePathComparison {
+    const detailedComparisong = this.compareTo(other);
+    switch (detailedComparisong) {
+      case PathComparison.Equal:
+        return SimplePathComparison.Equal;
+      case PathComparison.Ancestor:
+        return SimplePathComparison.Before;
+      case PathComparison.Descendent:
+        return SimplePathComparison.After;
+      case PathComparison.EarlierSibling:
+        return SimplePathComparison.Before;
+      case PathComparison.LaterSibling:
+        return SimplePathComparison.After;
+      case PathComparison.EarlierBranch:
+        return SimplePathComparison.Before;
+      case PathComparison.LaterBranch:
+        return SimplePathComparison.Before;
+      case PathComparison.Incomparable:
+        return SimplePathComparison.Incomparable;
+    }
+  }
+
   public equalTo(other: Path): boolean {
     return lodash.isEqual(this.parts, other.parts);
   }
@@ -105,5 +127,12 @@ export enum PathComparison {
   LaterSibling = "LATER_SIBLING",
   EarlierBranch = "EARLIER_BRANCH",
   LaterBranch = "LATER_BRANCH",
+  Incomparable = "INCOMPARABLE",
+}
+
+export enum SimplePathComparison {
+  Equal = "EQUAL",
+  Before = "BEFORE",
+  After = "AFTER",
   Incomparable = "INCOMPARABLE",
 }

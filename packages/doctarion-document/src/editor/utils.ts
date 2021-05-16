@@ -13,9 +13,13 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
   return undefined;
 }
 
-export function getCursorNavigatorAndValidate(state: EditorState, services: EditorOperationServices): CursorNavigator {
+export function getCursorNavigatorAndValidate(
+  state: EditorState,
+  services: EditorOperationServices,
+  interactorIndex: number
+): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
-  if (!nav.navigateTo(state.cursor)) {
+  if (!nav.navigateTo(state.interactors[interactorIndex].mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
   }
   return nav;
@@ -29,10 +33,4 @@ export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
   const n = new CursorNavigator(nav.document);
   n.navigateToUnchecked(nav.cursor);
   return n;
-}
-
-export function resetCursorMovementHints(state: immer.Draft<EditorState>): void {
-  if (state.cursorVisualLineMovementHorizontalAnchor) {
-    state.cursorVisualLineMovementHorizontalAnchor = undefined;
-  }
 }

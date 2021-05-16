@@ -4,19 +4,20 @@ import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 
-import { createCoreCommonOperation } from "./coreOperations";
+import { createCoreOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
-import { ifLet, refreshNavigator } from "./utils";
+import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ state, services, navigator }) => {
+export const deleteBackwards = createCoreOperation("delete/backwards", (state, services) => {
+  let navigator = getCursorNavigatorAndValidate(state, services, 0);
   switch (navigator.classifyCurrentPosition()) {
     case PositionClassification.Grapheme:
       ifLet(navigator.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (!NodeUtils.isTextContainer(parent.node)) {
-          return false;
+          return;
         }
 
         let index = tip.pathPart.index;
@@ -77,16 +78,24 @@ export const deleteBackwards = createCoreCommonOperation("delete/backwards", ({ 
       navigator.navigateToPrecedingCursorPosition();
       break;
   }
-  state.cursor = castDraft(navigator.cursor);
+  state.interactors[0].mainCursor = castDraft(navigator.cursor);
+  state.interactors[0].selectionAnchorCursor = undefined;
+  state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
 });
 
-export const deleteSelection = createCoreCommonOperation("delete/selection", ({ state, services }): void => {
-  if (!state.selection || !state.selectionAnchor) {
+export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
+  const interactor = state.interactors[0];
+  if (!interactor.isSelection) {
     throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
   }
 
+  const range = interactor.toRange(state.document);
+  if (!range) {
+    return;
+  }
+
   {
-    const elementsToDelete = state.selection.getChainsCoveringRange(state.document);
+    const elementsToDelete = range.getChainsCoveringRange(state.document);
     elementsToDelete.reverse();
     const nav = new NodeNavigator(state.document);
     for (const chain of elementsToDelete) {
@@ -98,11 +107,11 @@ export const deleteSelection = createCoreCommonOperation("delete/selection", ({ 
   // This navigator is positioned on the place we will leave the selection after the deletion
   {
     const nav = new CursorNavigator(state.document);
-    nav.navigateTo(state.selection.from, CursorOrientation.Before);
-    state.cursor = castDraft(nav.cursor);
+    nav.navigateTo(range.from, CursorOrientation.Before);
+    state.interactors[0].mainCursor = castDraft(nav.cursor);
+    state.interactors[0].selectionAnchorCursor = undefined;
+    state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
   }
-  state.selectionAnchor = undefined;
-  state.selection = undefined;
 });
 
 function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServices): void {

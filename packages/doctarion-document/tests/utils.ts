@@ -129,9 +129,10 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
-  const debugEditorStateSimple = (state: { document: Document; cursor: Cursor }) => {
-    const nav = new NodeNavigator(state.document);
-    const c = state.cursor;
+  const debugEditorStateSimple = (editor: Editor) => {
+    const nav = new NodeNavigator(editor.document);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const c = editor.focusedCursor!;
     if (nav.navigateTo(c.path)) {
       const cursorDebug =
         c.orientation === CursorOrientation.Before
@@ -148,14 +149,16 @@ SLICE:  ${elementString}`;
 CURSOR: ?${debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)"}?
 SLICE:  !INVALID CURSOR POSITION (probably not a grapheme or insertion point?)!
 DOCUMENT BLOCKS:
-${JSON.stringify(state.document.children, undefined, 4)}
+${JSON.stringify(editor.document.children, undefined, 4)}
 `;
     }
   };
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const prePath = editor instanceof Editor ? editor.focusedCursor!.path : editor.interactors[0].mainCursor.path;
     // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-    const path = "" + editor.cursor.path?.parts[0].index;
+    const path = "" + prePath.parts[0].index;
     //   case DocumentInteractionLocationKind.SELECTION:
     //     path += editor.interloc.selection?.[0][0][1];
     //     break;

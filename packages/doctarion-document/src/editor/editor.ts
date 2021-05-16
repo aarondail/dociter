@@ -18,7 +18,7 @@ import {
   EditorProvidedServices,
   EditorServices,
 } from "./services";
-import { EditorState } from "./state";
+import { EditorInteractor, EditorState } from "./state";
 
 export interface EditorConfig {
   readonly document: Document;
@@ -45,7 +45,8 @@ export class Editor {
       // Clone because we are going to assign ids which techncially is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
-      cursor: initialCursor || new Cursor(new Path([]), CursorOrientation.On),
+      interactors: [new EditorInteractor(initialCursor || new Cursor(new Path([]), CursorOrientation.On))],
+      focusedInteractor: 0,
       nodeParentMap: {},
     };
     this.historyList = [];
@@ -98,8 +99,11 @@ export class Editor {
     }
   }
 
-  public get cursor(): Cursor {
-    return this.state.cursor;
+  public get focusedCursor(): Cursor | undefined {
+    if (this.state.focusedInteractor !== undefined) {
+      return this.state.interactors[this.state.focusedInteractor]?.mainCursor;
+    }
+    return undefined;
   }
 
   public get document(): Document {
@@ -137,14 +141,14 @@ export class Editor {
     }
 
     const oldState = this.state;
-    let newState = immer.produce(this.state, (draft) => {
+    const newState = immer.produce(this.state, (draft) => {
       this.eventEmitters.updateStart.emit(draft);
       op.run(draft, this.operationServices, command.payload);
     });
 
-    if (op.postRun) {
-      newState = op.postRun(oldState, newState);
-    }
+    // if (op.postRun) {
+    //   newState = op.postRun(oldState, newState);
+    // }
 
     // If there were no changes, don't do anything
     if (newState !== this.state) {

@@ -5,31 +5,35 @@ import { CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { Side } from "../layout-reporting";
 
-import { createCoreCommonOperation } from "./coreOperations";
+import { createCoreOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
+import { getCursorNavigatorAndValidate } from "./utils";
 
 const castDraft = immer.castDraft;
 
-export const moveBack = createCoreCommonOperation("cursor/moveBack", ({ state, navigator }): void => {
+export const moveBack = createCoreOperation("cursor/moveBack", (state, services): void => {
+  const navigator = getCursorNavigatorAndValidate(state, services, 0);
   if (navigator.navigateToPrecedingCursorPosition()) {
-    state.cursor = castDraft(navigator.cursor);
+    state.interactors[0].mainCursor = castDraft(navigator.cursor);
+    state.interactors[0].selectionAnchorCursor = undefined;
+    state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
   }
 });
 
-export const moveForward = createCoreCommonOperation("cursor/moveForward", ({ state, navigator }): void => {
+export const moveForward = createCoreOperation("cursor/moveForward", (state, services): void => {
+  const navigator = getCursorNavigatorAndValidate(state, services, 0);
   if (navigator.navigateToNextCursorPosition()) {
-    state.cursor = castDraft(navigator.cursor);
+    state.interactors[0].mainCursor = castDraft(navigator.cursor);
+    state.interactors[0].selectionAnchorCursor = undefined;
+    state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
   }
 });
 
 // TODO hint
-export const moveVisualDown = createCoreCommonOperation(
-  "cursor/moveVisualDown",
-  ({ state, services, navigator }) => {
-    moveVisualUpOrDownHelper(state, services, "DOWN", navigator);
-  },
-  { preserveCursorVisualLineMovementHorizontalAnchor: true }
-);
+export const moveVisualDown = createCoreOperation("cursor/moveVisualDown", (state, services) => {
+  const navigator = getCursorNavigatorAndValidate(state, services, 0);
+  moveVisualUpOrDownHelper(state, services, "DOWN", navigator);
+});
 
 // export function moveLineDown(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -40,13 +44,10 @@ export const moveVisualDown = createCoreCommonOperation(
 //   }
 // }
 
-export const moveVisualUp = createCoreCommonOperation(
-  "cursor/moveVisualUp",
-  ({ state, services, navigator }) => {
-    moveVisualUpOrDownHelper(state, services, "UP", navigator);
-  },
-  { preserveCursorVisualLineMovementHorizontalAnchor: true }
-);
+export const moveVisualUp = createCoreOperation("cursor/moveVisualUp", (state, services) => {
+  const navigator = getCursorNavigatorAndValidate(state, services, 0);
+  moveVisualUpOrDownHelper(state, services, "UP", navigator);
+});
 
 // export function moveLineUp(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -57,11 +58,14 @@ export const moveVisualUp = createCoreCommonOperation(
 //   }
 // }
 
-export const jumpTo = createCoreCommonOperation<{ path: PathString | Path; orientation: CursorOrientation }>(
+export const jumpTo = createCoreOperation<{ path: PathString | Path; orientation: CursorOrientation }>(
   "cursor/jumpTo",
-  ({ state, payload, navigator }) => {
+  (state, services, payload) => {
+    const navigator = getCursorNavigatorAndValidate(state, services, 0);
     if (navigator.navigateTo(payload.path, payload.orientation)) {
-      state.cursor = castDraft(navigator.cursor);
+      state.interactors[0].mainCursor = castDraft(navigator.cursor);
+      state.interactors[0].selectionAnchorCursor = undefined;
+      state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
     } else {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
     }
@@ -86,7 +90,7 @@ function moveVisualUpOrDownHelper(
   const startNavigator = currentNavigator.clone().toNodeNavigator();
 
   const targetAnchor =
-    state.cursorVisualLineMovementHorizontalAnchor ??
+    state.interactors[0].visualLineMovementHorizontalAnchor ??
     services.layout.getTargetHorizontalAnchor(
       startNavigator,
       currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
@@ -191,8 +195,7 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  state.cursor = castDraft(currentNavigator.cursor);
-  if (state.cursorVisualLineMovementHorizontalAnchor === undefined) {
-    state.cursorVisualLineMovementHorizontalAnchor = targetAnchor;
-  }
+  state.interactors[0].mainCursor = castDraft(currentNavigator.cursor);
+  state.interactors[0].selectionAnchorCursor = undefined;
+  state.interactors[0].visualLineMovementHorizontalAnchor = targetAnchor;
 }

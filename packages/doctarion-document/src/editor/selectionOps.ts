@@ -6,8 +6,7 @@ import { Range } from "../ranges";
 
 import { createCoreOperation } from "./coreOperations";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorState, SelectionAnchor } from "./state";
-import { resetCursorMovementHints } from "./utils";
+import { EditorState } from "./state";
 
 const castDraft = immer.castDraft;
 
@@ -18,11 +17,12 @@ export const select = createCoreOperation(
     _,
     payload: {
       from: PathString | Path;
+      fromOrientation?: CursorOrientation;
       to: PathString | Path;
-      anchor?: SelectionAnchor;
+      toOrientation?: CursorOrientation;
     }
   ): void => {
-    const { from, to, anchor } = payload;
+    const { from, fromOrientation, to, toOrientation } = payload;
     const nav = new NodeNavigator(state.document);
     if (!nav.navigateTo(from)) {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "from is invalid");
@@ -33,24 +33,10 @@ export const select = createCoreOperation(
     }
     const toPrime = nav.path;
 
-    state.selection = castDraft(new Range(fromPrime, toPrime));
-    state.selectionAnchor = anchor || SelectionAnchor.End;
-
-    if (state.selectionAnchor === SelectionAnchor.End) {
-      const nav2 = new CursorNavigator(state.document);
-      if (!nav2.navigateTo(toPrime, CursorOrientation.After)) {
-        throw new Error("Unexpectedly could not navigate a cursor to the selection's end.");
-      }
-      state.cursor = castDraft(nav2.cursor);
-    } else {
-      const nav2 = new CursorNavigator(state.document);
-      if (!nav2.navigateTo(fromPrime, CursorOrientation.Before)) {
-        throw new Error("Unexpectedly could not navigate a cursor to the selection's end.");
-      }
-      state.cursor = castDraft(new Cursor(fromPrime, CursorOrientation.Before));
-    }
-
-    resetCursorMovementHints(state);
+    state.interactors[0].mainCursor = castDraft(new Cursor(fromPrime, fromOrientation ?? CursorOrientation.On));
+    state.interactors[0].selectionAnchorCursor = castDraft(new Cursor(toPrime, toOrientation ?? CursorOrientation.On));
+    // TODO maybe validate cursor positions?
+    state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
   }
 );
 
