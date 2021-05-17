@@ -115,13 +115,11 @@ export class EditorNodeLookupService {
  */
 export class EditorNodeTrackingService {
   private editorState: Draft<EditorState> | null;
-  private idGenerator: FriendlyIdGenerator;
 
-  public constructor(private readonly editorEvents: EditorEvents) {
+  public constructor(private readonly idGenerator: FriendlyIdGenerator, private readonly editorEvents: EditorEvents) {
     this.editorState = null;
     this.editorEvents.updateStart.addListener(this.handleEditorUpdateStart);
     this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
-    this.idGenerator = new FriendlyIdGenerator();
   }
 
   public notifyNodeMoved(node: Node, newParentId: NodeId): void {
@@ -172,6 +170,8 @@ export class EditorNodeTrackingService {
  * These are all the services available to `EditorOperation` functions.
  */
 export interface EditorOperationServices {
+  readonly idGenerator: FriendlyIdGenerator;
+
   readonly lookup: EditorNodeLookupService;
   /**
    * The node tracking service is responsible for assigning node ids, and
@@ -197,7 +197,7 @@ export type EditorServices = Pick<EditorOperationServices, "lookup" | "layout">;
 /**
  * These are services that the Editor provides in all cases.
  */
-export type EditorProvidedServices = Pick<EditorOperationServices, "tracking" | "lookup">;
+export type EditorProvidedServices = Pick<EditorOperationServices, "tracking" | "lookup" | "idGenerator">;
 
 /**
  * These are services that have to be provided to the editor

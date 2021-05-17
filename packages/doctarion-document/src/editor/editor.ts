@@ -41,6 +41,7 @@ export class Editor {
   private state: EditorState;
 
   public constructor({ document: initialDocument, cursor: initialCursor, provideService }: EditorConfig) {
+    const idGenerator = new FriendlyIdGenerator();
     this.state = {
       // Clone because we are going to assign ids which techncially is a
       // mutation
@@ -56,10 +57,11 @@ export class Editor {
     this.events = this.eventEmitters;
 
     this.operationServices = {
+      idGenerator,
       lookup: new EditorNodeLookupService(this.state, this.events),
       // Note the tracking service is supposed to be used only during
       // operations, which is why it wants mutable state
-      tracking: new EditorNodeTrackingService(this.events),
+      tracking: new EditorNodeTrackingService(idGenerator, this.events),
     };
 
     if (provideService) {
