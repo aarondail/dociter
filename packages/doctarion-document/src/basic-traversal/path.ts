@@ -1,6 +1,8 @@
 import { immerable } from "immer";
 import lodash from "lodash";
 
+import { SimpleComparison } from "../miscUtils";
+
 import { PathPart } from "./pathPart";
 
 // -----------------------------------------------------------------------------
@@ -53,25 +55,25 @@ export class Path {
     return PathComparison.Equal;
   }
 
-  compareToSimple(other: Path): SimplePathComparison {
+  compareToSimple(other: Path): SimpleComparison {
     const detailedComparisong = this.compareTo(other);
     switch (detailedComparisong) {
       case PathComparison.Equal:
-        return SimplePathComparison.Equal;
+        return SimpleComparison.Equal;
       case PathComparison.Ancestor:
-        return SimplePathComparison.Before;
+        return SimpleComparison.Before;
       case PathComparison.Descendent:
-        return SimplePathComparison.After;
+        return SimpleComparison.After;
       case PathComparison.EarlierSibling:
-        return SimplePathComparison.Before;
+        return SimpleComparison.Before;
       case PathComparison.LaterSibling:
-        return SimplePathComparison.After;
+        return SimpleComparison.After;
       case PathComparison.EarlierBranch:
-        return SimplePathComparison.Before;
+        return SimpleComparison.Before;
       case PathComparison.LaterBranch:
-        return SimplePathComparison.Before;
+        return SimpleComparison.Before;
       case PathComparison.Incomparable:
-        return SimplePathComparison.Incomparable;
+        return SimpleComparison.Incomparable;
     }
   }
 
@@ -127,12 +129,5 @@ export enum PathComparison {
   LaterSibling = "LATER_SIBLING",
   EarlierBranch = "EARLIER_BRANCH",
   LaterBranch = "LATER_BRANCH",
-  Incomparable = "INCOMPARABLE",
-}
-
-export enum SimplePathComparison {
-  Equal = "EQUAL",
-  Before = "BEFORE",
-  After = "AFTER",
   Incomparable = "INCOMPARABLE",
 }
