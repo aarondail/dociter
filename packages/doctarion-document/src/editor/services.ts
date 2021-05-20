@@ -100,7 +100,7 @@ export class EditorNodeLookupService {
 }
 
 // -----------------------------------------------------------------------------
-// Next, the (very important) Node Tracking service
+// Second, the (very important) Node Tracking service
 // -----------------------------------------------------------------------------
 
 /**
@@ -165,6 +165,10 @@ export class EditorNodeTrackingService {
     this.editorState = newState;
   };
 }
+
+// -----------------------------------------------------------------------------
+// Finally the *Services types that group the services together
+// -----------------------------------------------------------------------------
 
 /**
  * These are all the services available to `EditorOperation` functions.

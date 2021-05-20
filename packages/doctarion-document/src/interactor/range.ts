@@ -3,14 +3,14 @@ import { immerable } from "immer";
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { Document, Node, NodeUtils } from "../models";
 
+// TODO consider merging this into interactor
 export class Range {
   [immerable] = true;
 
   public constructor(
     public readonly from: Path,
     /**
-     * This should always be after the from, in terms of the DFS the
-     * NodeNavigator does.
+     * This should always be after the from.
      */
     public readonly to: Path
   ) {}

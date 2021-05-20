@@ -8,6 +8,7 @@ Placing a cursor (aka caret) in the document, and moving it, is hard.
 * PositionClassification - There are 5 different kinds of cursor positions in a document.
 * Orientation - A cursor can be BEFORE a node, AFTER a node, or on a node which we call ON.
 * Orientation Preference - There are sometimes multiple cursor positions that are different but equivalent, e.g. after node A and before node B can be the same position. To make things more deterministic, and make the cursor placement and navigation behave more like a user expects we have a preference system to choose one cursor placement when there are multiple that would techincally work.
+* Interactor - The concept of a cursor, possibly with a selection (anchored by another cursor) in the document. A document can have multiple interactors at any given time (for multiple cursors or multiple selections) and they can individually be active or inactive.
 
 ## PositionClassification Details 
 

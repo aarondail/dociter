@@ -1,14 +1,15 @@
+import { FriendlyIdGenerator } from "doctarion-utils";
 import * as immer from "immer";
 import lodash from "lodash";
 
 import { NodeNavigator, Path } from "../basic-traversal";
 import { Cursor, CursorOrientation } from "../cursor";
+import { Interactor, InteractorSet } from "../interactor";
 import { Document } from "../models";
 
-import { CORE_OPERATIONS } from "./coreOperations";
 import { moveBack, moveForward } from "./cursorOps";
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { EditorOperation, EditorOperationCommand } from "./operation";
+import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import {
   EditorNodeLookupService,
@@ -18,7 +19,7 @@ import {
   EditorProvidedServices,
   EditorServices,
 } from "./services";
-import { EditorInteractor, EditorState } from "./state";
+import { EditorState } from "./state";
 
 export interface EditorConfig {
   readonly document: Document;
@@ -42,12 +43,18 @@ export class Editor {
 
   public constructor({ document: initialDocument, cursor: initialCursor, provideService }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
+    const primaryInteractorId = idGenerator.generateId("INTERACTOR");
+    const interactors = new InteractorSet()
+      .addInteractor(
+        new Interactor(primaryInteractorId, initialCursor || new Cursor(new Path([]), CursorOrientation.On))
+      )
+      .setFocused(primaryInteractorId);
+
     this.state = {
       // Clone because we are going to assign ids which techncially is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
-      interactors: [new EditorInteractor(initialCursor || new Cursor(new Path([]), CursorOrientation.On))],
-      focusedInteractor: 0,
+      interactors,
       nodeParentMap: {},
     };
     this.historyList = [];
@@ -102,8 +109,8 @@ export class Editor {
   }
 
   public get focusedCursor(): Cursor | undefined {
-    if (this.state.focusedInteractor !== undefined) {
-      return this.state.interactors[this.state.focusedInteractor]?.mainCursor;
+    if (this.state.interactors.focusedId !== undefined) {
+      return this.state.interactors.byId[this.state.interactors.focusedId]?.mainCursor;
     }
     return undefined;
   }
