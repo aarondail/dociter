@@ -1,13 +1,12 @@
-import * as immer from "immer";
-
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { EditorOperationServices, EditorState, MovementTargetPayload } from "../editor";
-import { Side } from "../layout-reporting";
+import { MovementTargetPayload } from "../editor";
+import { Interactor, InteractorUpdateParams } from "../interactor";
+import { NodeLayoutReporter, Side } from "../layout-reporting";
 
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { forEachInteractorInPayloadDo as forEachTargettedInteractorDo, getCursorNavigatorAndValidate } from "./utils";
+import { forEachInteractorInPayloadDo as forEachTargettedInteractorDo } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -45,10 +44,17 @@ export const moveForward = createCoreOperation<MovementTargetPayload>(
   }
 );
 
-export const moveVisualDown = createCoreOperation("cursor/moveVisualDown", (state, services) => {
-  const navigator = getCursorNavigatorAndValidate(state, services, 0);
-  moveVisualUpOrDownHelper(state, services, "DOWN", navigator);
+export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
+  "cursor/moveVisualDown",
+  (state, services, payload) => {
+    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+      if (!services.layout) {
+        return undefined;
+      }
+      return moveVisualUpOrDownHelper("DOWN", services.layout, interactor, navigator);
 });
+  }
+);
 
 // export function moveLineDown(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -59,10 +65,17 @@ export const moveVisualDown = createCoreOperation("cursor/moveVisualDown", (stat
 //   }
 // }
 
-export const moveVisualUp = createCoreOperation("cursor/moveVisualUp", (state, services) => {
-  const navigator = getCursorNavigatorAndValidate(state, services, 0);
-  moveVisualUpOrDownHelper(state, services, "UP", navigator);
+export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
+  "cursor/moveVisualUp",
+  (state, services, payload) => {
+    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+      if (!services.layout) {
+        return undefined;
+      }
+      return moveVisualUpOrDownHelper("UP", services.layout, interactor, navigator);
 });
+  }
+);
 
 // export function moveLineUp(state: immer.Draft<EditorState>): void {
 //   const nav = getCursorNavigatorAndValidate(state);
@@ -73,59 +86,53 @@ export const moveVisualUp = createCoreOperation("cursor/moveVisualUp", (state, s
 //   }
 // }
 
-export const jumpTo = createCoreOperation<{ path: PathString | Path; orientation: CursorOrientation }>(
-  "cursor/jumpTo",
-  (state, services, payload) => {
-    const navigator = getCursorNavigatorAndValidate(state, services, 0);
+export const jumpTo = createCoreOperation<
+  { path: PathString | Path; orientation: CursorOrientation } & MovementTargetPayload
+>("cursor/jumpTo", (state, services, payload): void => {
+  forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
     if (navigator.navigateTo(payload.path, payload.orientation)) {
-      state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(navigator.cursor);
-      state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-      state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+      const oldCursor = interactor.mainCursor;
+      return {
+        mainCursor: navigator.cursor,
+        visualLineMovementHorizontalAnchor: undefined,
+        selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
+      };
     } else {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
     }
-  }
-);
+  });
+});
 
 // An alternative implementation of this might use:
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/elementFromPoint
 // or
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/caretRangeFromPoint
 function moveVisualUpOrDownHelper(
-  state: immer.Draft<EditorState>,
-  services: EditorOperationServices,
   direction: "UP" | "DOWN",
-  currentNavigator: CursorNavigator
-): void {
-  if (!services.layout) {
-    return;
-  }
-  const layout = services.layout;
-
-  const startNavigator = currentNavigator.clone().toNodeNavigator();
+  layout: NodeLayoutReporter,
+  interactor: Interactor,
+  navigator: CursorNavigator
+): InteractorUpdateParams | undefined {
+  const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor ??
-    services.layout.getTargetHorizontalAnchor(
+    interactor.visualLineMovementHorizontalAnchor ??
+    layout.getTargetHorizontalAnchor(
       startNavigator,
-      currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
+      navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
     );
   if (targetAnchor === undefined) {
-    return;
+    return undefined;
   }
 
   const advance = () =>
-    direction === "DOWN"
-      ? currentNavigator.navigateToNextCursorPosition()
-      : currentNavigator.navigateToPrecedingCursorPosition();
+    direction === "DOWN" ? navigator.navigateToNextCursorPosition() : navigator.navigateToPrecedingCursorPosition();
   const retreat = () =>
-    direction === "DOWN"
-      ? currentNavigator.navigateToPrecedingCursorPosition()
-      : currentNavigator.navigateToNextCursorPosition();
+    direction === "DOWN" ? navigator.navigateToPrecedingCursorPosition() : navigator.navigateToNextCursorPosition();
   const didLineWrap = (anchor: NodeNavigator) =>
     direction === "DOWN"
-      ? layout.detectLineWrapOrBreakBetweenNodes(anchor, currentNavigator.toNodeNavigator())
-      : layout.detectLineWrapOrBreakBetweenNodes(currentNavigator.toNodeNavigator(), anchor);
+      ? layout.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator())
+      : layout.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
 
   let foundNewLine = false;
   while (advance()) {
@@ -153,8 +160,8 @@ function moveVisualUpOrDownHelper(
   // Now that we think we are on the next line...
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let distance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
-    currentNavigator.toNodeNavigator(),
-    currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
+    navigator.toNodeNavigator(),
+    navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
     targetAnchor
   );
 
@@ -164,14 +171,14 @@ function moveVisualUpOrDownHelper(
 
   // console.log(distance);
   if (distance.estimatedSubjectSiblingsToTarget) {
-    currentNavigator.navigateToRelativeSibling(
+    navigator.navigateToRelativeSibling(
       distance.estimatedSubjectSiblingsToTarget,
       distance.estimatedSubjectSiblingSideClosestToTarget === Side.Left
         ? CursorOrientation.Before
         : CursorOrientation.After
     );
   } else {
-    const newLineStartNavigator = currentNavigator.toNodeNavigator();
+    const newLineStartNavigator = navigator.toNodeNavigator();
 
     while (advance()) {
       // console.log("curos:loop2:advance");
@@ -182,8 +189,8 @@ function moveVisualUpOrDownHelper(
       }
 
       const newDistance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
-        currentNavigator.toNodeNavigator(),
-        currentNavigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
+        navigator.toNodeNavigator(),
+        navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
         targetAnchor
       );
       if (!newDistance) {
@@ -197,7 +204,7 @@ function moveVisualUpOrDownHelper(
         break;
       }
       if (newDistance.estimatedSubjectSiblingsToTarget) {
-        currentNavigator.navigateToRelativeSibling(
+        navigator.navigateToRelativeSibling(
           newDistance.estimatedSubjectSiblingsToTarget,
           newDistance.estimatedSubjectSiblingSideClosestToTarget === Side.Left
             ? CursorOrientation.Before
@@ -210,7 +217,9 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(currentNavigator.cursor);
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = targetAnchor;
+  return {
+    mainCursor: navigator.cursor,
+    selectionAnchorCursor: undefined,
+    visualLineMovementHorizontalAnchor: targetAnchor,
+  };
 }

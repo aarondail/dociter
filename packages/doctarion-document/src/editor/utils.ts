@@ -160,7 +160,7 @@ function selectOrderedInteractorIdsForPayload(payload: MovementTargetPayload, st
   const payloadTargetUntyped: any = payload.target;
 
   let interactorIds: InteractorId[] = [];
-  if (payload === undefined) {
+  if (payloadTargetUntyped === undefined) {
     if (state.interactors.focusedId) {
       interactorIds.push(state.interactors.focusedId);
     }
