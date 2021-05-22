@@ -28,16 +28,23 @@ export const moveBack = createCoreOperation<MovementTargetPayload>(
   }
 );
 
-export const moveForward = createCoreOperation("cursor/moveForward", (state, services): void => {
-  const navigator = getCursorNavigatorAndValidate(state, services, 0);
+export const moveForward = createCoreOperation<MovementTargetPayload>(
+  "cursor/moveForward",
+  (state, services, payload): void => {
+    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
   if (navigator.navigateToNextCursorPosition()) {
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(navigator.cursor);
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+        const oldCursor = interactor.mainCursor;
+        return {
+          mainCursor: navigator.cursor,
+          visualLineMovementHorizontalAnchor: undefined,
+          selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
+        };
   }
+      return undefined;
 });
+  }
+);
 
-// TODO hint
 export const moveVisualDown = createCoreOperation("cursor/moveVisualDown", (state, services) => {
   const navigator = getCursorNavigatorAndValidate(state, services, 0);
   moveVisualUpOrDownHelper(state, services, "DOWN", navigator);

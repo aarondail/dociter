@@ -100,7 +100,7 @@ export class Editor {
     if (initialCursor === undefined) {
       // Adjust the cursor so its on a valid position
       try {
-        this.update(moveForward());
+        this.update(moveForward({ target: InteractorTarget.Focused }));
         this.update(moveBack({ target: InteractorTarget.Focused }));
       } catch {
         // Intentionally ignore problems

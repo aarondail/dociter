@@ -42,7 +42,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMQRM"`);
 
     editor.update(OPS.moveBack({ target: InteractorTarget.Focused }));
     editor.update(OPS.moveBack({ target: InteractorTarget.Focused }));
-    editor.update(OPS.moveForward());
+    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
     // Cursor should now be at MMNQ|RM
     editor.update(OPS.insertText("S"));
     expect(debugState(editor)).toEqual(`
