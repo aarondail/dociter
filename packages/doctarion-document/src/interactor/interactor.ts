@@ -18,18 +18,17 @@ export enum InteractorStatus {
 export class Interactor {
   [immerable] = true;
 
-  /**
-   * When moving between lines visually, this value stores cursor's x value at
-   * the start of the line movement, so we can intelligently move between lines
-   * of different length and have the cursor try to go to the right spot.
-   */
-  public readonly visualLineMovementHorizontalAnchor?: HorizontalAnchor;
-
   public constructor(
     public readonly id: InteractorId,
     public readonly mainCursor: Cursor,
     public readonly status: InteractorStatus = InteractorStatus.Active,
-    public readonly selectionAnchorCursor?: Cursor // TODO need direction
+    public readonly selectionAnchorCursor?: Cursor,
+    /**
+     * When moving between lines visually, this value stores cursor's x value at
+     * the start of the line movement, so we can intelligently move between lines
+     * of different length and have the cursor try to go to the right spot.
+     */
+    public readonly visualLineMovementHorizontalAnchor?: HorizontalAnchor
   ) {}
 
   /**

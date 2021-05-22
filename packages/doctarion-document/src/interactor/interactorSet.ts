@@ -4,9 +4,17 @@
 import { immerable } from "immer";
 
 import { Cursor } from "../cursor";
+import { HorizontalAnchor } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
 
 import { Interactor, InteractorId, InteractorStatus } from "./interactor";
+
+export interface InteractorUpdateParams {
+  readonly mainCursor?: Cursor;
+  readonly selectionAnchorCursor?: Cursor;
+  readonly status?: InteractorStatus;
+  readonly visualLineMovementHorizontalAnchor?: HorizontalAnchor;
+}
 
 export class InteractorSet {
   public readonly byId: { readonly [id: string]: Interactor };
@@ -31,6 +39,10 @@ export class InteractorSet {
     this.ordered = ordered ?? [];
   }
 
+  public get count(): number {
+    return this.ordered.length;
+  }
+
   public addInteractor(newInteractor: Interactor): InteractorSet {
     const byId = { ...this.byId, [newInteractor.id]: newInteractor };
     const ordered = [...this.ordered, newInteractor.id];
@@ -38,7 +50,7 @@ export class InteractorSet {
     return new (InteractorSet as any)(byId, this.focusedId, ordered);
   }
 
-  public removeInteractor(id: InteractorId): InteractorSet {
+  public deleteInteractor(id: InteractorId): InteractorSet {
     const byId = { ...this.byId };
     delete byId[id];
     const index = this.ordered.indexOf(id);
@@ -52,32 +64,57 @@ export class InteractorSet {
     return new (InteractorSet as any)(byId, this.focusedId === id ? undefined : this.focusedId, ordered);
   }
 
+  public deleteInteractors(ids: InteractorId[]): InteractorSet {
+    const byId = { ...this.byId };
+    const ordered = [...this.ordered];
+    let clearFocus = false;
+    for (const id of ids) {
+      delete byId[id];
+      const index = this.ordered.indexOf(id);
+      if (index !== -1) {
+        ordered.splice(index, 1);
+      }
+      if (this.focusedId === id) {
+        clearFocus = true;
+      }
+    }
+    return new (InteractorSet as any)(byId, clearFocus ? undefined : this.focusedId, ordered);
+  }
+
+  public get focused(): Interactor | undefined {
+    if (this.focusedId) {
+      return this.byId[this.focusedId];
+    }
+  }
+
   public setFocused(id: InteractorId | undefined): InteractorSet {
     return new (InteractorSet as any)(this.byId, id, this.ordered);
   }
 
-  public updateInteractor(
-    id: InteractorId,
-    updates: {
-      mainCursor?: Cursor;
-      selectionAnchorCursor?: Cursor;
-      status?: InteractorStatus;
-      focused?: boolean;
-    }
-  ): InteractorSet {
-    const existingInteractor = this.byId[id];
-    if (!existingInteractor) {
-      return this;
-    }
+  public updateInteractor(id: InteractorId, updates: InteractorUpdateParams): InteractorSet {
+    return this.updateInteractors([[id, updates]]);
+  }
 
-    const newInteractor = new Interactor(
-      id,
-      updates.mainCursor ?? existingInteractor.mainCursor,
-      updates.status ?? existingInteractor.status,
-      "selectionAnchorCursor" in updates ? updates.selectionAnchorCursor : existingInteractor.selectionAnchorCursor
-    );
+  public updateInteractors(updates: readonly [InteractorId, InteractorUpdateParams][]): InteractorSet {
+    const byId = { ...this.byId };
 
-    const byId = { ...this.byId, [id]: newInteractor };
+    updates.forEach(([id, updates]) => {
+      const existingInteractor = this.byId[id];
+      if (!existingInteractor) {
+        return;
+      }
+
+      const newInteractor = new Interactor(
+        id,
+        updates.mainCursor ?? existingInteractor.mainCursor,
+        updates.status ?? existingInteractor.status,
+        "selectionAnchorCursor" in updates ? updates.selectionAnchorCursor : existingInteractor.selectionAnchorCursor,
+        updates.visualLineMovementHorizontalAnchor ?? existingInteractor.visualLineMovementHorizontalAnchor
+      );
+
+      byId[id] = newInteractor;
+    });
+
     let newOrdered;
     if (this.ordered.length > 1) {
       const ordered = [...this.ordered];
@@ -87,11 +124,7 @@ export class InteractorSet {
       newOrdered = this.ordered;
     }
 
-    return new (InteractorSet as any)(
-      byId,
-      updates.focused === true ? id : updates.focused === false && this.focusedId === id ? undefined : this.focusedId,
-      newOrdered
-    );
+    return new (InteractorSet as any)(byId, this.focusedId, newOrdered);
   }
 
   private static sortHelper = (map: { [id: string]: Interactor }) => (a: InteractorId, b: InteractorId) => {

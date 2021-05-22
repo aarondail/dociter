@@ -4,7 +4,7 @@ import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 
-import { createCoreOperation } from "./coreOperations";
+import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
@@ -78,13 +78,13 @@ export const deleteBackwards = createCoreOperation("delete/backwards", (state, s
       navigator.navigateToPrecedingCursorPosition();
       break;
   }
-  state.interactors[0].mainCursor = castDraft(navigator.cursor);
-  state.interactors[0].selectionAnchorCursor = undefined;
-  state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
+  state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(navigator.cursor);
+  state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
+  state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
 });
 
 export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
-  const interactor = state.interactors[0];
+  const interactor = state.interactors.byId[Object.keys(state.interactors.byId)[0]];
   if (!interactor.isSelection) {
     throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
   }
@@ -108,9 +108,9 @@ export const deleteSelection = createCoreOperation("delete/selection", (state, s
   {
     const nav = new CursorNavigator(state.document);
     nav.navigateTo(range.from, CursorOrientation.Before);
-    state.interactors[0].mainCursor = castDraft(nav.cursor);
-    state.interactors[0].selectionAnchorCursor = undefined;
-    state.interactors[0].visualLineMovementHorizontalAnchor = undefined;
+    state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
+    state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
+    state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
   }
 });
 

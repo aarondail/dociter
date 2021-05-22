@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
+import { CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
 import {
   Block,
@@ -156,9 +156,9 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const prePath = editor instanceof Editor ? editor.focusedCursor!.path : editor.interactors[0].mainCursor.path;
+    const prePath = editor instanceof Editor ? editor.focusedCursor!.path : editor.interactors.focused?.mainCursor.path;
     // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-    const path = "" + prePath.parts[0].index;
+    const path = "" + prePath?.parts[0].index;
     //   case DocumentInteractionLocationKind.SELECTION:
     //     path += editor.interloc.selection?.[0][0][1];
     //     break;

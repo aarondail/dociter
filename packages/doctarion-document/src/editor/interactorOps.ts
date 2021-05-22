@@ -35,7 +35,7 @@ export const addInteractor = createCoreOperation<{
 export const removeInteractor = createCoreOperation<{ id: InteractorId }>(
   "interactor/remove",
   (state, _, { id }): void => {
-    state.interactors = castDraft(state.interactors.removeInteractor(id));
+    state.interactors = castDraft(state.interactors.deleteInteractor(id));
   }
 );
 

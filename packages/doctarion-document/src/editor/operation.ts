@@ -1,7 +1,5 @@
 import * as immer from "immer";
 
-import { CursorNavigator } from "../cursor";
-
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
 
@@ -41,13 +39,18 @@ export function createOperation<Payload = void, Id extends string = string>(
   return commandGenerator;
 }
 
-export interface EditorCommonOperationOptions {
-  preserveCursorVisualLineMovementHorizontalAnchor?: boolean;
-}
+export const CORE_OPERATIONS: EditorOperation<unknown, string>[] = [];
 
-export type EditorCommonOperationRunFunction<Payload> = (args: {
-  state: immer.Draft<EditorState>;
-  services: EditorOperationServices;
-  payload: Payload;
-  navigator: CursorNavigator;
-}) => void;
+const addCoreOperation = (op: EditorOperation<unknown, string>) => {
+  CORE_OPERATIONS.push(op);
+};
+
+export function createCoreOperation<Payload = void, Name extends string = string>(
+  name: Name,
+  run: EditorOperationRunFunction<Payload>
+): EditorOperation<Payload, Name> {
+  const op = createOperation(name, run);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addCoreOperation(op as any);
+  return op;
+}
