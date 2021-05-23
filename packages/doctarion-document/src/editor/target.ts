@@ -21,10 +21,11 @@ export interface MovementTargetPayload {
 }
 
 /**
- * This is a payload that can be used for an operation that changes the
- * document.
+ * This is a payload that can be used for operations that work on selections as
+ * well as non-selections, both as interactors and as arbitrary document
+ * locations.
  */
-export interface TargetPayload {
+export interface AllTargetPayload {
   readonly target?:
     | undefined // Defaults to focused
     | InteractorTarget
@@ -34,4 +35,19 @@ export interface TargetPayload {
     | { readonly cursors: readonly Cursor[] }
     | Range
     | { readonly ranges: readonly Range[] };
+}
+
+/**
+ * This is a payload that can be used for operations that work on non-selections
+ * only, but can work on both interactors as well as arbitrary document
+ * locations.
+ */
+export interface NonSelectionTargetPayload {
+  readonly target?:
+    | undefined // Defaults to focused
+    | InteractorTarget
+    | { readonly interactorId: InteractorId }
+    | { readonly interactorIds: readonly InteractorId[] }
+    | Cursor
+    | { readonly cursors: readonly Cursor[] };
 }

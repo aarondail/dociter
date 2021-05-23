@@ -1,19 +1,21 @@
+import { Draft, castDraft } from "immer";
+
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { MovementTargetPayload } from "../editor";
-import { Interactor, InteractorUpdateParams } from "../interactor";
+import { EditorOperationServices, EditorState, MovementTargetPayload } from "../editor";
+import { Interactor, InteractorId, InteractorUpdateParams } from "../interactor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { forEachInteractorInPayloadDo as forEachTargettedInteractorDo } from "./utils";
+import { dedupeInteractors, selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
 
 export const moveBack = createCoreOperation<MovementTargetPayload>(
   "cursor/moveBack",
   (state, services, payload): void => {
-    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
   if (navigator.navigateToPrecedingCursorPosition()) {
         const oldCursor = interactor.mainCursor;
         return {
@@ -30,7 +32,7 @@ export const moveBack = createCoreOperation<MovementTargetPayload>(
 export const moveForward = createCoreOperation<MovementTargetPayload>(
   "cursor/moveForward",
   (state, services, payload): void => {
-    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
   if (navigator.navigateToNextCursorPosition()) {
         const oldCursor = interactor.mainCursor;
         return {
@@ -47,7 +49,7 @@ export const moveForward = createCoreOperation<MovementTargetPayload>(
 export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
   "cursor/moveVisualDown",
   (state, services, payload) => {
-    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (!services.layout) {
         return undefined;
       }
@@ -68,7 +70,7 @@ export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
 export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
   "cursor/moveVisualUp",
   (state, services, payload) => {
-    forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (!services.layout) {
         return undefined;
       }
@@ -89,7 +91,7 @@ export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
 export const jumpTo = createCoreOperation<
   { path: PathString | Path; orientation: CursorOrientation } & MovementTargetPayload
 >("cursor/jumpTo", (state, services, payload): void => {
-  forEachTargettedInteractorDo(state, services, payload, (interactor, navigator) => {
+  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
     if (navigator.navigateTo(payload.path, payload.orientation)) {
       const oldCursor = interactor.mainCursor;
       return {
@@ -102,6 +104,30 @@ export const jumpTo = createCoreOperation<
     }
   });
 });
+
+function forEachInteractorInMovementTargetPayloadDo(
+  state: Draft<EditorState>,
+  services: EditorOperationServices,
+  payload: MovementTargetPayload,
+  updateFn: (interactor: Interactor, navigator: CursorNavigator) => InteractorUpdateParams | undefined
+): void {
+  const targets = selectTargets(payload, state, services);
+
+  const updates: [InteractorId, InteractorUpdateParams][] = [];
+  targets.forEach(({ interactor, navigator }) => {
+    const updatedParams = updateFn(interactor, navigator);
+    if (updatedParams) {
+      updates.push([interactor.id, updatedParams]);
+    }
+  });
+
+  if (updates.length > 0) {
+    state.interactors = castDraft(state.interactors.updateInteractors(updates));
+    if (state.interactors.ordered.length > 1) {
+      dedupeInteractors(state);
+    }
+  }
+}
 
 // An alternative implementation of this might use:
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/elementFromPoint
