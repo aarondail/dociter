@@ -1,5 +1,4 @@
-import { Chain, Path } from "../../src/basic-traversal";
-import { Range } from "../../src/interactor";
+import { Chain, Path, Range } from "../../src/basic-traversal";
 import { HeaderLevel } from "../../src/models";
 import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 

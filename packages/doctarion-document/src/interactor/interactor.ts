@@ -1,12 +1,10 @@
 import { immerable } from "immer";
 
-import { NodeNavigator } from "../basic-traversal";
+import { NodeNavigator, Range } from "../basic-traversal";
 import { Cursor, CursorOrientation } from "../cursor";
 import { HorizontalAnchor } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
 import { Document } from "../models";
-
-import { Range } from "./range";
 
 export type InteractorId = string;
 
