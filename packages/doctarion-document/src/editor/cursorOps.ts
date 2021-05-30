@@ -10,22 +10,20 @@ import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { dedupeInteractors, selectTargets } from "./utils";
 
-const castDraft = immer.castDraft;
-
 export const moveBack = createCoreOperation<MovementTargetPayload>(
   "cursor/moveBack",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-  if (navigator.navigateToPrecedingCursorPosition()) {
+      if (navigator.navigateToPrecedingCursorPosition()) {
         const oldCursor = interactor.mainCursor;
         return {
           mainCursor: navigator.cursor,
           visualLineMovementHorizontalAnchor: undefined,
           selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
         };
-  }
+      }
       return undefined;
-});
+    });
   }
 );
 
@@ -33,16 +31,16 @@ export const moveForward = createCoreOperation<MovementTargetPayload>(
   "cursor/moveForward",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-  if (navigator.navigateToNextCursorPosition()) {
+      if (navigator.navigateToNextCursorPosition()) {
         const oldCursor = interactor.mainCursor;
         return {
           mainCursor: navigator.cursor,
           visualLineMovementHorizontalAnchor: undefined,
           selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
         };
-  }
+      }
       return undefined;
-});
+    });
   }
 );
 
@@ -54,7 +52,7 @@ export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
         return undefined;
       }
       return moveVisualUpOrDownHelper("DOWN", services.layout, interactor, navigator);
-});
+    });
   }
 );
 
@@ -75,7 +73,7 @@ export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
         return undefined;
       }
       return moveVisualUpOrDownHelper("UP", services.layout, interactor, navigator);
-});
+    });
   }
 );
 
@@ -111,7 +109,7 @@ function forEachInteractorInMovementTargetPayloadDo(
   payload: MovementTargetPayload,
   updateFn: (interactor: Interactor, navigator: CursorNavigator) => InteractorUpdateParams | undefined
 ): void {
-  const targets = selectTargets(payload, state, services);
+  const targets = selectTargets(state, services, payload.target);
 
   const updates: [InteractorId, InteractorUpdateParams][] = [];
   targets.forEach(({ interactor, navigator }) => {

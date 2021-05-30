@@ -1,13 +1,20 @@
 import { Draft, castDraft } from "immer";
 
 import { Cursor, CursorNavigator } from "../cursor";
-import { EditorState, MovementTargetPayload } from "../editor";
+import { EditorState } from "../editor";
 import { Interactor, InteractorId, InteractorStatus } from "../interactor";
 import { SimpleComparison } from "../miscUtils";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorOperationServices } from "./services";
-import { InteractorTarget, NonSelectionTargetPayload } from "./target";
+import { EditorOperationServices, EditorServices } from "./services";
+import {
+  InteractorTargetIdentifier,
+  NonInteractorNonSelectionTargetIdentifier,
+  getIdentifiedInteractorIds,
+  getIdentifierCursors,
+  isInteractorTargetIdentifier,
+  isNonInteractorNonSelectionTargetIdentifier,
+} from "./target";
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
   if (a !== undefined) {
@@ -16,10 +23,13 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
   return undefined;
 }
 
+// TODO delete this
 export function getCursorNavigatorAndValidate(
   state: EditorState,
   services: EditorOperationServices,
-  interactorId: InteractorId
+  // TODO change back
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interactorId: number // InteractorId
 ): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
   const interactor = state.interactors.byId[Object.keys(state.interactors.byId)[0]]; //interactorId];
@@ -89,9 +99,34 @@ export function dedupeInteractors(state: Draft<EditorState>): void {
 }
 
 /**
+ * Simple create a CursorNavigator and navigate it to the proper place for an
+ * Interactor or a simple Cursor.
+ *
+ * Throws an error if the navigation fails.
+ */
+export function getCursorNavigatorFor(
+  target: Interactor | Cursor,
+  state: EditorState,
+  services: EditorServices
+): CursorNavigator {
+  const nav = new CursorNavigator(state.document, services.layout);
+  if (!nav.navigateTo(target instanceof Cursor ? target : target.mainCursor)) {
+    throw new EditorOperationError(
+      EditorOperationErrorCode.InvalidCursorPosition,
+      target instanceof Cursor
+        ? // TODO give cursor a toString
+          `Cursor ${target.orientation} ${target.path.toString()} is invalid`
+        : `Interactor ${target.id || ""} had an invalid mainCursor position.`
+    );
+  }
+  return nav;
+}
+
+/**
  * Used after the document has been updated in an operation to make sure the
  * element chain of the document has updated elements.
  */
+// TODO delete?
 export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
   const n = new CursorNavigator(nav.document);
   n.navigateToUnchecked(nav.cursor);
@@ -102,76 +137,25 @@ export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
  * The returned interactors (if there are interactors) are in the exact same
  * order as they appear in the interactors.ordered list.
  */
-export function selectTargets<T extends MovementTargetPayload | NonSelectionTargetPayload>(
-  payload: T,
+export function selectTargets<T extends InteractorTargetIdentifier | NonInteractorNonSelectionTargetIdentifier>(
   state: Draft<EditorState>,
-  services: EditorOperationServices
-): (T extends MovementTargetPayload
+  services: EditorOperationServices,
+  target: T
+): (T extends InteractorTargetIdentifier
   ? { interactor: Interactor; navigator: CursorNavigator }
-  : { interactor?: Interactor; navigator: CursorNavigator })[] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payloadTargetUntyped: any = payload.target;
-
+  : { navigator: CursorNavigator })[] {
   const result: { interactor?: Interactor; navigator: CursorNavigator }[] = [];
 
-  const recordResult = (target: InteractorId | Cursor) => {
-    const interactor = target instanceof Cursor ? undefined : state.interactors.byId[target];
-    const mainCursor: Cursor = interactor ? interactor.mainCursor : (target as Cursor);
-    const nav = new CursorNavigator(state.document, services.layout);
-    if (!nav.navigateTo(mainCursor)) {
-      throw new EditorOperationError(
-        EditorOperationErrorCode.InvalidCursorPosition,
-        target instanceof Cursor
-          ? // TODO give cursor a toString
-            `Cursor ${target.orientation} ${target.path.toString()} is invalid`
-          : `Interactor ${interactor?.id || ""} had an invalid mainCursor position.`
-      );
-    }
+  const recordResult = (t: InteractorId | Cursor) => {
+    const interactor = t instanceof Cursor ? undefined : state.interactors.byId[t];
+    const nav = getCursorNavigatorFor(interactor ? interactor : (t as Cursor), state, services);
     result.push({ interactor, navigator: nav });
   };
 
-  if (payloadTargetUntyped === undefined) {
-    if (state.interactors.focusedId) {
-      recordResult(state.interactors.focusedId);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  } else if (payloadTargetUntyped.interactorId !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    recordResult(payloadTargetUntyped.interactorId);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  } else if (payloadTargetUntyped.interactorIds !== undefined) {
-    state.interactors.ordered
-      .filter((x: InteractorId) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      payloadTargetUntyped.interactorIds.includes(x)
-      )
-      .forEach((id) => recordResult(id));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  } else if (payloadTargetUntyped.cursors !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    payloadTargetUntyped.cursors.forEach(recordResult);
-  } else if (payload.target instanceof Cursor) {
-    recordResult(payloadTargetUntyped);
-  } else {
-    switch (payload.target) {
-      case InteractorTarget.All:
-        state.interactors.ordered.forEach(recordResult);
-        break;
-      case InteractorTarget.AllActive:
-        for (let i = 0; i < state.interactors.ordered.length; i++) {
-          const id = state.interactors.ordered[i];
-          const interactor = state.interactors.byId[id];
-          if (interactor.status === InteractorStatus.Active) {
-            recordResult(id);
-          }
-        }
-        break;
-      case InteractorTarget.Focused:
-        if (state.interactors.focusedId) {
-          recordResult(state.interactors.focusedId);
-        }
-        break;
-    }
+  if (isInteractorTargetIdentifier(target)) {
+    getIdentifiedInteractorIds(target, state.interactors).forEach(recordResult);
+  } else if (isNonInteractorNonSelectionTargetIdentifier(target)) {
+    getIdentifierCursors(target).forEach(recordResult);
   }
 
   // This is beyond the understanding of typescripts type system but it is really ok
