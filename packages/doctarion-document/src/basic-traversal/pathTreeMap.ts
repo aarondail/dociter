@@ -11,9 +11,9 @@ interface Node<ElementType> {
 }
 
 export enum PathTreeMapChildNodePolcy {
-  ALLOW = "ALLOW", // The default
-  LIFT = "LIFT",
-  DROP = "DROP",
+  Allow = "ALLOW", // The default
+  Lift = "LIFT",
+  Drop = "DROP",
 }
 
 export interface PathTreeMapOptions {
@@ -32,8 +32,8 @@ export class PathTreeMap<ElementType> {
   }
 
   public add(path: Path, element: ElementType): void {
-    const shouldLift = this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.LIFT;
-    const shouldDrop = this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.DROP;
+    const shouldLift = this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.Lift;
+    const shouldDrop = this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.Drop;
 
     let currentNode = this.root;
     let pIndex = 0;
@@ -140,8 +140,8 @@ export class PathTreeMap<ElementType> {
    */
   public hasPath(path: Path): boolean {
     const allowAncestors =
-      this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.LIFT ||
-      this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.DROP;
+      this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.Lift ||
+      this.options?.childNodesPolicy === PathTreeMapChildNodePolcy.Drop;
 
     let currentNode = this.root;
     let pIndex = 0;
@@ -165,8 +165,6 @@ export class PathTreeMap<ElementType> {
 
     return currentNode.elements.length > 0;
   }
-
-  // public remove(path: Path, element: ElementType): void {}
 
   private getKey(part: PathPart): PathPartKey {
     // This will have to be changed once path parts have string components again

@@ -20,7 +20,7 @@ import {
   EditorServices,
 } from "./services";
 import { EditorState } from "./state";
-import { InteractorTarget } from "./target";
+import { TargetInteractors } from "./target";
 
 export interface EditorConfig {
   readonly document: Document;
@@ -100,8 +100,8 @@ export class Editor {
     if (initialCursor === undefined) {
       // Adjust the cursor so its on a valid position
       try {
-        this.update(moveForward({ target: InteractorTarget.Focused }));
-        this.update(moveBack({ target: InteractorTarget.Focused }));
+        this.update(moveForward({ target: TargetInteractors.Focused }));
+        this.update(moveBack({ target: TargetInteractors.Focused }));
       } catch {
         // Intentionally ignore problems
         // Maybe we should throw?

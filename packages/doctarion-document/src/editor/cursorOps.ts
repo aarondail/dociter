@@ -2,15 +2,16 @@ import { Draft, castDraft } from "immer";
 
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { EditorOperationServices, EditorState, MovementTargetPayload } from "../editor";
+import { EditorOperationServices, EditorState } from "../editor";
 import { Interactor, InteractorId, InteractorUpdateParams } from "../interactor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
+import { InteractorMovementPayload } from "./payloads";
 import { dedupeInteractors, selectTargets } from "./utils";
 
-export const moveBack = createCoreOperation<MovementTargetPayload>(
+export const moveBack = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveBack",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
@@ -27,7 +28,7 @@ export const moveBack = createCoreOperation<MovementTargetPayload>(
   }
 );
 
-export const moveForward = createCoreOperation<MovementTargetPayload>(
+export const moveForward = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveForward",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
@@ -44,7 +45,7 @@ export const moveForward = createCoreOperation<MovementTargetPayload>(
   }
 );
 
-export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
+export const moveVisualDown = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveVisualDown",
   (state, services, payload) => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
@@ -65,7 +66,7 @@ export const moveVisualDown = createCoreOperation<MovementTargetPayload>(
 //   }
 // }
 
-export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
+export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveVisualUp",
   (state, services, payload) => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
@@ -87,7 +88,7 @@ export const moveVisualUp = createCoreOperation<MovementTargetPayload>(
 // }
 
 export const jumpTo = createCoreOperation<
-  { path: PathString | Path; orientation: CursorOrientation } & MovementTargetPayload
+  { path: PathString | Path; orientation: CursorOrientation } & InteractorMovementPayload
 >("cursor/jumpTo", (state, services, payload): void => {
   forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
     if (navigator.navigateTo(payload.path, payload.orientation)) {
@@ -106,7 +107,7 @@ export const jumpTo = createCoreOperation<
 function forEachInteractorInMovementTargetPayloadDo(
   state: Draft<EditorState>,
   services: EditorOperationServices,
-  payload: MovementTargetPayload,
+  payload: InteractorMovementPayload,
   updateFn: (interactor: Interactor, navigator: CursorNavigator) => InteractorUpdateParams | undefined
 ): void {
   const targets = selectTargets(state, services, payload.target);

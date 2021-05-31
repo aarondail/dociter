@@ -5,7 +5,7 @@ const p = Path.parse;
 
 describe("add", () => {
   it("should work with child node policy ALLOW", () => {
-    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.ALLOW });
+    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.Allow });
 
     pmt.add(p("0/1"), "test1");
     expect(pmt.hasPath(p("0/1"))).toBeTruthy();
@@ -26,7 +26,7 @@ describe("add", () => {
   });
 
   it("should work with child node policy DROP", () => {
-    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.DROP });
+    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.Drop });
 
     pmt.add(p("0/1"), "test1");
     expect(pmt.hasPath(p("0/1"))).toBeTruthy();
@@ -46,7 +46,7 @@ describe("add", () => {
   });
 
   it("should work with child node policy LIFT", () => {
-    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.LIFT });
+    const pmt = new PathTreeMap<string>({ childNodesPolicy: PathTreeMapChildNodePolcy.Lift });
 
     pmt.add(p("0/1"), "test1");
     expect(pmt.hasPath(p("0/1"))).toBeTruthy();

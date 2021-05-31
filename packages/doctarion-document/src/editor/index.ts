@@ -1,8 +1,9 @@
 export { EditorEvents } from "./events";
 export * from "./editor";
+export * from "./nodeId";
 export { createOperation, EditorOperation, EditorOperationCommand, EditorOperationRunFunction } from "./operation";
 export * from "./operationError";
-export * from "./nodeId";
+export * from "./payloads";
 export * from "./services";
 export * from "./state";
 export * from "./target";

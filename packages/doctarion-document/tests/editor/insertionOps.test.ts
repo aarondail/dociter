@@ -1,5 +1,5 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, EditorOperationError, InteractorTarget, OPS } from "../../src/editor";
+import { Editor, EditorOperationError, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
@@ -40,9 +40,9 @@ SLICE:  PARAGRAPH > TEXT {} > "MMQM"`);
 CURSOR: 1/0/3 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMQRM"`);
 
-    editor.update(OPS.moveBack({ target: InteractorTarget.Focused }));
-    editor.update(OPS.moveBack({ target: InteractorTarget.Focused }));
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveBack({ target: TargetInteractors.Focused }));
+    editor.update(OPS.moveBack({ target: TargetInteractors.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     // Cursor should now be at MMNQ|RM
     editor.update(OPS.insertText("S"));
     expect(debugState(editor)).toEqual(`

@@ -8,48 +8,48 @@ import { Cursor } from "../cursor";
 import { InteractorId, InteractorSet, InteractorStatus } from "../interactor";
 
 // -----------------------------------------------------------------------------
-// Types to identify interactors to operate on, for use in operations, as well
-// as types that identify positions and ranges to operate on.
+// Types that can be used in operation payloads to identify interactors,
+// document positions, and ranges to operate on.
 //
-// There are additional helper functions to make working with these types easy.
+// There are also helper functions to make working with these types easy.
 // -----------------------------------------------------------------------------
 
-export enum InteractorTarget {
+export enum TargetInteractors {
   Focused = "FOCUSED",
   All = "ALL",
   AllActive = "ALL_ACTIVE",
 }
 
-export type InteractorTargetIdentifier =
+export type OperationInteractorTarget =
   | undefined // Defaults to focused
-  | InteractorTarget
+  | TargetInteractors
   | { readonly interactorId: InteractorId }
   | { readonly interactorIds: readonly InteractorId[] };
 
-export type NonInteractorNonSelectionTargetIdentifier = Cursor | { readonly cursors: readonly Cursor[] };
-export type NonInteractorSelectionTargetIdentifier = Range | { readonly ranges: readonly Range[] };
-export type NonInteractorTargetIdentifier =
-  | NonInteractorNonSelectionTargetIdentifier
-  | NonInteractorNonSelectionTargetIdentifier;
+export type OperationCursorTarget = Cursor | { readonly cursors: readonly Cursor[] };
+export type OperationRangeTarget = Range | { readonly ranges: readonly Range[] };
+export type OperationNonInteractorTarget = OperationCursorTarget | OperationCursorTarget;
 
-export function isInteractorTargetIdentifier(
-  identifier: InteractorTargetIdentifier | NonInteractorTargetIdentifier
-): identifier is InteractorTargetIdentifier {
-  const untypedIdentifier = identifier as any;
+export type OperationTarget = OperationInteractorTarget | OperationNonInteractorTarget;
+
+export function isOperationInteractorTarget(target: OperationTarget): target is OperationInteractorTarget {
+  const untypedTarget = target as any;
   return (
-    identifier === undefined ||
-    typeof identifier === "string" ||
-    untypedIdentifier.interactorId !== undefined ||
-    untypedIdentifier.interactorIds !== undefined
+    target === undefined ||
+    // Maybe this should more specifically check whether identifier matches one
+    // of the `TargetIdentifiers`...
+    typeof target === "string" ||
+    untypedTarget.interactorId !== undefined ||
+    untypedTarget.interactorIds !== undefined
   );
 }
 
 /**
- * Note this always returns the targeted interactor ids in the order they are in
- * in `interactors.ordered`.
+ * Note this always returns the targeted interactor ids in the order they are
+ * found in `interactors.ordered`.
  */
-export function getIdentifiedInteractorIds(
-  identifier: InteractorTargetIdentifier,
+export function getTargetedInteractorIds(
+  identifier: OperationInteractorTarget,
   interactors: InteractorSet
 ): readonly InteractorId[] {
   const untypedIdentifier = identifier as any;
@@ -60,9 +60,9 @@ export function getIdentifiedInteractorIds(
     }
   } else if (typeof identifier === "string") {
     switch (identifier) {
-      case InteractorTarget.All:
+      case TargetInteractors.All:
         return interactors.ordered;
-      case InteractorTarget.AllActive:
+      case TargetInteractors.AllActive:
         // eslint-disable-next-line no-case-declarations
         const ids = [];
         for (let i = 0; i < interactors.ordered.length; i++) {
@@ -73,7 +73,7 @@ export function getIdentifiedInteractorIds(
           }
         }
         return ids;
-      case InteractorTarget.Focused:
+      case TargetInteractors.Focused:
         if (interactors.focusedId) {
           return [interactors.focusedId];
         }
@@ -86,14 +86,12 @@ export function getIdentifiedInteractorIds(
   return [];
 }
 
-export function isNonInteractorNonSelectionTargetIdentifier(
-  identifier: InteractorTargetIdentifier | NonInteractorTargetIdentifier
-): identifier is NonInteractorNonSelectionTargetIdentifier {
+export function isOperationCursorTarget(identifier: OperationTarget): identifier is OperationCursorTarget {
   const untypedIdentifier = identifier as any;
   return identifier instanceof Cursor || untypedIdentifier.cursors !== undefined;
 }
 
-export function getIdentifierCursors(identifier: NonInteractorNonSelectionTargetIdentifier): readonly Cursor[] {
+export function getTargetedCursors(identifier: OperationCursorTarget): readonly Cursor[] {
   const untypedIdentifier = identifier as any;
   if (untypedIdentifier.cursors !== undefined) {
     return untypedIdentifier.cursors;
@@ -101,35 +99,4 @@ export function getIdentifierCursors(identifier: NonInteractorNonSelectionTarget
     return [identifier];
   }
   return [];
-}
-
-// -----------------------------------------------------------------------------
-// Target payload types that use the above target identifer types
-// -----------------------------------------------------------------------------
-
-/**
- * This is a payload that can be used for an operation that changes
- * interactors.
- */
-export interface MovementTargetPayload {
-  readonly select?: boolean;
-  readonly target?: InteractorTargetIdentifier;
-}
-
-/**
- * This is a payload that can be used for operations that work on selections as
- * well as non-selections, both as interactors and as arbitrary document
- * locations.
- */
-export interface AllTargetPayload {
-  readonly target?: InteractorTargetIdentifier | NonInteractorTargetIdentifier;
-}
-
-/**
- * This is a payload that can be used for operations that work on non-selections
- * only, but can work on both interactors as well as arbitrary document
- * locations.
- */
-export interface NonSelectionTargetPayload {
-  readonly target?: InteractorTargetIdentifier | NonInteractorNonSelectionTargetIdentifier;
 }

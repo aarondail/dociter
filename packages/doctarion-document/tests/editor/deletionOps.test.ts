@@ -1,5 +1,5 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, InteractorTarget, OPS } from "../../src/editor";
+import { Editor, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
@@ -108,7 +108,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -128,7 +128,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -148,7 +148,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -163,7 +163,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -178,7 +178,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -193,7 +193,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 
@@ -204,7 +204,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 
     // Make sure there is nothing to the right
     editor.resetHistory();
-    editor.update(OPS.moveForward({ target: InteractorTarget.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(editor.history).toHaveLength(0);
   });
 });

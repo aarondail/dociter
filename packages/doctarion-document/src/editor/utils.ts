@@ -8,12 +8,12 @@ import { SimpleComparison } from "../miscUtils";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";
 import {
-  InteractorTargetIdentifier,
-  NonInteractorNonSelectionTargetIdentifier,
-  getIdentifiedInteractorIds,
-  getIdentifierCursors,
-  isInteractorTargetIdentifier,
-  isNonInteractorNonSelectionTargetIdentifier,
+  OperationCursorTarget,
+  OperationInteractorTarget,
+  getTargetedCursors,
+  getTargetedInteractorIds,
+  isOperationCursorTarget,
+  isOperationInteractorTarget,
 } from "./target";
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
@@ -137,11 +137,11 @@ export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
  * The returned interactors (if there are interactors) are in the exact same
  * order as they appear in the interactors.ordered list.
  */
-export function selectTargets<T extends InteractorTargetIdentifier | NonInteractorNonSelectionTargetIdentifier>(
+export function selectTargets<T extends OperationInteractorTarget | OperationCursorTarget>(
   state: Draft<EditorState>,
   services: EditorOperationServices,
   target: T
-): (T extends InteractorTargetIdentifier
+): (T extends OperationInteractorTarget
   ? { interactor: Interactor; navigator: CursorNavigator }
   : { navigator: CursorNavigator })[] {
   const result: { interactor?: Interactor; navigator: CursorNavigator }[] = [];
@@ -152,10 +152,10 @@ export function selectTargets<T extends InteractorTargetIdentifier | NonInteract
     result.push({ interactor, navigator: nav });
   };
 
-  if (isInteractorTargetIdentifier(target)) {
-    getIdentifiedInteractorIds(target, state.interactors).forEach(recordResult);
-  } else if (isNonInteractorNonSelectionTargetIdentifier(target)) {
-    getIdentifierCursors(target).forEach(recordResult);
+  if (isOperationInteractorTarget(target)) {
+    getTargetedInteractorIds(target, state.interactors).forEach(recordResult);
+  } else if (isOperationCursorTarget(target)) {
+    getTargetedCursors(target).forEach(recordResult);
   }
 
   // This is beyond the understanding of typescripts type system but it is really ok
