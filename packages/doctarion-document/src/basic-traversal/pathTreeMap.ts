@@ -63,7 +63,7 @@ export class PathTreeMap<ElementType> {
     }
 
     if (shouldLift && currentNode.childNodes.size > 0) {
-      for (const node of this.traverse(currentNode)) {
+      for (const node of this.traverseNodeAndChildren(currentNode)) {
         for (const element of node.elements) {
           currentNode.elements.push(element);
         }
@@ -166,12 +166,26 @@ export class PathTreeMap<ElementType> {
     return currentNode.elements.length > 0;
   }
 
+  public *traverse(): Generator<ElementType> {
+    for (const node of this.traverseNodeAndChildren(this.root)) {
+      for (const element of node.elements) {
+        yield element;
+      }
+    }
+  }
+
+  public *traverseGroups(): Generator<ElementType[]> {
+    for (const node of this.traverseNodeAndChildren(this.root)) {
+      yield node.elements;
+    }
+  }
+
   private getKey(part: PathPart): PathPartKey {
     // This will have to be changed once path parts have string components again
     return part.index;
   }
 
-  private *traverse(node: Node<ElementType>) {
+  private *traverseNodeAndChildren(node: Node<ElementType>) {
     const toVisit = [node];
     while (toVisit.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
