@@ -1,8 +1,8 @@
 import * as immer from "immer";
 
 import { Cursor, CursorNavigator } from "../cursor";
-import { Interactor, InteractorId, InteractorStatus } from "../interactor";
 
+import { Interactor, InteractorId, InteractorStatus } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 
@@ -12,7 +12,8 @@ export const addInteractor = createCoreOperation<{
   mainCursor: Cursor;
   selectionAnchorCursor?: Cursor;
   status?: InteractorStatus;
-}>("interactor/add", (state, services, { mainCursor, status, selectionAnchorCursor }): void => {
+  focused?: boolean;
+}>("interactor/add", (state, services, { mainCursor, status, selectionAnchorCursor, focused }): void => {
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
@@ -29,13 +30,20 @@ export const addInteractor = createCoreOperation<{
 
   const id = services.idGenerator.generateId("INTERACTOR");
   const interactor = new Interactor(id, mainCursor, status, selectionAnchorCursor);
-  state.interactors = castDraft(state.interactors.addInteractor(interactor));
+  services.interactors.add(interactor);
+  if (focused) {
+    state.focusedInteractorId = id;
+  }
+  // TODO return id;
 });
 
 export const removeInteractor = createCoreOperation<{ id: InteractorId }>(
   "interactor/remove",
-  (state, _, { id }): void => {
-    state.interactors = castDraft(state.interactors.deleteInteractor(id));
+  (state, services, { id }): void => {
+    services.interactors.delete(id);
+    if (state.focusedInteractorId === id) {
+      state.focusedInteractorId = undefined;
+    }
   }
 );
 
@@ -47,7 +55,7 @@ export const updateInteractor = createCoreOperation<{
   focused?: boolean;
 }>("interactor/update", (state, services, payload): void => {
   const { id, ...updates } = payload;
-  const interactor = state.interactors.byId[id];
+  const interactor = state.interactors[id];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "index is invalid");
   }
@@ -60,6 +68,8 @@ export const updateInteractor = createCoreOperation<{
         "mainCursor is not a valid cursor"
       );
     }
+    interactor.mainCursor = castDraft(updates.mainCursor);
+    interactor.visualLineMovementHorizontalAnchor = undefined;
   }
 
   if ("selectionAnchorCursor" in updates) {
@@ -71,7 +81,22 @@ export const updateInteractor = createCoreOperation<{
         );
       }
     }
+    interactor.selectionAnchorCursor = castDraft(updates.selectionAnchorCursor);
   }
 
-  state.interactors = castDraft(state.interactors.updateInteractor(id, updates));
+  if (updates.status) {
+    interactor.status = updates.status;
+  }
+
+  services.interactors.notifyUpdated(id);
+
+  if (updates.focused !== undefined) {
+    if (updates.focused) {
+      state.focusedInteractorId = id;
+    } else {
+      if (state.focusedInteractorId === id) {
+        state.focusedInteractorId = undefined;
+      }
+    }
+  }
 });

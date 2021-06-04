@@ -14,7 +14,7 @@ const castDraft = immer.castDraft;
 export const insertText = createCoreOperation<string | Text>("insert/text", (state, services, payload): void => {
   const graphemes = typeof payload === "string" ? Text.fromString(payload) : payload;
 
-  if (state.interactors.byId[Object.keys(state.interactors.byId)[0]].isSelection) {
+  if (state.interactors[Object.keys(state.interactors)[0]].isSelection) {
     deleteSelection.run(state, services);
   }
 
@@ -36,9 +36,9 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
         for (let i = 0; i < graphemes.length; i++) {
           nav.navigateToNextCursorPosition();
         }
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+        state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+        state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
       });
       break;
 
@@ -46,13 +46,13 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
       if (NodeUtils.isTextContainer(node)) {
         castDraft(node.text).push(...graphemes);
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
+        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
       } else if (NodeUtils.isInlineContainer(node)) {
         const newInline = new InlineText(graphemes);
         castDraft(node.children).push(castDraft(newInline));
         services.tracking.register(newInline, node);
         nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
+        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
       } else if (node instanceof Document) {
         const newInline = new InlineText(graphemes);
         const newParagraph = new ParagraphBlock(newInline);
@@ -60,9 +60,9 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
         services.tracking.register(newInline, newParagraph);
         castDraft(node.children).push(castDraft(newParagraph));
         nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-        state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+        state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+        state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
       } else {
         throw new Error("Cursor is on an empty insertion point where there is no way to insert text somehow");
       }
@@ -77,11 +77,9 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
             services.tracking.register(newInline, node);
             nav = refreshNavigator(nav);
             nav.navigateToLastDescendantCursorPosition();
-            state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
-            state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-            state.interactors.byId[
-              Object.keys(state.interactors.byId)[0]
-            ].visualLineMovementHorizontalAnchor = undefined;
+            state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+            state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+            state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
           } else {
             throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
           }
@@ -93,11 +91,9 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
             castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
             services.tracking.register(newInline, node);
             nav.navigateToNextSiblingLastDescendantCursorPosition();
-            state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
-            state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-            state.interactors.byId[
-              Object.keys(state.interactors.byId)[0]
-            ].visualLineMovementHorizontalAnchor = undefined;
+            state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+            state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+            state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
           } else {
             throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
           }
@@ -110,10 +106,10 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
 });
 
 export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink", (state, services, payload): void => {
-  if (state.interactors.byId[Object.keys(state.interactors.byId)[0]].isSelection) {
+  if (state.interactors[Object.keys(state.interactors)[0]].isSelection) {
     deleteSelection.run(state, services);
   }
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+  state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
 
   const startingNav = getCursorNavigatorAndValidate(state, services, 0);
 
@@ -215,9 +211,9 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
     updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorOrientation.Before);
     updatedCursorNav.navigateToLastDescendantCursorPosition();
 
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(updatedCursorNav.cursor);
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+    state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(updatedCursorNav.cursor);
+    state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+    state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
   } else {
     throw new Error("Could not figure out how to insert url link");
   }

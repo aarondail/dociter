@@ -3,15 +3,15 @@ import * as immer from "immer";
 import lodash from "lodash";
 
 import { NodeNavigator, Path } from "../basic-traversal";
-import { Cursor, CursorOrientation } from "../cursor";
-import { Interactor, InteractorSet } from "../interactor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Document } from "../models";
 
-import { moveBack, moveForward } from "./cursorOps";
 import { EditorEventEmitter, EditorEvents } from "./events";
+import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import {
+  EditorInteractorService,
   EditorNodeLookupService,
   EditorNodeTrackingService,
   EditorOperationServices,
@@ -20,7 +20,6 @@ import {
   EditorServices,
 } from "./services";
 import { EditorState } from "./state";
-import { TargetInteractors } from "./target";
 
 export interface EditorConfig {
   readonly document: Document;
@@ -44,18 +43,14 @@ export class Editor {
 
   public constructor({ document: initialDocument, cursor: initialCursor, provideService }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
-    const primaryInteractorId = idGenerator.generateId("INTERACTOR");
-    const interactors = new InteractorSet()
-      .addInteractor(
-        new Interactor(primaryInteractorId, initialCursor || new Cursor(new Path([]), CursorOrientation.On))
-      )
-      .setFocused(primaryInteractorId);
 
     this.state = {
       // Clone because we are going to assign ids which techncially is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
-      interactors,
+      interactors: {},
+      orderedInteractors: [],
+      focusedInteractorId: undefined,
       nodeParentMap: {},
     };
     this.historyList = [];
@@ -66,6 +61,7 @@ export class Editor {
 
     this.operationServices = {
       idGenerator,
+      interactors: new EditorInteractorService(this.events),
       lookup: new EditorNodeLookupService(this.state, this.events),
       // Note the tracking service is supposed to be used only during
       // operations, which is why it wants mutable state
@@ -97,21 +93,21 @@ export class Editor {
       skipGraphemes: true,
     });
 
-    if (initialCursor === undefined) {
-      // Adjust the cursor so its on a valid position
-      try {
-        this.update(moveForward({ target: TargetInteractors.Focused }));
-        this.update(moveBack({ target: TargetInteractors.Focused }));
-      } catch {
-        // Intentionally ignore problems
-        // Maybe we should throw?
-      }
+    // Create first interactor and focus it
+    let cursor = initialCursor;
+    if (!cursor) {
+      const cn = new CursorNavigator(this.state.document, undefined);
+      cn.navigateTo(new Path([]), CursorOrientation.On);
+      cn.navigateToNextCursorPosition();
+      cn.navigateToPrecedingCursorPosition();
+      cursor = cn.cursor;
     }
+    this.update(addInteractor({ mainCursor: cursor, focused: true }));
   }
 
   public get focusedCursor(): Cursor | undefined {
-    if (this.state.interactors.focusedId !== undefined) {
-      return this.state.interactors.byId[this.state.interactors.focusedId]?.mainCursor;
+    if (this.state.focusedInteractorId !== undefined) {
+      return this.state.interactors[this.state.focusedInteractorId]?.mainCursor;
     }
     return undefined;
   }

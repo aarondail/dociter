@@ -80,3 +80,13 @@ export class Interactor {
     return new Range(fromPath, toPath);
   }
 }
+
+export enum OrderedInteractorEntryCursor {
+  Main = "MAIN",
+  SelectionAnchor = "SELECTION_ANCHOR",
+}
+
+export interface OrderedInteractorEntry {
+  readonly id: InteractorId;
+  readonly cursor: OrderedInteractorEntryCursor;
+}

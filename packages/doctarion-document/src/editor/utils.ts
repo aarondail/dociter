@@ -1,10 +1,9 @@
-import { Draft, castDraft } from "immer";
+import { Draft } from "immer";
 
 import { Cursor, CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
-import { Interactor, InteractorId, InteractorStatus } from "../interactor";
-import { SimpleComparison } from "../miscUtils";
 
+import { Interactor, InteractorId } from "./interactor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";
 import {
@@ -32,70 +31,13 @@ export function getCursorNavigatorAndValidate(
   interactorId: number // InteractorId
 ): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
-  const interactor = state.interactors.byId[Object.keys(state.interactors.byId)[0]]; //interactorId];
+  const interactor = state.interactors[Object.keys(state.interactors)[0]]; //interactorId];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
   } else if (!nav.navigateTo(interactor.mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
   }
   return nav;
-}
-
-/**
- * There definitely could be more situations in which we want to dedupe
- * interactors, but for right now we only dedupe interactors that ARENT a
- * selection AND have the same status AND their mainCursor is equal.
- *
- * The logic of this function relies on the fact that we have an ordered array
- * of interactors, ordered by their forward cursor (which, in the case of non
- * selection interactors is thier mainCursor)
- */
-export function dedupeInteractors(state: Draft<EditorState>): void {
-  if (state.interactors.count <= 1) {
-    return;
-  }
-  const idsToDelete: InteractorId[] = [];
-  let newFocusId: InteractorId | undefined = undefined;
-  let priorActive: Interactor | undefined = undefined;
-  let priorInactive: Interactor | undefined = undefined;
-  state.interactors.ordered.forEach((id) => {
-    const interactor = state.interactors.byId[id];
-    // Only deal with interactors that are not selections
-    if (interactor.isSelection) {
-      return;
-    }
-
-    if (interactor.status === InteractorStatus.Active) {
-      if (!priorActive) {
-        priorActive = interactor;
-      } else {
-        if (priorActive.mainCursor.compareTo(interactor.mainCursor) === SimpleComparison.Equal) {
-          idsToDelete.push(interactor.id);
-          if (state.interactors.focusedId === interactor.id) {
-            newFocusId = priorActive.id;
-          }
-        }
-      }
-    } else {
-      if (!priorInactive) {
-        priorInactive = interactor;
-      } else {
-        if (priorInactive.mainCursor.compareTo(interactor.mainCursor) === SimpleComparison.Equal) {
-          idsToDelete.push(interactor.id);
-          if (state.interactors.focusedId === interactor.id) {
-            newFocusId = priorInactive.id;
-          }
-        }
-      }
-    }
-  });
-
-  if (idsToDelete.length > 0) {
-    state.interactors = castDraft(state.interactors.deleteInteractors(idsToDelete));
-    if (newFocusId) {
-      state.interactors = castDraft(state.interactors.setFocused(newFocusId));
-    }
-  }
 }
 
 /**
@@ -142,18 +84,18 @@ export function selectTargets<T extends OperationInteractorTarget | OperationCur
   services: EditorOperationServices,
   target: T
 ): (T extends OperationInteractorTarget
-  ? { interactor: Interactor; navigator: CursorNavigator }
+  ? { interactor: Draft<Interactor>; navigator: CursorNavigator }
   : { navigator: CursorNavigator })[] {
   const result: { interactor?: Interactor; navigator: CursorNavigator }[] = [];
 
   const recordResult = (t: InteractorId | Cursor) => {
-    const interactor = t instanceof Cursor ? undefined : state.interactors.byId[t];
+    const interactor = t instanceof Cursor ? undefined : state.interactors[t];
     const nav = getCursorNavigatorFor(interactor ? interactor : (t as Cursor), state, services);
     result.push({ interactor, navigator: nav });
   };
 
   if (isOperationInteractorTarget(target)) {
-    getTargetedInteractorIds(target, state.interactors).forEach(recordResult);
+    getTargetedInteractorIds(target, state).forEach(recordResult);
   } else if (isOperationCursorTarget(target)) {
     getTargetedCursors(target).forEach(recordResult);
   }

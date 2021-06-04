@@ -3,13 +3,13 @@ import { Draft, castDraft } from "immer";
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
-import { Interactor, InteractorId, InteractorUpdateParams } from "../interactor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
+import { Interactor, InteractorId } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { InteractorMovementPayload } from "./payloads";
-import { dedupeInteractors, selectTargets } from "./utils";
+import { selectTargets } from "./utils";
 
 export const moveBack = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveBack",
@@ -17,13 +17,12 @@ export const moveBack = createCoreOperation<InteractorMovementPayload>(
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
         const oldCursor = interactor.mainCursor;
-        return {
-          mainCursor: navigator.cursor,
-          visualLineMovementHorizontalAnchor: undefined,
-          selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
-        };
+        interactor.mainCursor = castDraft(navigator.cursor);
+        interactor.visualLineMovementHorizontalAnchor = undefined;
+        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        return true;
       }
-      return undefined;
+      return false;
     });
   }
 );
@@ -34,13 +33,12 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
         const oldCursor = interactor.mainCursor;
-        return {
-          mainCursor: navigator.cursor,
-          visualLineMovementHorizontalAnchor: undefined,
-          selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
-        };
+        interactor.mainCursor = castDraft(navigator.cursor);
+        interactor.visualLineMovementHorizontalAnchor = undefined;
+        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        return true;
       }
-      return undefined;
+      return false;
     });
   }
 );
@@ -50,7 +48,7 @@ export const moveVisualDown = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload) => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (!services.layout) {
-        return undefined;
+        return false;
       }
       return moveVisualUpOrDownHelper("DOWN", services.layout, interactor, navigator);
     });
@@ -71,7 +69,7 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload) => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (!services.layout) {
-        return undefined;
+        return false;
       }
       return moveVisualUpOrDownHelper("UP", services.layout, interactor, navigator);
     });
@@ -93,11 +91,10 @@ export const jumpTo = createCoreOperation<
   forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
     if (navigator.navigateTo(payload.path, payload.orientation)) {
       const oldCursor = interactor.mainCursor;
-      return {
-        mainCursor: navigator.cursor,
-        visualLineMovementHorizontalAnchor: undefined,
-        selectionAnchorCursor: payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined,
-      };
+      interactor.mainCursor = castDraft(navigator.cursor);
+      interactor.visualLineMovementHorizontalAnchor = undefined;
+      interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+      return true;
     } else {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
     }
@@ -108,26 +105,25 @@ function forEachInteractorInMovementTargetPayloadDo(
   state: Draft<EditorState>,
   services: EditorOperationServices,
   payload: InteractorMovementPayload,
-  updateFn: (interactor: Interactor, navigator: CursorNavigator) => InteractorUpdateParams | undefined
+  updateFn: (interactor: Draft<Interactor>, navigator: CursorNavigator) => boolean
 ): void {
   const targets = selectTargets(state, services, payload.target);
 
-  const updates: [InteractorId, InteractorUpdateParams][] = [];
+  const updates: InteractorId[] = [];
   targets.forEach(({ interactor, navigator }) => {
-    const updatedParams = updateFn(interactor, navigator);
-    if (updatedParams) {
-      updates.push([interactor.id, updatedParams]);
+    if (updateFn(interactor, navigator)) {
+      updates.push(interactor.id);
     }
   });
 
   if (updates.length > 0) {
-    state.interactors = castDraft(state.interactors.updateInteractors(updates));
-    if (state.interactors.ordered.length > 1) {
-      dedupeInteractors(state);
-    }
+    services.interactors.notifyUpdated(updates);
   }
 }
 
+/**
+ * This returns true if it updates the interactor.
+ */
 // An alternative implementation of this might use:
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/elementFromPoint
 // or
@@ -135,9 +131,9 @@ function forEachInteractorInMovementTargetPayloadDo(
 function moveVisualUpOrDownHelper(
   direction: "UP" | "DOWN",
   layout: NodeLayoutReporter,
-  interactor: Interactor,
+  interactor: Draft<Interactor>,
   navigator: CursorNavigator
-): InteractorUpdateParams | undefined {
+): boolean {
   const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
@@ -147,7 +143,7 @@ function moveVisualUpOrDownHelper(
       navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
     );
   if (targetAnchor === undefined) {
-    return undefined;
+    return false;
   }
 
   const advance = () =>
@@ -178,7 +174,7 @@ function moveVisualUpOrDownHelper(
   // console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
 
   if (!foundNewLine) {
-    return;
+    return false;
   }
 
   // console.log("found new line", currentLayoutRect, nav.tip.node);
@@ -191,7 +187,7 @@ function moveVisualUpOrDownHelper(
   );
 
   if (!distance) {
-    return;
+    return false;
   }
 
   // console.log(distance);
@@ -242,9 +238,8 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  return {
-    mainCursor: navigator.cursor,
-    selectionAnchorCursor: undefined,
-    visualLineMovementHorizontalAnchor: targetAnchor,
-  };
+  interactor.mainCursor = castDraft(navigator.cursor);
+  interactor.selectionAnchorCursor = undefined;
+  interactor.visualLineMovementHorizontalAnchor = undefined;
+  return true;
 }

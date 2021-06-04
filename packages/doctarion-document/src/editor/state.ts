@@ -1,11 +1,20 @@
-import { InteractorSet } from "../interactor";
 import { Document } from "../models";
 
+import { Interactor, InteractorId, OrderedInteractorEntry } from "./interactor";
 import { NodeId } from "./nodeId";
 
 export interface EditorState {
   readonly document: Document;
-  readonly interactors: InteractorSet;
+
+  readonly focusedInteractorId: InteractorId | undefined;
+  /**
+   * This should only be updated by using the EditorInteractorService.
+   */
+  readonly interactors: { readonly [id: string /* InteractorId */]: Interactor };
+  /**
+   * This should only be updated by using the EditorInteractorService.
+   */
+  readonly orderedInteractors: readonly OrderedInteractorEntry[];
 
   /**
    * This should only be updated by the EditorNodeTrackingService.

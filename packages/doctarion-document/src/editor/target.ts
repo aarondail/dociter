@@ -5,7 +5,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Range } from "../basic-traversal";
 import { Cursor } from "../cursor";
-import { InteractorId, InteractorSet, InteractorStatus } from "../interactor";
+
+import { InteractorId, InteractorStatus, OrderedInteractorEntryCursor } from "./interactor";
+import { EditorState } from "./state";
 
 // -----------------------------------------------------------------------------
 // Types that can be used in operation payloads to identify interactors,
@@ -50,38 +52,40 @@ export function isOperationInteractorTarget(target: OperationTarget): target is 
  */
 export function getTargetedInteractorIds(
   identifier: OperationInteractorTarget,
-  interactors: InteractorSet
+  state: EditorState
 ): readonly InteractorId[] {
   const untypedIdentifier = identifier as any;
 
   if (identifier === undefined) {
-    if (interactors.focusedId) {
-      return [interactors.focusedId];
+    if (state.focusedInteractorId) {
+      return [state.focusedInteractorId];
     }
   } else if (typeof identifier === "string") {
     switch (identifier) {
       case TargetInteractors.All:
-        return interactors.ordered;
+        return state.orderedInteractors.filter((e) => e.cursor === OrderedInteractorEntryCursor.Main).map((e) => e.id);
       case TargetInteractors.AllActive:
         // eslint-disable-next-line no-case-declarations
-        const ids = [];
-        for (let i = 0; i < interactors.ordered.length; i++) {
-          const id = interactors.ordered[i];
-          const interactor = interactors.byId[id];
-          if (interactor.status === InteractorStatus.Active) {
-            ids.push(id);
-          }
-        }
+        const ids: InteractorId[] = [];
+        state.orderedInteractors
+          .filter((e) => e.cursor === OrderedInteractorEntryCursor.Main)
+          .map((e) => e.id)
+          .forEach((id) => {
+            const interactor = state.interactors[id];
+            if (interactor.status === InteractorStatus.Active) {
+              ids.push(id);
+            }
+          });
         return ids;
       case TargetInteractors.Focused:
-        if (interactors.focusedId) {
-          return [interactors.focusedId];
+        if (state.focusedInteractorId) {
+          return [state.focusedInteractorId];
         }
     }
   } else if (untypedIdentifier.interactorId !== undefined) {
     return [untypedIdentifier.interactorId];
   } else if (untypedIdentifier.interactorIds !== undefined) {
-    return interactors.ordered.filter((x: InteractorId) => untypedIdentifier.interactorIds.includes(x));
+    return state.orderedInteractors.filter((e) => untypedIdentifier.interactorIds.includes(e.id)).map((e) => e.id);
   }
   return [];
 }

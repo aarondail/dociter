@@ -78,13 +78,13 @@ export const deleteBackwards = createCoreOperation("delete/backwards", (state, s
       navigator.navigateToPrecedingCursorPosition();
       break;
   }
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(navigator.cursor);
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-  state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+  state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(navigator.cursor);
+  state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+  state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
 });
 
 export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
-  const interactor = state.interactors.byId[Object.keys(state.interactors.byId)[0]];
+  const interactor = state.interactors[Object.keys(state.interactors)[0]];
   if (!interactor.isSelection) {
     throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
   }
@@ -108,9 +108,9 @@ export const deleteSelection = createCoreOperation("delete/selection", (state, s
   {
     const nav = new CursorNavigator(state.document);
     nav.navigateTo(range.from, CursorOrientation.Before);
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].mainCursor = castDraft(nav.cursor);
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].selectionAnchorCursor = undefined;
-    state.interactors.byId[Object.keys(state.interactors.byId)[0]].visualLineMovementHorizontalAnchor = undefined;
+    state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+    state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+    state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
   }
 });
 
