@@ -5,6 +5,7 @@ import { Draft, castDraft, original } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
+import { Cursor } from "../cursor";
 import { NodeLayoutReporter } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
 import { Node, NodeUtils } from "../models";
@@ -258,6 +259,22 @@ export class EditorInteractorService {
     delete this.editorState.interactors[id];
   }
 
+  public *interactorCursorsAtOrAfter(cursor: Cursor): Generator<OrderedInteractorEntry> {
+    if (!this.editorState) {
+      return;
+    }
+
+    let startingIndex = binarySearch(this.editorState.orderedInteractors, cursor, this.findCursorComparator);
+
+    if (startingIndex < 0) {
+      startingIndex = startingIndex * -1;
+    }
+
+    for (let i = startingIndex; i < this.editorState.orderedInteractors.length; i++) {
+      yield this.editorState.orderedInteractors[i];
+    }
+  }
+
   public notifyUpdated(id: InteractorId | InteractorId[]): void {
     if (!this.editorState) {
       return;
@@ -381,6 +398,28 @@ export class EditorInteractorService {
     }
     return dupeIds;
   }
+
+  private findCursorComparator = (a: OrderedInteractorEntry, needle: Cursor) => {
+    if (!this.editorState) {
+      return NaN;
+    }
+    const ai = this.editorState.interactors[a.id];
+
+    const afc = a.cursor === OrderedInteractorEntryCursor.SelectionAnchor ? ai.selectionAnchorCursor : ai.mainCursor;
+
+    if (!afc) {
+      return NaN;
+    }
+
+    switch (afc.compareTo(needle)) {
+      case SimpleComparison.Before:
+        return -1;
+      case SimpleComparison.After:
+        return 1;
+      default:
+        return 0;
+    }
+  };
 
   private handleEditorUpdateDone = () => {
     this.editorState = null;
