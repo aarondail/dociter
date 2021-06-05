@@ -2,12 +2,6 @@ import { Path } from "../../src";
 import { Cursor, CursorOrientation } from "../../src/cursor/cursor";
 import { SimpleComparison } from "../../src/miscUtils";
 
-// const testDoc1 = doc(
-//   header(HeaderLevel.One, inlineText("Header1")),
-//   paragraph(inlineText("Here is some text"), inlineText("MORE"), inlineText("last")),
-//   paragraph(inlineText("Paragraph 2"), inlineUrlLink("http://google.com", "GOOG"), inlineText("final sentence"))
-// );
-
 const compareToScenarios = [
   ["BEFORE 1/1/0", "AFTER 1/1/1", SimpleComparison.Before],
   ["AFTER 1/1/1", "BEFORE 1/1/0", SimpleComparison.After],
@@ -15,13 +9,14 @@ const compareToScenarios = [
   ["BEFORE 1/1/0", "BEFORE 1/1/0", SimpleComparison.Equal],
   ["ON 1/1/0", "AFTER 1/1/0", SimpleComparison.After],
   ["BEFORE 1/1/0", "AFTER 1/1/0", SimpleComparison.After],
-  ["AFTEr 1/1/0", "BEFORE 1/1/0", SimpleComparison.Before],
-  ["ON 1/1", "BEFORE 1/1/0", SimpleComparison.After],
-  ["ON 1/1", "AFTER 1/1/1", SimpleComparison.After],
+  ["AFTER 1/1/0", "BEFORE 1/1/0", SimpleComparison.Before],
+  ["ON 1/1", "BEFORE 1/1/0", SimpleComparison.Before],
+  ["ON 1/1", "AFTER 1/1/1", SimpleComparison.Before],
   ["ON 1/1", "AFTER 1/1", SimpleComparison.After],
   ["ON 1/1", "BEFORE 1/1", SimpleComparison.Before],
   ["ON 1/1", "ON 1/2", SimpleComparison.Before],
   ["ON 1", "ON 1", SimpleComparison.Equal],
+  ["BEFORE 3/1/1", "AFTER 1/0/0", SimpleComparison.After],
 ];
 
 describe("compareTo", () => {
