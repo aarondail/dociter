@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
-import { CursorNavigator, CursorOrientation } from "../src/cursor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
 import {
   Block,
@@ -129,24 +129,61 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
+  const debugCursor = (
+    cursor: Cursor,
+    testingNavigator: NodeNavigator
+  ): { cursorDebug: string; chain: Chain | undefined } => {
+    if (testingNavigator.navigateTo(cursor.path)) {
+      const cursorDebug =
+        cursor.orientation === CursorOrientation.Before
+          ? "<| " + (debugPath(testingNavigator) || "(EMPTY STRING, AKA THE DOCUMENT)")
+          : cursor.orientation === CursorOrientation.After
+          ? (debugPath(testingNavigator) || "(EMPTY STRING, AKA THE DOCUMENT)") + " |>"
+          : debugPath(testingNavigator);
+
+      return { cursorDebug, chain: testingNavigator.chain };
+    } else {
+      return {
+        cursorDebug: `?${debugPath(testingNavigator) || "(EMPTY STRING, AKA THE DOCUMENT)"}?`,
+        chain: undefined,
+      };
+    }
+  };
+
+  const debugInteractors = (editor: Editor) => {
+    const nav = new NodeNavigator(editor.document);
+    return editor.interactors
+      .map(({ interactor, focused }) => {
+        const a = debugCursor(interactor.mainCursor, nav).cursorDebug;
+        const b = interactor.selectionAnchorCursor && debugCursor(interactor.selectionAnchorCursor, nav).cursorDebug;
+        const f = focused ? "FOCUSED " : "";
+        if (b) {
+          return `${f}[${a} --> ${b}]`;
+        }
+        return `${f}${a}`;
+      })
+      .join(", ");
+  };
+
   const debugEditorStateSimple = (editor: Editor) => {
     const nav = new NodeNavigator(editor.document);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const c = editor.focusedCursor!;
-    if (nav.navigateTo(c.path)) {
-      const cursorDebug =
-        c.orientation === CursorOrientation.Before
-          ? "<| " + (debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)")
-          : c.orientation === CursorOrientation.After
-          ? (debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)") + " |>"
-          : debugPath(nav);
-      const elementString = debugElementChainSimple(nav.chain);
+    const c = editor.focusedInteractor?.mainCursor;
+    if (!c) {
+      throw new Error("There is no focused interactor.");
+    }
+    if (editor.focusedInteractor?.isSelection) {
+      throw new Error("The focused interactor is a selection.");
+    }
+    const { cursorDebug, chain } = debugCursor(c, nav);
+    if (chain) {
+      const elementString = debugElementChainSimple(chain);
       return `
 CURSOR: ${cursorDebug}
 SLICE:  ${elementString}`;
     } else {
       return `
-CURSOR: ?${debugPath(nav) || "(EMPTY STRING, AKA THE DOCUMENT)"}?
+CURSOR: ${cursorDebug}
 SLICE:  !INVALID CURSOR POSITION (probably not a grapheme or insertion point?)!
 DOCUMENT BLOCKS:
 ${JSON.stringify(editor.document.children, undefined, 4)}
@@ -155,16 +192,23 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
   };
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const prePath = editor instanceof Editor ? editor.focusedCursor!.path : editor.interactors.focused?.mainCursor.path;
+    const i =
+      editor instanceof Editor
+        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          editor.focusedInteractor!
+        : editor.interactors[editor.focusedInteractorId as string];
+    const c = i.mainCursor;
+    if (!c) {
+      throw new Error("There is no focused interactor.");
+    }
+    if (i.isSelection) {
+      throw new Error("The focused interactor is a selection.");
+    }
+    const prePath = c.path;
     // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
     const path = "" + prePath?.parts[0].index;
-    //   case DocumentInteractionLocationKind.SELECTION:
-    //     path += editor.interloc.selection?.[0][0][1];
-    //     break;
-    // }
     return debugBlockSimple(editor.document, path);
   };
 
-  return { debugSoloNode, debugEditorStateSimple, debugCurrentBlock };
+  return { debugSoloNode, debugInteractors, debugEditorStateSimple, debugCurrentBlock };
 })();

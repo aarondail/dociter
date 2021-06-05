@@ -7,6 +7,7 @@ import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Document } from "../models";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
+import { Interactor, OrderedInteractorEntryCursor } from "./interactor";
 import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
@@ -105,9 +106,9 @@ export class Editor {
     this.update(addInteractor({ mainCursor: cursor, focused: true }));
   }
 
-  public get focusedCursor(): Cursor | undefined {
+  public get focusedInteractor(): Interactor | undefined {
     if (this.state.focusedInteractorId !== undefined) {
-      return this.state.interactors[this.state.focusedInteractorId]?.mainCursor;
+      return this.state.interactors[this.state.focusedInteractorId];
     }
     return undefined;
   }
@@ -118,6 +119,21 @@ export class Editor {
 
   public get history(): readonly EditorState[] {
     return this.historyList;
+  }
+
+  public get interactors(): { interactor: Interactor; focused?: boolean }[] {
+    // Just to make things more deterministic, we return iterators in the order
+    // they appear in the ordered array
+    const result = [];
+    for (let i = 0; i < this.state.orderedInteractors.length; i++) {
+      const entry = this.state.orderedInteractors[i];
+      if (entry.cursor !== OrderedInteractorEntryCursor.Main) {
+        continue;
+      }
+      const interactor = this.state.interactors[entry.id];
+      result.push({ interactor, focused: this.state.focusedInteractorId === entry.id });
+    }
+    return result;
   }
 
   public redo(): void {
