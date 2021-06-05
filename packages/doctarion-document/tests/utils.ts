@@ -4,6 +4,7 @@
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
+import { Interactor, InteractorStatus } from "../src/editor/interactor";
 import {
   Block,
   Document,
@@ -156,11 +157,14 @@ export const DebugEditorHelpers = (() => {
       .map(({ interactor, focused }) => {
         const a = debugCursor(interactor.mainCursor, nav).cursorDebug;
         const b = interactor.selectionAnchorCursor && debugCursor(interactor.selectionAnchorCursor, nav).cursorDebug;
-        const f = focused ? "FOCUSED " : "";
+        const st =
+          focused || interactor.status === InteractorStatus.Inactive
+            ? `(${focused ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
+            : "";
         if (b) {
-          return `${f}[${a} --> ${b}]`;
+          return `${st}[${a} --> ${b}]`;
         }
-        return `${f}${a}`;
+        return `${st}${a}`;
       })
       .join(", ");
   };

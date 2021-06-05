@@ -318,8 +318,8 @@ export class EditorInteractorService {
         // (on the ordered interactors) we also consider the status and type of
         // cursor when doing ordering.
         if (ai.status !== bi.status) {
-          // Put inactive cursors before active ones
-          if (ai.status === InteractorStatus.Active) {
+          // Put active cursors before inactive ones
+          if (ai.status === InteractorStatus.Inactive) {
             return 1;
           }
           return -1;
