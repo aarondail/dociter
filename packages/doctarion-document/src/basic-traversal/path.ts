@@ -34,9 +34,9 @@ export class Path {
         // This shouldn't happen...
         return PathComparison.Incomparable;
       } else if (!a) {
-        return PathComparison.Descendent;
-      } else if (!b) {
         return PathComparison.Ancestor;
+      } else if (!b) {
+        return PathComparison.Descendent;
       } else if (a.equalTo(b)) {
         continue;
       } else {
@@ -71,7 +71,7 @@ export class Path {
       case PathComparison.EarlierBranch:
         return SimpleComparison.Before;
       case PathComparison.LaterBranch:
-        return SimpleComparison.Before;
+        return SimpleComparison.After;
       case PathComparison.Incomparable:
         return SimpleComparison.Incomparable;
     }
