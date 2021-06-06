@@ -7,16 +7,18 @@ const compareToScenarios = [
   ["AFTER 1/1/1", "BEFORE 1/1/0", SimpleComparison.After],
   ["AFTER 1/1/0", "BEFORE 1/1/1", SimpleComparison.Before],
   ["BEFORE 1/1/0", "BEFORE 1/1/0", SimpleComparison.Equal],
-  ["ON 1/1/0", "AFTER 1/1/0", SimpleComparison.After],
-  ["BEFORE 1/1/0", "AFTER 1/1/0", SimpleComparison.After],
-  ["AFTER 1/1/0", "BEFORE 1/1/0", SimpleComparison.Before],
+  ["ON 1/1/0", "AFTER 1/1/0", SimpleComparison.Before],
+  ["BEFORE 1/1/0", "AFTER 1/1/0", SimpleComparison.Before],
+  ["AFTER 1/1/0", "BEFORE 1/1/0", SimpleComparison.After],
   ["ON 1/1", "BEFORE 1/1/0", SimpleComparison.Before],
   ["ON 1/1", "AFTER 1/1/1", SimpleComparison.Before],
-  ["ON 1/1", "AFTER 1/1", SimpleComparison.After],
-  ["ON 1/1", "BEFORE 1/1", SimpleComparison.Before],
+  ["ON 1/1", "AFTER 1/1", SimpleComparison.Before],
+  ["ON 1/1", "BEFORE 1/1", SimpleComparison.After],
   ["ON 1/1", "ON 1/2", SimpleComparison.Before],
   ["ON 1", "ON 1", SimpleComparison.Equal],
   ["BEFORE 3/1/1", "AFTER 1/0/0", SimpleComparison.After],
+  ["AFTER 3/2/1", "BEFORE 3/2/1", SimpleComparison.After],
+  ["BEFORE 3/2/1", "AFTER 3/2/1", SimpleComparison.Before],
 ];
 
 describe("compareTo", () => {

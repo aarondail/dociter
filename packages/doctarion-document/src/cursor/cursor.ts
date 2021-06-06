@@ -31,19 +31,19 @@ export class Cursor {
         if (other.orientation === CursorOrientation.Before) {
           return SimpleComparison.Equal;
         }
-        return SimpleComparison.After;
+        return SimpleComparison.Before;
       } else if (this.orientation === CursorOrientation.On) {
         if (other.orientation === CursorOrientation.Before) {
-          return SimpleComparison.Before;
-        } else if (other.orientation === CursorOrientation.After) {
           return SimpleComparison.After;
+        } else if (other.orientation === CursorOrientation.After) {
+          return SimpleComparison.Before;
         }
         return SimpleComparison.Equal;
       } else {
         if (other.orientation === CursorOrientation.After) {
           return SimpleComparison.Equal;
         }
-        return SimpleComparison.Before;
+        return SimpleComparison.After;
       }
     }
     return pathComparison;
