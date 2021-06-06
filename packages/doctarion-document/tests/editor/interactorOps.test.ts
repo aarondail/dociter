@@ -99,11 +99,11 @@ describe("updateInteractor", () => {
   });
 
   it("can change a selection to a non-selection", () => {
-    // const id = editor.update(
-    //   OPS.addInteractor({ mainCursor: cursorBefore("3/0/0"), selectionAnchorCursor: cursorAfter("3/0/1") })
-    // )!;
-    // editor.update(OPS.updateInteractor({ id, selectionAnchorCursor: undefined }));
-    // expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0");
+    const id = editor.update(
+      OPS.addInteractor({ mainCursor: cursorBefore("3/0/0"), selectionAnchorCursor: cursorAfter("3/0/1") })
+    )!;
+    editor.update(OPS.updateInteractor({ id, selectionAnchorCursor: undefined }));
+    expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0");
   });
 
   it("can hange interactor status", () => {

@@ -96,9 +96,7 @@ export const updateInteractor = createCoreOperation<{
     interactor.status = updates.status;
   }
 
-  console.log(immer.current(state.interactors));
   services.interactors.notifyUpdated(id);
-  console.log(immer.current(state.interactors));
 
   if (updates.focused !== undefined) {
     if (updates.focused) {

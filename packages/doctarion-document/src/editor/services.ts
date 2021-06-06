@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import binarySearch from "binary-search";
 import { FriendlyIdGenerator } from "doctarion-utils";
-import { Draft, castDraft, original } from "immer";
+import { Draft, castDraft, current, original } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
@@ -363,7 +363,7 @@ export class EditorInteractorService {
     let dupeIds: InteractorId[] | undefined;
     for (let i = 0; i < this.editorState.orderedInteractors.length - 1; i++) {
       const a = this.editorState.orderedInteractors[i];
-      const b = this.editorState.orderedInteractors[i];
+      const b = this.editorState.orderedInteractors[i + 1];
       // We don't care about deduping selections at this point since its unclear
       // what the best behavior is
       if (a.id === b.id || a.cursor === OrderedInteractorEntryCursor.SelectionAnchor) {
@@ -451,11 +451,8 @@ export class EditorInteractorService {
         newSelectionEntry
       );
     } else if (oldInteractor?.selectionAnchorCursor && !interactor.selectionAnchorCursor) {
-      const newSelectionEntry = { id, cursor: OrderedInteractorEntryCursor.SelectionAnchor };
-      const selectionEntryIndex = binarySearch(
-        this.editorState!.orderedInteractors,
-        newSelectionEntry,
-        this.comparator
+      const selectionEntryIndex = this.editorState!.orderedInteractors.findIndex(
+        (entry) => entry.id === id && entry.cursor === OrderedInteractorEntryCursor.SelectionAnchor
       );
       if (selectionEntryIndex >= 0) {
         this.editorState!.orderedInteractors.splice(selectionEntryIndex, 1);
