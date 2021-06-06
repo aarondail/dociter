@@ -196,9 +196,9 @@ export class EditorInteractorService {
     this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
   }
 
-  public add(newInteractor: Interactor): void {
+  public add(newInteractor: Interactor): boolean {
     if (!this.editorState) {
-      return;
+      return false;
     }
     this.editorState.interactors[newInteractor.id] = castDraft(newInteractor);
 
@@ -212,7 +212,7 @@ export class EditorInteractorService {
       // murky what is the best thing to do in the case of selections so we just
       // deal w/ non selctions here.
       if (!newInteractor.isSelection) {
-        return;
+        return false;
       }
     }
 
@@ -231,6 +231,8 @@ export class EditorInteractorService {
         newSelectionEntry
       );
     }
+
+    return true;
   }
 
   public delete(id: InteractorId): void {
@@ -364,7 +366,7 @@ export class EditorInteractorService {
       const b = this.editorState.orderedInteractors[i];
       // We don't care about deduping selections at this point since its unclear
       // what the best behavior is
-      if (a.cursor === OrderedInteractorEntryCursor.SelectionAnchor) {
+      if (a.id === b.id || a.cursor === OrderedInteractorEntryCursor.SelectionAnchor) {
         continue;
       }
       if (this.editorState.interactors[b.id].isSelection) {

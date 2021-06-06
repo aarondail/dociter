@@ -7,7 +7,7 @@ import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Document } from "../models";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { Interactor, OrderedInteractorEntryCursor } from "./interactor";
+import { Interactor } from "./interactor";
 import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
@@ -38,7 +38,7 @@ export class Editor {
   private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
   private historyList: EditorState[];
-  private readonly operationRegistry: Map<string, EditorOperation<unknown, string>>;
+  private readonly operationRegistry: Map<string, EditorOperation<unknown, unknown, string>>;
   private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
@@ -81,7 +81,7 @@ export class Editor {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.operationRegistry = new Map();
     for (const op of CORE_OPERATIONS) {
-      this.operationRegistry.set(op.id, op);
+      this.operationRegistry.set(op.operationName, op);
     }
 
     // Assign initial ids... note this must happen before the calls to update
@@ -121,19 +121,12 @@ export class Editor {
     return this.historyList;
   }
 
-  public get interactors(): { interactor: Interactor; focused?: boolean }[] {
-    // Just to make things more deterministic, we return iterators in the order
-    // they appear in the ordered array
-    const result = [];
-    for (let i = 0; i < this.state.orderedInteractors.length; i++) {
-      const entry = this.state.orderedInteractors[i];
-      if (entry.cursor !== OrderedInteractorEntryCursor.Main) {
-        continue;
-      }
-      const interactor = this.state.interactors[entry.id];
-      result.push({ interactor, focused: this.state.focusedInteractorId === entry.id });
-    }
-    return result;
+  public get interactors(): EditorState["interactors"] {
+    return this.state.interactors;
+  }
+
+  public get interactorOrdering(): EditorState["orderedInteractors"] {
+    return this.state.orderedInteractors;
   }
 
   public redo(): void {
@@ -156,21 +149,18 @@ export class Editor {
     }
   }
 
-  public update(command: EditorOperationCommand<unknown, string>): void {
-    const op = this.operationRegistry.get(command.id);
+  public update<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
+    const op = this.operationRegistry.get(command.name);
     if (!op) {
       throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
     }
 
+    let result!: ReturnType;
     const oldState = this.state;
     const newState = immer.produce(this.state, (draft) => {
       this.eventEmitters.updateStart.emit(draft);
-      op.run(draft, this.operationServices, command.payload);
+      result = op.operationRunFunction(draft, this.operationServices, command.payload) as ReturnType;
     });
-
-    // if (op.postRun) {
-    //   newState = op.postRun(oldState, newState);
-    // }
 
     // If there were no changes, don't do anything
     if (newState !== this.state) {
@@ -184,5 +174,7 @@ export class Editor {
     if (newState.document !== oldState.document) {
       this.eventEmitters.documentUpdated.emit(this.state.document);
     }
+
+    return result;
   }
 }

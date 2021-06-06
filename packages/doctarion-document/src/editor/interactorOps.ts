@@ -8,12 +8,17 @@ import { EditorOperationError, EditorOperationErrorCode } from "./operationError
 
 const castDraft = immer.castDraft;
 
-export const addInteractor = createCoreOperation<{
-  mainCursor: Cursor;
-  selectionAnchorCursor?: Cursor;
-  status?: InteractorStatus;
-  focused?: boolean;
-}>("interactor/add", (state, services, { mainCursor, status, selectionAnchorCursor, focused }): void => {
+export const addInteractor = createCoreOperation<
+  {
+    mainCursor: Cursor;
+    selectionAnchorCursor?: Cursor;
+    status?: InteractorStatus;
+    focused?: boolean;
+  },
+  InteractorId | undefined
+>("interactor/add", (state, services, { mainCursor, status, selectionAnchorCursor, focused }):
+  | InteractorId
+  | undefined => {
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
@@ -30,11 +35,14 @@ export const addInteractor = createCoreOperation<{
 
   const id = services.idGenerator.generateId("INTERACTOR");
   const interactor = new Interactor(id, mainCursor, status, selectionAnchorCursor);
-  services.interactors.add(interactor);
-  if (focused) {
-    state.focusedInteractorId = id;
+  if (services.interactors.add(interactor)) {
+    if (focused) {
+      state.focusedInteractorId = id;
+    }
+    return id;
   }
-  // TODO return id;
+
+  return undefined;
 });
 
 export const removeInteractor = createCoreOperation<{ id: InteractorId }>(
@@ -88,7 +96,9 @@ export const updateInteractor = createCoreOperation<{
     interactor.status = updates.status;
   }
 
+  console.log(immer.current(state.interactors));
   services.interactors.notifyUpdated(id);
+  console.log(immer.current(state.interactors));
 
   if (updates.focused !== undefined) {
     if (updates.focused) {

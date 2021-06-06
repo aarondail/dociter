@@ -4,7 +4,7 @@
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
-import { Interactor, InteractorStatus } from "../src/editor/interactor";
+import { InteractorStatus, OrderedInteractorEntryCursor } from "../src/editor/interactor";
 import {
   Block,
   Document,
@@ -151,20 +151,33 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
-  const debugInteractors = (editor: Editor) => {
+  const debugInteractorOrdering = (editor: Editor) => {
     const nav = new NodeNavigator(editor.document);
-    return editor.interactors
-      .map(({ interactor, focused }) => {
-        const a = debugCursor(interactor.mainCursor, nav).cursorDebug;
-        const b = interactor.selectionAnchorCursor && debugCursor(interactor.selectionAnchorCursor, nav).cursorDebug;
-        const st =
-          focused || interactor.status === InteractorStatus.Inactive
-            ? `(${focused ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
-            : "";
-        if (b) {
-          return `${st}[${a} --> ${b}]`;
+
+    const realIdToFakeIdMap = new Map<string, number>();
+    return editor.interactorOrdering
+      .map(({ id, cursor }) => {
+        let fakeId: number;
+        if (realIdToFakeIdMap.has(id)) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          fakeId = realIdToFakeIdMap.get(id)!;
+        } else {
+          fakeId = realIdToFakeIdMap.size + 1;
+          realIdToFakeIdMap.set(id, fakeId);
         }
-        return `${st}${a}`;
+        const interactor = editor.interactors[id];
+
+        const c = debugCursor(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          cursor === OrderedInteractorEntryCursor.Main ? interactor.mainCursor : interactor.selectionAnchorCursor!,
+          nav
+        ).cursorDebug;
+        const f = editor.focusedInteractor === interactor;
+        const s =
+          f || interactor.status === InteractorStatus.Inactive
+            ? `(${f ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
+            : "";
+        return `${fakeId}.${cursor === OrderedInteractorEntryCursor.Main ? "M" : "Sa"} ${s}${c}`;
       })
       .join(", ");
   };
@@ -214,5 +227,5 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
     return debugBlockSimple(editor.document, path);
   };
 
-  return { debugSoloNode, debugInteractors, debugEditorStateSimple, debugCurrentBlock };
+  return { debugSoloNode, debugInteractorOrdering, debugEditorStateSimple, debugCurrentBlock };
 })();
