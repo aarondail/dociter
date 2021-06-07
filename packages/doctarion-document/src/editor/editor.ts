@@ -50,7 +50,7 @@ export class Editor {
       // mutation
       document: lodash.cloneDeep(initialDocument),
       interactors: {},
-      orderedInteractors: [],
+      interactorOrdering: [],
       focusedInteractorId: undefined,
       nodeParentMap: {},
     };
@@ -125,8 +125,8 @@ export class Editor {
     return this.state.interactors;
   }
 
-  public get interactorOrdering(): EditorState["orderedInteractors"] {
-    return this.state.orderedInteractors;
+  public get interactorOrdering(): EditorState["interactorOrdering"] {
+    return this.state.interactorOrdering;
   }
 
   public redo(): void {

@@ -6,7 +6,7 @@
 import { Range } from "../basic-traversal";
 import { Cursor } from "../cursor";
 
-import { InteractorId, InteractorStatus, OrderedInteractorEntryCursor } from "./interactor";
+import { InteractorId, InteractorOrderingEntryCursor, InteractorStatus } from "./interactor";
 import { EditorState } from "./state";
 
 // -----------------------------------------------------------------------------
@@ -63,12 +63,12 @@ export function getTargetedInteractorIds(
   } else if (typeof identifier === "string") {
     switch (identifier) {
       case TargetInteractors.All:
-        return state.orderedInteractors.filter((e) => e.cursor === OrderedInteractorEntryCursor.Main).map((e) => e.id);
+        return state.interactorOrdering.filter((e) => e.cursor === InteractorOrderingEntryCursor.Main).map((e) => e.id);
       case TargetInteractors.AllActive:
         // eslint-disable-next-line no-case-declarations
         const ids: InteractorId[] = [];
-        state.orderedInteractors
-          .filter((e) => e.cursor === OrderedInteractorEntryCursor.Main)
+        state.interactorOrdering
+          .filter((e) => e.cursor === InteractorOrderingEntryCursor.Main)
           .map((e) => e.id)
           .forEach((id) => {
             const interactor = state.interactors[id];
@@ -85,7 +85,7 @@ export function getTargetedInteractorIds(
   } else if (untypedIdentifier.interactorId !== undefined) {
     return [untypedIdentifier.interactorId];
   } else if (untypedIdentifier.interactorIds !== undefined) {
-    return state.orderedInteractors.filter((e) => untypedIdentifier.interactorIds.includes(e.id)).map((e) => e.id);
+    return state.interactorOrdering.filter((e) => untypedIdentifier.interactorIds.includes(e.id)).map((e) => e.id);
   }
   return [];
 }

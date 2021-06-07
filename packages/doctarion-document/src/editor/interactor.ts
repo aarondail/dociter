@@ -81,12 +81,12 @@ export class Interactor {
   }
 }
 
-export enum OrderedInteractorEntryCursor {
+export enum InteractorOrderingEntryCursor {
   Main = "MAIN",
   SelectionAnchor = "SELECTION_ANCHOR",
 }
 
-export interface OrderedInteractorEntry {
+export interface InteractorOrderingEntry {
   readonly id: InteractorId;
-  readonly cursor: OrderedInteractorEntryCursor;
+  readonly cursor: InteractorOrderingEntryCursor;
 }
