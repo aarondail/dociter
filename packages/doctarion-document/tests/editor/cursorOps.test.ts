@@ -42,22 +42,25 @@ CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
   });
 
-  // it("handles multiple cursors", () => {
-  //   const editor = new Editor({ document: testDoc1 });
-  //   // Jump to "GOOGLE" text of the url link
-  //   editor.update(OPS.jump({ to: { path: "3/1/0", orientation: Before } }));
-  //   // editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: Before } }));
-  //   // editor.update(OPS.addInteractor({ at: { path: "3/1/2", orientation: Before } }));
+  it("handles multiple cursors", () => {
+    const editor = new Editor({ document: testDoc1 });
+    // Jump to "GOOGLE" text of the url link
+    editor.update(OPS.jump({ to: { path: "3/1/0", orientation: Before } }));
+    editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: After } }));
+    editor.update(OPS.addInteractor({ at: { path: "3/1/2", orientation: After } }));
 
-  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
-  //   // editor.update(OPS.moveForward({ target: TargetInteractors.All }));
-  //   // expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/0 |>, 2.M <| 3/1/1, 3.M <| 3/1/2");
-  //   // editor.update(OPS.moveForward({ target: TargetInteractors.AllActive }));
-  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
-  //   // // Should dedupe
-  //   // editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
-  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
-  // });
+    expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M 3/1/1 |>, 3.M 3/1/2 |>");
+    editor.update(OPS.moveForward({ target: TargetInteractors.All }));
+    expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/0 |>, 2.M 3/1/2 |>, 3.M 3/1/3 |>");
+    editor.update(OPS.moveForward({ target: TargetInteractors.AllActive }));
+    expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/1 |>, 2.M 3/1/3 |>, 3.M 3/1/4 |>");
+    // Should dedupe
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
+    expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/3 |>, 2.M 3/1/4 |>");
+    editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
+    expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/4 |>");
+  });
 });
 
 describe("jump", () => {
@@ -90,5 +93,13 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
+  });
+
+  it("may dedupe multiple cursors", () => {
+    const editor = new Editor({ document: testDoc1 });
+    // Jump to "GOOGLE" text of the url link
+    editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: After } }));
+    editor.update(OPS.jump({ to: { path: "3/1/1", orientation: After } }));
+    expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/1 |>");
   });
 });
