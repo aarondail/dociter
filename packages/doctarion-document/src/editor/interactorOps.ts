@@ -17,13 +17,14 @@ export const addInteractor = createCoreOperation<
   },
   InteractorId | undefined
 >("interactor/add", (state, services, { at, status, selectionAnchor, focused }): InteractorId | undefined => {
-  const mainCursor = CursorPosition.toCursor(at);
+  let mainCursor = CursorPosition.toCursor(at);
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
   }
+  mainCursor = nav.cursor;
 
-  const selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
+  let selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
   if (selectionAnchorCursor) {
     if (!nav.navigateTo(selectionAnchorCursor)) {
       throw new EditorOperationError(
@@ -31,6 +32,7 @@ export const addInteractor = createCoreOperation<
         "selectionAnchorCursor is not a valid cursor"
       );
     }
+    selectionAnchorCursor = nav.cursor;
   }
 
   const id = services.idGenerator.generateId("INTERACTOR");
@@ -77,7 +79,7 @@ export const updateInteractor = createCoreOperation<{
         "mainCursor is not a valid cursor"
       );
     }
-    interactor.mainCursor = castDraft(mainCursor);
+    interactor.mainCursor = castDraft(nav.cursor);
     interactor.visualLineMovementHorizontalAnchor = undefined;
   }
 
@@ -90,7 +92,7 @@ export const updateInteractor = createCoreOperation<{
           "selectionAnchorCursor is not a valid cursor"
         );
       }
-      interactor.selectionAnchorCursor = castDraft(selectionAnchorCursor);
+      interactor.selectionAnchorCursor = castDraft(nav.cursor);
     } else {
       interactor.selectionAnchorCursor = undefined;
     }
