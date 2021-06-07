@@ -26,47 +26,45 @@ beforeEach(() => {
 describe("addInteractor", () => {
   it("can add non-focused interactors", () => {
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0");
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1") }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/1");
-    editor.update(OPS.addInteractor({ mainCursor: cursorAfter("1/0/0") }));
+    editor.update(OPS.addInteractor({ at: cursorAfter("1/0/0") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M 1/0/0 |>, 3.M <| 3/0/1");
   });
 
   it("can add a focused interactors that takes focus", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1"), focused: true }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1"), focused: true }));
     expect(debug(editor)).toEqual("1.M <| 0/0/0, 2.M (F) <| 3/0/1");
   });
 
   it("can add a inactive interactor", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1"), status: InteractorStatus.Inactive }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1"), status: InteractorStatus.Inactive }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M (I) <| 3/0/1");
   });
 
   it("can add a selection interactors", () => {
-    editor.update(
-      OPS.addInteractor({ mainCursor: cursorBefore("3/0/0"), selectionAnchorCursor: cursorAfter("3/0/1") })
-    );
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/0"), selectionAnchor: cursorAfter("3/0/1") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0, 2.Sa 3/0/1 |>");
   });
 
   it("wont add a duplicate interactor (non-selection)", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1") }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1") }));
 
     // This is the exact same cursor as before
-    const newId = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1") }));
+    const newId = editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/1");
     expect(newId).toBeUndefined();
   });
 
   it("will add a duplicate interactor if that status is different", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1") }));
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/1"), status: InteractorStatus.Inactive }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1") }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/1"), status: InteractorStatus.Inactive }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/1, 3.M (I) <| 3/0/1");
   });
 
   it("will add interactors in the right order", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorAfter("3/0/0") }));
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/0") }))!;
+    editor.update(OPS.addInteractor({ at: cursorAfter("3/0/0") }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("3/0/0") }))!;
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0, 3.M 3/0/0 |>");
   });
 });
@@ -78,35 +76,33 @@ describe("updateInteractor", () => {
     editor.update(OPS.updateInteractor({ id: editor.focusedInteractor?.id || "" }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0");
 
-    editor.update(OPS.updateInteractor({ id: editor.focusedInteractor?.id || "", mainCursor: cursorBefore("3/0/1") }));
+    editor.update(OPS.updateInteractor({ id: editor.focusedInteractor?.id || "", to: cursorBefore("3/0/1") }));
     expect(debug(editor)).toEqual("1.M (F) <| 3/0/1");
   });
 
   it("can move an interactor changing the order appropriately", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorAfter("3/0/0") }));
-    const id = editor.update(OPS.addInteractor({ mainCursor: cursorAfter("3/0/1") }))!;
+    editor.update(OPS.addInteractor({ at: cursorAfter("3/0/0") }));
+    const id = editor.update(OPS.addInteractor({ at: cursorAfter("3/0/1") }))!;
 
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M 3/0/0 |>, 3.M 3/0/1 |>");
-    editor.update(OPS.updateInteractor({ id, mainCursor: cursorBefore("3/0/0") }));
+    editor.update(OPS.updateInteractor({ id, to: cursorBefore("3/0/0") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0, 3.M 3/0/0 |>");
   });
 
   it("can change a non-selection to a selection", () => {
-    const id = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/0") }))!;
-    editor.update(OPS.updateInteractor({ id, selectionAnchorCursor: cursorAfter("3/0/1") }));
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("3/0/0") }))!;
+    editor.update(OPS.updateInteractor({ id, selectionAnchor: cursorAfter("3/0/1") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0, 2.Sa 3/0/1 |>");
   });
 
   it("can change a selection to a non-selection", () => {
-    const id = editor.update(
-      OPS.addInteractor({ mainCursor: cursorBefore("3/0/0"), selectionAnchorCursor: cursorAfter("3/0/1") })
-    )!;
-    editor.update(OPS.updateInteractor({ id, selectionAnchorCursor: undefined }));
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("3/0/0"), selectionAnchor: cursorAfter("3/0/1") }))!;
+    editor.update(OPS.updateInteractor({ id, selectionAnchor: undefined }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0");
   });
 
   it("can change interactor status", () => {
-    const id = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
     editor.update(OPS.updateInteractor({ id, status: InteractorStatus.Inactive }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M (I) <| 1/0");
     editor.update(OPS.updateInteractor({ id, status: InteractorStatus.Active }));
@@ -114,34 +110,30 @@ describe("updateInteractor", () => {
   });
 
   it("can move an interactor", () => {
-    const id = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
-    editor.update(OPS.updateInteractor({ id, mainCursor: cursorBefore("3/0/0") }));
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
+    editor.update(OPS.updateInteractor({ id, to: cursorBefore("3/0/0") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 3/0/0");
   });
 
   it("moving an interactor can result in deduplication", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
-    const id = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("3/0/0") }))!;
-    editor.update(OPS.updateInteractor({ id, mainCursor: cursorBefore("1/0") }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("3/0/0") }))!;
+    editor.update(OPS.updateInteractor({ id, to: cursorBefore("1/0") }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0");
   });
 
   it("activating an interactor can result in deduplication", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
-    const id = editor.update(
-      OPS.addInteractor({ mainCursor: cursorBefore("1/0"), status: InteractorStatus.Inactive })
-    )!;
+    editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("1/0"), status: InteractorStatus.Inactive }))!;
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0, 3.M (I) <| 1/0");
     editor.update(OPS.updateInteractor({ id, status: InteractorStatus.Active }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0");
   });
 
   it("changing a selection to a non-selection can result in deduplication", () => {
-    editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
-    const id = editor.update(
-      OPS.addInteractor({ mainCursor: cursorBefore("1/0"), selectionAnchorCursor: cursorAfter("3/0/0") })
-    )!;
-    editor.update(OPS.updateInteractor({ id, selectionAnchorCursor: undefined }));
+    editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
+    const id = editor.update(OPS.addInteractor({ at: cursorBefore("1/0"), selectionAnchor: cursorAfter("3/0/0") }))!;
+    editor.update(OPS.updateInteractor({ id, selectionAnchor: undefined }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0");
   });
 });
@@ -149,10 +141,8 @@ describe("updateInteractor", () => {
 describe("removeInteractor", () => {
   it("can remove all interactors", () => {
     const id0 = editor.focusedInteractor!.id;
-    const id1 = editor.update(OPS.addInteractor({ mainCursor: cursorBefore("1/0") }))!;
-    const id2 = editor.update(
-      OPS.addInteractor({ mainCursor: cursorBefore("2"), selectionAnchorCursor: cursorAfter("3/0/0") })
-    )!;
+    const id1 = editor.update(OPS.addInteractor({ at: cursorBefore("1/0") }))!;
+    const id2 = editor.update(OPS.addInteractor({ at: cursorBefore("2"), selectionAnchor: cursorAfter("3/0/0") }))!;
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0, 3.M <| 2, 3.Sa 3/0/0 |>");
     editor.update(OPS.removeInteractor({ id: id2 }));
     expect(debug(editor)).toEqual("1.M (F) <| 0/0/0, 2.M <| 1/0");

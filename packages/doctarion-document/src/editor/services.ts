@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import binarySearch from "binary-search";
 import { FriendlyIdGenerator } from "doctarion-utils";
-import { Draft, castDraft, current, original } from "immer";
+import { Draft, castDraft, original } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";

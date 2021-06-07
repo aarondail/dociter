@@ -103,7 +103,7 @@ export class Editor {
       cn.navigateToPrecedingCursorPosition();
       cursor = cn.cursor;
     }
-    this.update(addInteractor({ mainCursor: cursor, focused: true }));
+    this.update(addInteractor({ at: cursor, focused: true }));
   }
 
   public get focusedInteractor(): Interactor | undefined {

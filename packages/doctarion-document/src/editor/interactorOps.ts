@@ -1,6 +1,6 @@
 import * as immer from "immer";
 
-import { Cursor, CursorNavigator } from "../cursor";
+import { CursorNavigator, CursorPosition } from "../cursor";
 
 import { Interactor, InteractorId, InteractorStatus } from "./interactor";
 import { createCoreOperation } from "./operation";
@@ -10,20 +10,20 @@ const castDraft = immer.castDraft;
 
 export const addInteractor = createCoreOperation<
   {
-    mainCursor: Cursor;
-    selectionAnchorCursor?: Cursor;
+    at: CursorPosition;
+    selectionAnchor?: CursorPosition;
     status?: InteractorStatus;
     focused?: boolean;
   },
   InteractorId | undefined
->("interactor/add", (state, services, { mainCursor, status, selectionAnchorCursor, focused }):
-  | InteractorId
-  | undefined => {
+>("interactor/add", (state, services, { at, status, selectionAnchor, focused }): InteractorId | undefined => {
+  const mainCursor = CursorPosition.toCursor(at);
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
   }
 
+  const selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
   if (selectionAnchorCursor) {
     if (!nav.navigateTo(selectionAnchorCursor)) {
       throw new EditorOperationError(
@@ -57,8 +57,8 @@ export const removeInteractor = createCoreOperation<{ id: InteractorId }>(
 
 export const updateInteractor = createCoreOperation<{
   id: InteractorId;
-  mainCursor?: Cursor;
-  selectionAnchorCursor?: Cursor;
+  to?: CursorPosition;
+  selectionAnchor?: CursorPosition;
   status?: InteractorStatus;
   focused?: boolean;
 }>("interactor/update", (state, services, payload): void => {
@@ -69,27 +69,31 @@ export const updateInteractor = createCoreOperation<{
   }
 
   const nav = new CursorNavigator(state.document, services.layout);
-  if (updates.mainCursor) {
-    if (!nav.navigateTo(updates.mainCursor)) {
+  if (updates.to) {
+    const mainCursor = CursorPosition.toCursor(updates.to);
+    if (!nav.navigateTo(mainCursor)) {
       throw new EditorOperationError(
         EditorOperationErrorCode.InvalidCursorPosition,
         "mainCursor is not a valid cursor"
       );
     }
-    interactor.mainCursor = castDraft(updates.mainCursor);
+    interactor.mainCursor = castDraft(mainCursor);
     interactor.visualLineMovementHorizontalAnchor = undefined;
   }
 
-  if ("selectionAnchorCursor" in updates) {
-    if (updates.selectionAnchorCursor) {
-      if (!nav.navigateTo(updates.selectionAnchorCursor)) {
+  if ("selectionAnchor" in updates) {
+    if (updates.selectionAnchor) {
+      const selectionAnchorCursor = CursorPosition.toCursor(updates.selectionAnchor);
+      if (!nav.navigateTo(selectionAnchorCursor)) {
         throw new EditorOperationError(
           EditorOperationErrorCode.InvalidCursorPosition,
           "selectionAnchorCursor is not a valid cursor"
         );
       }
+      interactor.selectionAnchorCursor = castDraft(selectionAnchorCursor);
+    } else {
+      interactor.selectionAnchorCursor = undefined;
     }
-    interactor.selectionAnchorCursor = castDraft(updates.selectionAnchorCursor);
   }
 
   if (updates.status) {

@@ -3,7 +3,7 @@ import { NodeLayoutReporter } from "../layout-reporting";
 import { Document, NodeUtils } from "../models";
 
 import { Cursor, CursorOrientation } from "./cursor";
-import { PositionClassification } from "./positions";
+import { PositionClassification } from "./positionClassification";
 
 /**
  * This class is similar to NodeNavigator but intead of navigating

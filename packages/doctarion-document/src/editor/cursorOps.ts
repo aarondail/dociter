@@ -1,7 +1,7 @@
 import { Draft, castDraft } from "immer";
 
-import { NodeNavigator, Path, PathString } from "../basic-traversal";
-import { CursorNavigator, CursorOrientation } from "../cursor";
+import { NodeNavigator } from "../basic-traversal";
+import { CursorNavigator, CursorOrientation, CursorPosition } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
@@ -85,21 +85,23 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
 //   }
 // }
 
-export const jumpTo = createCoreOperation<
-  { path: PathString | Path; orientation: CursorOrientation } & InteractorMovementPayload
->("cursor/jumpTo", (state, services, payload): void => {
-  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-    if (navigator.navigateTo(payload.path, payload.orientation)) {
-      const oldCursor = interactor.mainCursor;
-      interactor.mainCursor = castDraft(navigator.cursor);
-      interactor.visualLineMovementHorizontalAnchor = undefined;
-      interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
-      return true;
-    } else {
-      throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
-    }
-  });
-});
+export const jump = createCoreOperation<{ to: CursorPosition } & InteractorMovementPayload>(
+  "cursor/jumpTo",
+  (state, services, payload): void => {
+    const cursor = CursorPosition.toCursor(payload.to);
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
+      if (navigator.navigateTo(cursor)) {
+        const oldCursor = interactor.mainCursor;
+        interactor.mainCursor = castDraft(navigator.cursor);
+        interactor.visualLineMovementHorizontalAnchor = undefined;
+        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        return true;
+      } else {
+        throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
+      }
+    });
+  }
+);
 
 function forEachInteractorInMovementTargetPayloadDo(
   state: Draft<EditorState>,

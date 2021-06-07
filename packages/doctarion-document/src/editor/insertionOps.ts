@@ -15,7 +15,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
   const graphemes = typeof payload === "string" ? Text.fromString(payload) : payload;
 
   if (state.interactors[Object.keys(state.interactors)[0]].isSelection) {
-    deleteSelection.run(state, services);
+    deleteSelection.operationRunFunction(state, services);
   }
 
   let nav = getCursorNavigatorAndValidate(state, services, 0);
@@ -107,7 +107,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
 
 export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink", (state, services, payload): void => {
   if (state.interactors[Object.keys(state.interactors)[0]].isSelection) {
-    deleteSelection.run(state, services);
+    deleteSelection.operationRunFunction(state, services);
   }
   state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
 

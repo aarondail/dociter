@@ -5,6 +5,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 
 const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
+const debugInteractors = DebugEditorHelpers.debugInteractorOrdering;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -14,11 +15,11 @@ const testDoc1 = doc(
 );
 
 describe("moveForward", () => {
-  it("behaves correctly at the end of the doc with cursor", () => {
+  it("behaves correctly at the end of the doc", () => {
     const editor = new Editor({ document: testDoc1 });
     // Jump to L in the "GOOGLE" text of the url link
     // Note the cursor would be at: GOOG|LE
-    editor.update(OPS.jumpTo({ path: "3/1/4", orientation: Before }));
+    editor.update(OPS.jump({ to: { path: "3/1/4", orientation: Before } }));
     editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
     expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/4 |>
@@ -40,31 +41,52 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
   });
+
+  // it("handles multiple cursors", () => {
+  //   const editor = new Editor({ document: testDoc1 });
+  //   // Jump to "GOOGLE" text of the url link
+  //   editor.update(OPS.jump({ to: { path: "3/1/0", orientation: Before } }));
+  //   // editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: Before } }));
+  //   // editor.update(OPS.addInteractor({ at: { path: "3/1/2", orientation: Before } }));
+
+  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
+  //   // editor.update(OPS.moveForward({ target: TargetInteractors.All }));
+  //   // expect(debugInteractors(editor)).toEqual("1.M (F) 3/1/0 |>, 2.M <| 3/1/1, 3.M <| 3/1/2");
+  //   // editor.update(OPS.moveForward({ target: TargetInteractors.AllActive }));
+  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
+  //   // // Should dedupe
+  //   // editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
+  //   // expect(debugInteractors(editor)).toEqual("1.M (F) <| 3/1/0, 2.M <| 3/1/1, 3.M <| 3/1/2");
+  // });
 });
 
 describe("jump", () => {
   it("errors on jumping to invalid paths", () => {
     const editor = new Editor({ document: testDoc1 });
 
-    expect(() => editor.update(OPS.jumpTo({ path: "4", orientation: Before }))).toThrowError(EditorOperationError);
+    expect(() => editor.update(OPS.jump({ to: { path: "4", orientation: Before } }))).toThrowError(
+      EditorOperationError
+    );
 
-    expect(() => editor.update(OPS.jumpTo({ path: "1/2/99", orientation: Before }))).toThrowError(EditorOperationError);
+    expect(() => editor.update(OPS.jump({ to: { path: "1/2/99", orientation: Before } }))).toThrowError(
+      EditorOperationError
+    );
   });
 
   it("jumping to non-graphemes non insertion-points is handled gracefully", () => {
     const editor = new Editor({ document: testDoc1 });
 
-    editor.update(OPS.jumpTo({ path: "0", orientation: Before }));
+    editor.update(OPS.jump({ to: { path: "0", orientation: Before } }));
     expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0/0
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
-    editor.update(OPS.jumpTo({ path: "", orientation: After }));
+    editor.update(OPS.jump({ to: { path: "", orientation: After } }));
     expect(debugState(editor)).toEqual(`
 CURSOR: 3/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
-    editor.update(OPS.jumpTo({ path: "1/2", orientation: Before }));
+    editor.update(OPS.jump({ to: { path: "1/2", orientation: Before } }));
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
