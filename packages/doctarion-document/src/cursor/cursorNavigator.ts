@@ -162,7 +162,7 @@ export class CursorNavigator {
     // navigateToNextCursorPosition is called) come up again and be handled in
     // the block above this loop.
     const backup = this.nodeNavigator.clone();
-    while (this.nodeNavigator.navigateForwardsInDfs({ skipDescendants })) {
+    while (this.nodeNavigator.navigateForwardsByDfs({ skipDescendants })) {
       const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.before) {
         this.currentOrientation = CursorOrientation.Before;
@@ -250,7 +250,7 @@ export class CursorNavigator {
     }
 
     const backup = this.nodeNavigator.clone();
-    while (this.nodeNavigator.navigateBackwardsInDfs({ skipDescendants })) {
+    while (this.nodeNavigator.navigateBackwardsByDfs({ skipDescendants })) {
       const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.after) {
         this.currentOrientation = CursorOrientation.After;

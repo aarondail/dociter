@@ -8,6 +8,9 @@ import { PathPart } from "./pathPart";
 // -----------------------------------------------------------------------------
 // This file defines Path types and functions which are used to locate Nodes in
 // a Document.
+//
+// Paths are ordered such that children come after parents and before siblings,
+// and siblings are ordered based on their index.
 // -----------------------------------------------------------------------------
 
 export type PathString = string;

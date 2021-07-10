@@ -56,7 +56,7 @@ export class Interactor {
     let fromPath = this.mainCursor.path;
     if (this.mainCursor.orientation === CursorOrientation.After) {
       const n = new NodeNavigator(document);
-      if (!n.navigateTo(fromPath) || !n.navigateForwardsInDfs()) {
+      if (!n.navigateTo(fromPath) || !n.navigateForwardsByDfs()) {
         return undefined;
       }
       fromPath = n.path;
@@ -65,7 +65,7 @@ export class Interactor {
     let toPath = this.selectionAnchorCursor.path;
     if (this.mainCursor.orientation === CursorOrientation.Before) {
       const n = new NodeNavigator(document);
-      if (!n.navigateTo(toPath) || !n.navigateBackwardsInDfs()) {
+      if (!n.navigateTo(toPath) || !n.navigateBackwardsByDfs()) {
         return undefined;
       }
       toPath = n.path;

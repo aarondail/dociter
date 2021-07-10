@@ -136,7 +136,7 @@ export class Range {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const chainLengthBefore = nav.chain.length;
-      if (!nav.navigateForwardsInDfs()) {
+      if (!nav.navigateForwardsByDfs()) {
         // If we can't navigate forward, then abort and return nothing
         return [];
       }
@@ -222,7 +222,7 @@ export class Range {
     }
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      if (!nav.navigateForwardsInDfs()) {
+      if (!nav.navigateForwardsByDfs()) {
         return;
       }
       callback(nav.chain);

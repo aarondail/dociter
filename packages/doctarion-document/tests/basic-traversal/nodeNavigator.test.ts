@@ -44,17 +44,17 @@ test("navigateToNextSibling", () => {
   expect(nav.navigateToNextSibling()).toBeFalsy();
 });
 
-test("navigateForwardsInDfs", () => {
+test("navigateForwardsByDfs", () => {
   const navigateUntilEndAndCollectPaths = (nav: NodeNavigator) => {
     const paths = [];
-    while (nav.navigateForwardsInDfs()) {
+    while (nav.navigateForwardsByDfs()) {
       paths.push(nav.path.toString());
     }
     return paths;
   };
 
   let nav = new NodeNavigator(doc());
-  expect(nav.navigateForwardsInDfs()).toBeFalsy();
+  expect(nav.navigateForwardsByDfs()).toBeFalsy();
 
   nav = new NodeNavigator(doc(paragraph()));
   expect(navigateUntilEndAndCollectPaths(nav)).toMatchInlineSnapshot(`
@@ -165,17 +165,17 @@ test("navigateForwardsInDfs", () => {
   `);
 });
 
-test("navigateReverseForwardsInDfs", () => {
+test("navigateReverseOfForwardsByDfs", () => {
   const navigateUntilEndAndCollectPaths = (nav: NodeNavigator) => {
     const paths = [];
-    while (nav.navigateReverseForwardsInDfs()) {
+    while (nav.navigateReverseOfForwardsByDfs()) {
       paths.push(debugPath(nav));
     }
     return paths;
   };
 
   let nav = new NodeNavigator(doc());
-  expect(nav.navigateForwardsInDfs()).toBeFalsy();
+  expect(nav.navigateForwardsByDfs()).toBeFalsy();
 
   nav = new NodeNavigator(doc(paragraph()));
   nav.navigateToEndOfDfs();
@@ -290,10 +290,10 @@ test("navigateReverseForwardsInDfs", () => {
   `);
 });
 
-test("navigateBackwardsInDfs", () => {
+test("navigateBackwardsByDfs", () => {
   const navigateUntilEndAndCollectPaths = (nav: NodeNavigator) => {
     const paths = [];
-    while (nav.navigateBackwardsInDfs()) {
+    while (nav.navigateBackwardsByDfs()) {
       paths.push(debugPath(nav));
     }
     return paths;

@@ -14,8 +14,8 @@ import { PathPart } from "./pathPart";
  * that state. That said, any data returned from the class won't be mutated by
  * future method calls (as the typescript type definitions say).
  *
- * For the DFS related methods in this class, see the image on this page to get
- * a clear idea of the order in which the DFS visits nodes:
+ * For the DFS related navigaqtion methods in this class, see the image on this
+ * page to get a clear idea of the order in which the DFS visits nodes:
  * https://en.wikipedia.org/wiki/Depth-first_search
  */
 export class NodeNavigator {
@@ -121,10 +121,18 @@ export class NodeNavigator {
    *
    * The navigateReverseForwardsInDfs method can be used to exactly iterate the
    * forwards DFS in reverse.
+   *
+   * The reason we have this (and use it in cursor navigation) is because when
+   * navigating backwards there are cases where we want to visit parent nodes,
+   * but just going backwards in the DFS would take us to the children first. A
+   * case where this is important is w/ after insertion points on elements that
+   * contain text (like InlineUrlLinks).
    */
-  public navigateBackwardsInDfs(options?: { readonly skipDescendants?: boolean }): boolean {
+  public navigateBackwardsByDfs(options?: { readonly skipDescendants?: boolean }): boolean {
     // In some cases you want to skip navigating through any descendants of the
-    // current node
+    // current node. E.g. in the cursor navigator when it is 'before' an
+    // InlineUrlLink that has contents... navigating backwards in this case should move off
+    // the InlineUrlLink, not into its children.
     if (!options?.skipDescendants) {
       const children = NodeUtils.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
@@ -146,9 +154,15 @@ export class NodeNavigator {
     }
   }
 
-  public navigateForwardsInDfs(options?: { readonly skipDescendants?: boolean }): boolean {
+  /**
+   * This navigates to the next node in a forward DFS. This will visit children
+   * before siblings.
+   */
+  public navigateForwardsByDfs(options?: { readonly skipDescendants?: boolean }): boolean {
     // In some cases you want to skip navigating through any descendants of the
-    // current node
+    // current node. E.g. in the cursor navigator when it is 'after' an
+    // InlineUrlLink that has contents... navigating forwards in this case should move off
+    // the InlineUrlLink, not into its children.
     if (!options?.skipDescendants) {
       const children = NodeUtils.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
@@ -176,7 +190,7 @@ export class NodeNavigator {
    * visit children before parents, making it an exact reverse of the iteration
    * of the forwards DFS navigation.
    */
-  public navigateReverseForwardsInDfs(): boolean {
+  public navigateReverseOfForwardsByDfs(): boolean {
     const backup = this.currentChain;
     if (this.navigateToPrecedingSibling()) {
       while (this.navigateToLastChild()) {
@@ -328,7 +342,7 @@ export class NodeNavigator {
   ): void {
     const n = this.clone();
     const ancestor = n.tip.node;
-    while (n.navigateForwardsInDfs() && n.chain.contains(ancestor)) {
+    while (n.navigateForwardsByDfs() && n.chain.contains(ancestor)) {
       if (options?.skipGraphemes && NodeUtils.isGrapheme(n.tip.node)) {
         // Skip all graphemes
         n.navigateToParent();
