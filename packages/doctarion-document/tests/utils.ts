@@ -4,7 +4,7 @@
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
-import { InteractorOrderingEntryCursor, InteractorStatus } from "../src/editor/interactor";
+import { InteractorOrderingEntryCursorType, InteractorStatus } from "../src/editor/interactor";
 import {
   Block,
   Document,
@@ -169,7 +169,7 @@ export const DebugEditorHelpers = (() => {
 
         const c = debugCursor(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          cursor === InteractorOrderingEntryCursor.Main ? interactor.mainCursor : interactor.selectionAnchorCursor!,
+          cursor === InteractorOrderingEntryCursorType.Main ? interactor.mainCursor : interactor.selectionAnchorCursor!,
           nav
         ).cursorDebug;
         const f = editor.focusedInteractor === interactor;
@@ -177,7 +177,7 @@ export const DebugEditorHelpers = (() => {
           f || interactor.status === InteractorStatus.Inactive
             ? `(${f ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
             : "";
-        return `${fakeId}.${cursor === InteractorOrderingEntryCursor.Main ? "M" : "Sa"} ${s}${c}`;
+        return `${fakeId}.${cursor === InteractorOrderingEntryCursorType.Main ? "M" : "Sa"} ${s}${c}`;
       })
       .join(", ");
   };

@@ -9,7 +9,7 @@ import {
   Interactor,
   InteractorId,
   InteractorOrderingEntry,
-  InteractorOrderingEntryCursor,
+  InteractorOrderingEntryCursorType,
   InteractorStatus,
 } from "../interactor";
 import { EditorState } from "../state";
@@ -34,7 +34,7 @@ export class EditorInteractorService {
     }
     this.editorState.interactors[newInteractor.id] = castDraft(newInteractor);
 
-    const newMainEntry = { id: newInteractor.id, cursor: InteractorOrderingEntryCursor.Main };
+    const newMainEntry = { id: newInteractor.id, cursor: InteractorOrderingEntryCursorType.Main };
     const insertionPoint = binarySearch(this.editorState.interactorOrdering, newMainEntry, this.comparator);
 
     if (insertionPoint >= 0) {
@@ -55,7 +55,7 @@ export class EditorInteractorService {
     );
 
     if (newInteractor.selectionAnchorCursor) {
-      const newSelectionEntry = { id: newInteractor.id, cursor: InteractorOrderingEntryCursor.SelectionAnchor };
+      const newSelectionEntry = { id: newInteractor.id, cursor: InteractorOrderingEntryCursorType.SelectionAnchor };
       const insertionPoint = binarySearch(this.editorState.interactorOrdering, newSelectionEntry, this.comparator);
       this.editorState.interactorOrdering.splice(
         insertionPoint >= 0 ? insertionPoint : (insertionPoint + 1) * -1,
@@ -76,14 +76,14 @@ export class EditorInteractorService {
       return;
     }
 
-    const mainEntry = { id, cursor: InteractorOrderingEntryCursor.Main };
+    const mainEntry = { id, cursor: InteractorOrderingEntryCursorType.Main };
     const mainEntryIndex = binarySearch(this.editorState.interactorOrdering, mainEntry, this.comparator);
     if (mainEntryIndex >= 0) {
       this.editorState.interactorOrdering.splice(mainEntryIndex, 1);
     }
 
     if (interactor.selectionAnchorCursor) {
-      const newSelectionEntry = { id, cursor: InteractorOrderingEntryCursor.SelectionAnchor };
+      const newSelectionEntry = { id, cursor: InteractorOrderingEntryCursorType.SelectionAnchor };
       const selectionEntryIndex = binarySearch(this.editorState.interactorOrdering, newSelectionEntry, this.comparator);
       if (selectionEntryIndex >= 0) {
         this.editorState.interactorOrdering.splice(selectionEntryIndex, 1);
@@ -93,7 +93,14 @@ export class EditorInteractorService {
     delete this.editorState.interactors[id];
   }
 
-  public *interactorCursorsAtOrAfter(cursor: Cursor): Generator<InteractorOrderingEntry> {
+  public *interactorCursorsAfter(
+    cursor: Cursor
+  ): Generator<{
+    // TODO make sure we can only call this service from inside na operation
+    readonly interactor: Draft<Interactor>;
+    readonly cursor: Cursor;
+    readonly cursorType: InteractorOrderingEntryCursorType;
+  }> {
     if (!this.editorState) {
       return;
     }
@@ -104,8 +111,31 @@ export class EditorInteractorService {
       startingIndex = startingIndex * -1;
     }
 
+    const start = this.editorState.interactorOrdering[startingIndex];
+    const startInteractor = this.editorState.interactors[start.id];
+    const startCursor =
+      start.cursor === InteractorOrderingEntryCursorType.SelectionAnchor
+        ? startInteractor.selectionAnchorCursor
+        : startInteractor.mainCursor;
+
     for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
-      yield this.editorState.interactorOrdering[i];
+      const current = this.editorState.interactorOrdering[i];
+      const interactor = this.editorState.interactors[current.id];
+      const cursor =
+        current.cursor === InteractorOrderingEntryCursorType.SelectionAnchor
+          ? interactor.selectionAnchorCursor!
+          : interactor.mainCursor;
+
+      // Skip any at the same position as the start
+      if (startCursor?.compareTo(cursor) === SimpleComparison.Equal) {
+        continue;
+      }
+
+      yield {
+        interactor,
+        cursorType: current.cursor,
+        cursor,
+      };
     }
   }
 
@@ -135,8 +165,10 @@ export class EditorInteractorService {
     const ai = this.editorState.interactors[a.id];
     const bi = this.editorState.interactors[b.id];
 
-    const afc = a.cursor === InteractorOrderingEntryCursor.SelectionAnchor ? ai.selectionAnchorCursor : ai.mainCursor;
-    const bfc = b.cursor === InteractorOrderingEntryCursor.SelectionAnchor ? bi.selectionAnchorCursor : bi.mainCursor;
+    const afc =
+      a.cursor === InteractorOrderingEntryCursorType.SelectionAnchor ? ai.selectionAnchorCursor : ai.mainCursor;
+    const bfc =
+      b.cursor === InteractorOrderingEntryCursorType.SelectionAnchor ? bi.selectionAnchorCursor : bi.mainCursor;
 
     if (!afc || !bfc) {
       return NaN;
@@ -160,13 +192,13 @@ export class EditorInteractorService {
         }
         if (a.cursor !== b.cursor) {
           // Put main cursors before selection anchor cursors
-          if (a.cursor === InteractorOrderingEntryCursor.SelectionAnchor) {
+          if (a.cursor === InteractorOrderingEntryCursorType.SelectionAnchor) {
             return 1;
           }
           return -1;
         }
         // Finally put main cursors that have a selection after main cursors that don't
-        if (a.cursor === InteractorOrderingEntryCursor.Main) {
+        if (a.cursor === InteractorOrderingEntryCursorType.Main) {
           if (ai.isSelection !== bi.isSelection) {
             if (ai.isSelection) {
               return 1;
@@ -198,7 +230,7 @@ export class EditorInteractorService {
       const b = this.editorState.interactorOrdering[i + 1];
       // We don't care about deduping selections at this point since its unclear
       // what the best behavior is
-      if (a.id === b.id || a.cursor === InteractorOrderingEntryCursor.SelectionAnchor) {
+      if (a.id === b.id || a.cursor === InteractorOrderingEntryCursorType.SelectionAnchor) {
         continue;
       }
       if (this.editorState.interactors[b.id].isSelection) {
@@ -239,7 +271,8 @@ export class EditorInteractorService {
     }
     const ai = this.editorState.interactors[a.id];
 
-    const afc = a.cursor === InteractorOrderingEntryCursor.SelectionAnchor ? ai.selectionAnchorCursor : ai.mainCursor;
+    const afc =
+      a.cursor === InteractorOrderingEntryCursorType.SelectionAnchor ? ai.selectionAnchorCursor : ai.mainCursor;
 
     if (!afc) {
       return NaN;
@@ -275,7 +308,7 @@ export class EditorInteractorService {
 
     // Take care of selectionAnchorCursor changes (if it was undefined or is now undefined)
     if (!oldInteractor?.selectionAnchorCursor && interactor.selectionAnchorCursor) {
-      const newSelectionEntry = { id, cursor: InteractorOrderingEntryCursor.SelectionAnchor };
+      const newSelectionEntry = { id, cursor: InteractorOrderingEntryCursorType.SelectionAnchor };
       const insertionPoint = binarySearch(this.editorState!.interactorOrdering, newSelectionEntry, this.comparator);
       this.editorState!.interactorOrdering.splice(
         insertionPoint >= 0 ? insertionPoint : (insertionPoint + 1) * -1,
@@ -284,7 +317,7 @@ export class EditorInteractorService {
       );
     } else if (oldInteractor?.selectionAnchorCursor && !interactor.selectionAnchorCursor) {
       const selectionEntryIndex = this.editorState!.interactorOrdering.findIndex(
-        (entry) => entry.id === id && entry.cursor === InteractorOrderingEntryCursor.SelectionAnchor
+        (entry) => entry.id === id && entry.cursor === InteractorOrderingEntryCursorType.SelectionAnchor
       );
       if (selectionEntryIndex >= 0) {
         this.editorState!.interactorOrdering.splice(selectionEntryIndex, 1);

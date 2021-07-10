@@ -6,7 +6,7 @@
 import { Range } from "../basic-traversal";
 import { Cursor } from "../cursor";
 
-import { InteractorId, InteractorOrderingEntryCursor, InteractorStatus } from "./interactor";
+import { InteractorId, InteractorOrderingEntryCursorType, InteractorStatus } from "./interactor";
 import { EditorState } from "./state";
 
 // -----------------------------------------------------------------------------
@@ -63,12 +63,14 @@ export function getTargetedInteractorIds(
   } else if (typeof identifier === "string") {
     switch (identifier) {
       case TargetInteractors.All:
-        return state.interactorOrdering.filter((e) => e.cursor === InteractorOrderingEntryCursor.Main).map((e) => e.id);
+        return state.interactorOrdering
+          .filter((e) => e.cursor === InteractorOrderingEntryCursorType.Main)
+          .map((e) => e.id);
       case TargetInteractors.AllActive:
         // eslint-disable-next-line no-case-declarations
         const ids: InteractorId[] = [];
         state.interactorOrdering
-          .filter((e) => e.cursor === InteractorOrderingEntryCursor.Main)
+          .filter((e) => e.cursor === InteractorOrderingEntryCursorType.Main)
           .map((e) => e.id)
           .forEach((id) => {
             const interactor = state.interactors[id];
