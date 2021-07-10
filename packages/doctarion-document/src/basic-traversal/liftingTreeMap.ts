@@ -1,3 +1,5 @@
+import { SimpleComparison } from "../miscUtils";
+
 import { Path } from "./path";
 import { PathPart } from "./pathPart";
 
@@ -13,7 +15,8 @@ interface InteriorNode<ElementType> {
 // Note this is mutable.
 interface EdgeNode<ElementType> {
   type: "EDGE";
-  // There can be more than one element, but these are ONLY elements add for the
+  path: Path;
+  // There can be more than one element, but these are ONLY elements added for the
   // exact path this node maps to. Elements for descendant paths are stored in
   // the liftedElements property (or dropped depending on config).
   elements: ElementType[];
@@ -74,12 +77,15 @@ export class LiftingPathMap<ElementType> {
       currentNode.type = "EDGE";
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       (currentNode as any).childNodes = undefined;
+      (currentNode as EdgeNode<ElementType>).path = path;
       (currentNode as EdgeNode<ElementType>).elements = [element];
       (currentNode as EdgeNode<ElementType>).liftedElements = [];
     } else {
       if (currentNode.type === "EDGE") {
-        if (pIndex === path.parts.length - 1) {
+        if (pIndex === path.parts.length) {
           currentNode.elements.push(element);
+        } else {
+          currentNode.liftedElements.push(element);
         }
       } else {
         // In this case we landed on an InteriorNode, which we have to convert
@@ -103,6 +109,7 @@ export class LiftingPathMap<ElementType> {
         currentNodeReadyForMutation.type = "EDGE";
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
         currentNodeReadyForMutation.childNodes = undefined;
+        (currentNodeReadyForMutation as EdgeNode<ElementType>).path = path;
         (currentNodeReadyForMutation as EdgeNode<ElementType>).elements = [element];
         (currentNodeReadyForMutation as EdgeNode<ElementType>).liftedElements = liftedElements;
       }
@@ -112,7 +119,7 @@ export class LiftingPathMap<ElementType> {
   /**
    * Returns all elements added at the exact path given.
    */
-  public get(path: Path): Pick<EdgeNode<ElementType>, "elements" | "liftedElements"> | undefined {
+  public get(path: Path): Pick<EdgeNode<ElementType>, "elements" | "liftedElements" | "path"> | undefined {
     let currentNode = this.root;
     let pIndex = 0;
     // eslint-disable-next-line no-constant-condition
@@ -139,6 +146,30 @@ export class LiftingPathMap<ElementType> {
       return currentNode;
     }
     return undefined;
+  }
+
+  /**
+   * Importantly, paths are ordered such that children come after parents and
+   * before siblings (see Path for more on that).
+   */
+  public getAllOrderedByPaths(): Pick<EdgeNode<ElementType>, "elements" | "liftedElements" | "path">[] {
+    const result = [];
+    for (const n of this.traverseNodeAndChildren(this.root)) {
+      if (n.type === "EDGE") {
+        result.push(n);
+      }
+    }
+
+    result.sort((a, b) => {
+      const cmp = a.path.compareToSimple(b.path);
+      if (cmp === SimpleComparison.Before) {
+        return -1;
+      } else if (cmp === SimpleComparison.After) {
+        return 1;
+      }
+      return 0;
+    });
+    return result;
   }
 
   private getKey(part: PathPart): PathPartKey {
