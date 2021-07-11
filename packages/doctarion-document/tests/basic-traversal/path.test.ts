@@ -1,6 +1,52 @@
 import { Path, PathComparison } from "../../src/basic-traversal/path";
 import { SimpleComparison } from "../../src/miscUtils";
 
+test("adjustDueToRelativeDeletionAt", () => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const p = Path.parse;
+  const t = (path: string, deletionAt: string) => p(path).adjustDueToRelativeDeletionAt(p(deletionAt)).toString();
+
+  // These should have no effect... even though the deletion (in some cases)
+  // removes the given path or an ancestor
+  expect(t("0/1", "0")).toEqual("0/1"); // Path deleted
+  expect(t("0/1", "0/1")).toEqual("0/1"); // Path deleted
+  expect(t("0/1", "0/1/2")).toEqual("0/1");
+  expect(t("0/1", "0/2")).toEqual("0/1");
+  expect(t("0/1", "0/0/0")).toEqual("0/1");
+  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual("0/1/2/3/4");
+  expect(t("", "10")).toEqual("");
+  expect(t("11", "")).toEqual("11"); // Path deleted
+  expect(t("15", "16")).toEqual("15");
+
+  // These should have an effect...
+  expect(t("15", "8")).toEqual("14");
+  expect(t("0/1", "0/0")).toEqual("0/0");
+  expect(t("0/1/2/3/4", "0/1/1")).toEqual("0/1/1/3/4");
+});
+
+test("adjustDueToRelativeInsertionBefore", () => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const p = Path.parse;
+  const t = (path: string, deletionAt: string) => p(path).adjustDueToRelativeInsertionBefore(p(deletionAt)).toString();
+
+  // These should have no effect... even though the deletion (in some cases)
+  // removes the given path or an ancestor
+  expect(t("0/1", "0/1/2")).toEqual("0/1");
+  expect(t("0/1", "0/2")).toEqual("0/1");
+  expect(t("0/1", "0/0/0")).toEqual("0/1");
+  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual("0/1/2/3/4");
+  expect(t("", "10")).toEqual("");
+  expect(t("11", "")).toEqual("11");
+  expect(t("15", "16")).toEqual("15");
+
+  // These should have an effect...
+  expect(t("0/1", "0")).toEqual("1/1");
+  expect(t("15", "8")).toEqual("16");
+  expect(t("0/1", "0/0")).toEqual("0/2");
+  expect(t("0/1", "0/1")).toEqual("0/2");
+  expect(t("0/1/2/3/4", "0/1/1")).toEqual("0/1/3/3/4");
+});
+
 test("compareTo", () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const p = Path.parse;

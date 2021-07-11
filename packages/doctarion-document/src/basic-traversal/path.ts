@@ -20,6 +20,85 @@ export class Path {
 
   public constructor(public readonly parts: readonly PathPart[]) {}
 
+  /**
+   * This adjusts this path to account for a deletion of a different path
+   * (passed in). If the deletion does not affect this path, the current
+   * instance is returned. Otherwise a new Path instance is returned.
+   *
+   * Also note that if the deletion path is a ancestor of this path, the current
+   * instance is returned.
+   */
+  public adjustDueToRelativeDeletionAt(at: Path): Path {
+    for (let i = 0; i < at.parts.length; i++) {
+      const a = this.parts[i];
+      const b = at.parts[i];
+
+      if (!a) {
+        // In this case the deletion is on some descendant
+        break;
+      }
+
+      const atTarget = i === at.parts.length - 1;
+      const cmp = b.compareTo(a);
+      if (atTarget) {
+        if (cmp === SimpleComparison.Before) {
+          const newParts = [...this.parts];
+          newParts[i] = newParts[i].modifyIndex(-1);
+          return new Path(newParts);
+        }
+        // No updates needed
+        return this;
+      } else {
+        if (cmp === SimpleComparison.Equal) {
+          continue;
+        } else {
+          break;
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * This adjusts this path to account for an insertion at a different path
+   * (passed in). If the insertion does not affect this path, the current
+   * instance is returned. Otherwise a new Path instance is returned.
+   */
+  public adjustDueToRelativeInsertionBefore(at: Path): Path {
+    for (let i = 0; i < at.parts.length; i++) {
+      const a = this.parts[i];
+      const b = at.parts[i];
+
+      if (!a) {
+        // In this case the insertion is on some descendant
+        break;
+      }
+
+      const atTarget = i === at.parts.length - 1;
+      const cmp = b.compareTo(a);
+      if (atTarget) {
+        // The check for Equal here is one of two differences from the deletion
+        // algorithm above...
+        if (cmp === SimpleComparison.Before || cmp === SimpleComparison.Equal) {
+          const newParts = [...this.parts];
+          // The use of 1 instead of -1 is the other difference from the
+          // deletion algorithm above...
+          newParts[i] = newParts[i].modifyIndex(1);
+          return new Path(newParts);
+        }
+        // No updates needed
+        return this;
+      } else {
+        if (cmp === SimpleComparison.Equal) {
+          continue;
+        } else {
+          break;
+        }
+      }
+    }
+    return this;
+  }
+
   public compareTo(other: Path): PathComparison {
     const from = this.parts;
     const to = other.parts;
@@ -40,18 +119,19 @@ export class Path {
         return PathComparison.Ancestor;
       } else if (!b) {
         return PathComparison.Descendent;
-      } else if (a.equalTo(b)) {
-        continue;
       } else {
-        const aIndex = a.index;
-        const bIndex = b.index;
+        const cmp = a.compareTo(b);
+        if (cmp === SimpleComparison.Equal) {
+          continue;
+        }
+
         if (i < maxLen - 1) {
           // OK we are still in the middle of the paths
           // This also covers the cases where the two paths have unequal lengths
-          return aIndex < bIndex ? PathComparison.EarlierBranch : PathComparison.LaterBranch;
+          return cmp === SimpleComparison.Before ? PathComparison.EarlierBranch : PathComparison.LaterBranch;
         } else {
           // Same length and we must be at the end
-          return aIndex < bIndex ? PathComparison.EarlierSibling : PathComparison.LaterSibling;
+          return cmp === SimpleComparison.Before ? PathComparison.EarlierSibling : PathComparison.LaterSibling;
         }
       }
     }
