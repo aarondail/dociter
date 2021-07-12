@@ -1,4 +1,9 @@
-import { Path, PathComparison } from "../../src/basic-traversal/path";
+import {
+  Path,
+  PathAdjustmentDueToRelativeDeletionNoChangeReason,
+  PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason,
+  PathComparison,
+} from "../../src/basic-traversal/path";
 import { SimpleComparison } from "../../src/miscUtils";
 
 test("adjustDueToRelativeDeletionAt", () => {
@@ -6,17 +11,21 @@ test("adjustDueToRelativeDeletionAt", () => {
   const p = Path.parse;
   const t = (path: string, deletionAt: string) => p(path).adjustDueToRelativeDeletionAt(p(deletionAt)).toString();
 
-  // These should have no effect... even though the deletion (in some cases)
-  // removes the given path or an ancestor
-  expect(t("0/1", "0")).toEqual("0/1"); // Path deleted
-  expect(t("0/1", "0/1")).toEqual("0/1"); // Path deleted
-  expect(t("0/1", "0/1/2")).toEqual("0/1");
-  expect(t("0/1", "0/2")).toEqual("0/1");
-  expect(t("0/1", "0/0/0")).toEqual("0/1");
-  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual("0/1/2/3/4");
-  expect(t("", "10")).toEqual("");
-  expect(t("11", "")).toEqual("11"); // Path deleted
-  expect(t("15", "16")).toEqual("15");
+  expect(t("0/1", "0")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor);
+  expect(t("11", "")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor);
+
+  expect(t("0/1", "0/1")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual);
+  expect(t("", "")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual);
+
+  expect(t("0/1", "0/1/2")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseDescendant);
+  expect(t("", "10")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseDescendant);
+
+  expect(t("0/1", "0/2")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason);
+  expect(t("0/1", "0/0/0")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason);
+  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual(
+    PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason
+  );
+  expect(t("15", "16")).toEqual(PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason);
 
   // These should have an effect...
   expect(t("15", "8")).toEqual("14");
@@ -29,15 +38,18 @@ test("adjustDueToRelativeInsertionBefore", () => {
   const p = Path.parse;
   const t = (path: string, deletionAt: string) => p(path).adjustDueToRelativeInsertionBefore(p(deletionAt)).toString();
 
-  // These should have no effect... even though the deletion (in some cases)
-  // removes the given path or an ancestor
-  expect(t("0/1", "0/1/2")).toEqual("0/1");
-  expect(t("0/1", "0/2")).toEqual("0/1");
-  expect(t("0/1", "0/0/0")).toEqual("0/1");
-  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual("0/1/2/3/4");
-  expect(t("", "10")).toEqual("");
-  expect(t("11", "")).toEqual("11");
-  expect(t("15", "16")).toEqual("15");
+  expect(t("0/1", "0/1/2")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeBecauseDescendant);
+  expect(t("", "10")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeBecauseDescendant);
+
+  expect(t("0/1", "0/2")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason);
+  expect(t("0/1", "0/0/0")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason);
+  expect(t("0/1/2/3/4", "0/1/2/4")).toEqual(
+    PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason
+  );
+  expect(t("11", "")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason);
+  expect(t("15", "16")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason);
+
+  expect(t("", "")).toEqual(PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason);
 
   // These should have an effect...
   expect(t("0/1", "0")).toEqual("1/1");

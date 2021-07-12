@@ -15,6 +15,18 @@ import { PathPart } from "./pathPart";
 
 export type PathString = string;
 
+export enum PathAdjustmentDueToRelativeDeletionNoChangeReason {
+  NoChangeBecauseEqual = "NO_CHANGE_BECAUSE_EQUAL",
+  NoChangeBecauseAncestor = "NO_CHANGE_BECAUSE_ANCESTOR",
+  NoChangeBecauseDescendant = "NO_CHANGE_BECAUSE_DESCENDANT",
+  NoChangeForAnyOtherReason = "NO_CHANGE_FOR_ANY_OTHER_REASON",
+}
+
+export enum PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason {
+  NoChangeBecauseDescendant = "NO_CHANGE_BECAUSE_DESCENDANT",
+  NoChangeForAnyOtherReason = "NO_CHANGE_FOR_ANY_OTHER_REASON",
+}
+
 export class Path {
   [immerable] = true;
 
@@ -22,20 +34,21 @@ export class Path {
 
   /**
    * This adjusts this path to account for a deletion of a different path
-   * (passed in). If the deletion does not affect this path, the current
-   * instance is returned. Otherwise a new Path instance is returned.
-   *
-   * Also note that if the deletion path is a ancestor of this path, the current
-   * instance is returned.
+   * (passed in).
    */
-  public adjustDueToRelativeDeletionAt(at: Path): Path {
+  public adjustDueToRelativeDeletionAt(at: Path): PathAdjustmentDueToRelativeDeletionNoChangeReason | Path {
+    if (at.parts.length === 0) {
+      return this.parts.length > 0
+        ? PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor
+        : PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual;
+    }
+
     for (let i = 0; i < at.parts.length; i++) {
       const a = this.parts[i];
       const b = at.parts[i];
 
       if (!a) {
-        // In this case the deletion is on some descendant
-        break;
+        return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseDescendant;
       }
 
       const atTarget = i === at.parts.length - 1;
@@ -45,33 +58,42 @@ export class Path {
           const newParts = [...this.parts];
           newParts[i] = newParts[i].modifyIndex(-1);
           return new Path(newParts);
+        } else if (cmp === SimpleComparison.Equal) {
+          if (this.parts.length === at.parts.length) {
+            return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual;
+          } else {
+            return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor;
+          }
         }
-        // No updates needed
-        return this;
+        return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason;
       } else {
         if (cmp === SimpleComparison.Equal) {
           continue;
         } else {
-          break;
+          return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason;
         }
       }
     }
-    return this;
+
+    return PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeForAnyOtherReason;
   }
 
   /**
    * This adjusts this path to account for an insertion at a different path
-   * (passed in). If the insertion does not affect this path, the current
-   * instance is returned. Otherwise a new Path instance is returned.
+   * (passed in).
    */
-  public adjustDueToRelativeInsertionBefore(at: Path): Path {
+  public adjustDueToRelativeInsertionBefore(at: Path): PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason | Path {
+    if (at.parts.length === 0) {
+      // One minor change from above algorithm here
+      return PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason;
+    }
+
     for (let i = 0; i < at.parts.length; i++) {
       const a = this.parts[i];
       const b = at.parts[i];
 
       if (!a) {
-        // In this case the insertion is on some descendant
-        break;
+        return PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeBecauseDescendant;
       }
 
       const atTarget = i === at.parts.length - 1;
@@ -87,16 +109,17 @@ export class Path {
           return new Path(newParts);
         }
         // No updates needed
-        return this;
+        return PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason;
       } else {
         if (cmp === SimpleComparison.Equal) {
           continue;
         } else {
-          break;
+          return PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason;
         }
       }
     }
-    return this;
+
+    return PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason.NoChangeForAnyOtherReason;
   }
 
   public compareTo(other: Path): PathComparison {
