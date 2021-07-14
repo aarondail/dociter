@@ -23,9 +23,15 @@ import {
 import { EditorState } from "./state";
 
 export interface EditorConfig {
+  // For reasons I dont fully understand typescript doesn't allow you to pass an
+  // element with type `EditorOperation<void, void>` if we use `unknown` instead of
+  // `any` here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly additionalOperations?: readonly EditorOperation<any, unknown, string>[];
   readonly document: Document;
   readonly cursor?: Cursor;
-  readonly provideService?: (
+  readonly omitDefaultInteractor?: boolean;
+  readonly provideServices?: (
     services: EditorProvidedServices,
     events: EditorEvents
   ) => Partial<EditorProvidableServices>;
@@ -42,7 +48,13 @@ export class Editor {
   private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
-  public constructor({ document: initialDocument, cursor: initialCursor, provideService }: EditorConfig) {
+  public constructor({
+    document: initialDocument,
+    cursor: initialCursor,
+    provideServices,
+    omitDefaultInteractor,
+    additionalOperations,
+  }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
 
     this.state = {
@@ -69,10 +81,10 @@ export class Editor {
       tracking: new EditorNodeTrackingService(idGenerator, this.events),
     };
 
-    if (provideService) {
+    if (provideServices) {
       this.operationServices = {
         ...this.operationServices,
-        ...provideService(this.operationServices, this.events),
+        ...provideServices(this.operationServices, this.events),
       };
     }
 
@@ -82,6 +94,11 @@ export class Editor {
     this.operationRegistry = new Map();
     for (const op of CORE_OPERATIONS) {
       this.operationRegistry.set(op.operationName, op);
+    }
+    if (additionalOperations) {
+      for (const op of additionalOperations) {
+        this.operationRegistry.set(op.operationName, op);
+      }
     }
 
     // Assign initial ids... note this must happen before the calls to update
@@ -95,15 +112,17 @@ export class Editor {
     });
 
     // Create first interactor and focus it
-    let cursor = initialCursor;
-    if (!cursor) {
-      const cn = new CursorNavigator(this.state.document, undefined);
-      cn.navigateTo(new Path([]), CursorOrientation.On);
-      cn.navigateToNextCursorPosition();
-      cn.navigateToPrecedingCursorPosition();
-      cursor = cn.cursor;
+    if (!omitDefaultInteractor) {
+      let cursor = initialCursor;
+      if (!cursor) {
+        const cn = new CursorNavigator(this.state.document, undefined);
+        cn.navigateTo(new Path([]), CursorOrientation.On);
+        cn.navigateToNextCursorPosition();
+        cn.navigateToPrecedingCursorPosition();
+        cursor = cn.cursor;
+      }
+      this.update(addInteractor({ at: cursor, focused: true }));
     }
-    this.update(addInteractor({ at: cursor, focused: true }));
   }
 
   public get focusedInteractor(): Interactor | undefined {

@@ -93,50 +93,38 @@ export class EditorInteractorService {
     delete this.editorState.interactors[id];
   }
 
-  public *interactorCursorsAfter(
+  public interactorCursorsAtOrAfter(
     cursor: Cursor
-  ): Generator<{
-    // TODO make sure we can only call this service from inside na operation
+  ): readonly {
     readonly interactor: Draft<Interactor>;
-    readonly cursor: Cursor;
     readonly cursorType: InteractorOrderingEntryCursorType;
-  }> {
+  }[] {
     if (!this.editorState) {
-      return;
+      return [];
     }
+
+    const results = [];
+    // console.log(immer.current(this.editorState.interactorOrdering));
+    // console.log(
+    //   Object.values(this.editorState.interactors)[0].mainCursor.path.toString(),
+    //   Object.values(this.editorState.interactors)[0].mainCursor.orientation
+    // );
 
     let startingIndex = binarySearch(this.editorState.interactorOrdering, cursor, this.findCursorComparator);
 
     if (startingIndex < 0) {
-      startingIndex = startingIndex * -1;
+      // In this case the startingIndex is saying the target is (or would be)
+      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
+      startingIndex = (startingIndex + 1) * -1;
     }
-
-    const start = this.editorState.interactorOrdering[startingIndex];
-    const startInteractor = this.editorState.interactors[start.id];
-    const startCursor =
-      start.cursor === InteractorOrderingEntryCursorType.SelectionAnchor
-        ? startInteractor.selectionAnchorCursor
-        : startInteractor.mainCursor;
 
     for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
       const current = this.editorState.interactorOrdering[i];
       const interactor = this.editorState.interactors[current.id];
-      const cursor =
-        current.cursor === InteractorOrderingEntryCursorType.SelectionAnchor
-          ? interactor.selectionAnchorCursor!
-          : interactor.mainCursor;
 
-      // Skip any at the same position as the start
-      if (startCursor?.compareTo(cursor) === SimpleComparison.Equal) {
-        continue;
-      }
-
-      yield {
-        interactor,
-        cursorType: current.cursor,
-        cursor,
-      };
+      results.push({ interactor, cursorType: current.cursor });
     }
+    return results;
   }
 
   public notifyUpdated(id: InteractorId | InteractorId[]): void {
@@ -278,6 +266,8 @@ export class EditorInteractorService {
       return NaN;
     }
 
+    const x = afc.compareTo(needle);
+    // console.log("In binary search, comparing: ", afc.toString(), "to needle ", needle.toString(), " result => ", x);
     switch (afc.compareTo(needle)) {
       case SimpleComparison.Before:
         return -1;
