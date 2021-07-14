@@ -64,11 +64,36 @@ export function getCursorNavigatorFor(
   return nav;
 }
 
+export function getUnselectedInteractors<T extends OperationInteractorTarget | OperationCursorTarget>(
+  state: Draft<EditorState>,
+  target: T,
+  selectedTargets: (T extends OperationInteractorTarget
+    ? { interactor: Draft<Interactor>; navigator: CursorNavigator }
+    : { navigator: CursorNavigator })[]
+): Draft<Interactor>[] {
+  if (isOperationInteractorTarget(target)) {
+    const set = new Set();
+    for (const target of selectedTargets) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      set.add(((target as any).interactor as Interactor).id);
+    }
+    const result = [];
+    for (const interactor of Object.values(state.interactors)) {
+      if (!set.has(interactor.id)) {
+        result.push(interactor);
+      }
+    }
+    return result;
+  } else if (isOperationCursorTarget(target)) {
+    return Object.values(state.interactors);
+  }
+  return [];
+}
+
 /**
  * Used after the document has been updated in an operation to make sure the
  * element chain of the document has updated elements.
  */
-// TODO delete?
 export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
   const n = new CursorNavigator(nav.document);
   n.navigateToUnchecked(nav.cursor);
