@@ -217,11 +217,73 @@ function preprocessNodeForDeletion(
         }
 
         let index = tip.pathPart.index;
-        if (navigator.cursor.orientation === CursorOrientation.Before) {
-          index--;
+        if (direction === DeleteAtDirection.Backward) {
+          if (navigator.cursor.orientation === CursorOrientation.Before) {
+            index--;
+          }
+        } else {
+          if (navigator.cursor.orientation === CursorOrientation.After) {
+            index++;
+            nodeToDelete.navigateToNextSibling();
+          }
         }
 
-        if (index !== -1) {
+        if (index === -1) {
+          // This case is typically when we are on the very first code point of
+          // the very first inline text in a block element. That is because the
+          // cursor navigation code prefers to give the cursor an after
+          // orientation in most cases except for the first character of the
+          // first inline text in a block. But, not all cases.
+          //
+          // The other case this can happen is in a block with multiple inlines
+          // and, due to line wrapping, we prefer the before orientation for
+          // code points that start a new line (visually).
+          //
+          // In the code here, we just handle the case where we are deleting
+          // backwards from one InlineText to another inside the same block
+          // (e.g. ParagraphBlock)
+          const navPrime = navigator.clone();
+          if (
+            parent.node instanceof InlineText &&
+            navPrime.navigateToParentUnchecked() &&
+            navPrime.navigateToPrecedingSiblingUnchecked() &&
+            navPrime.navigateToLastDescendantCursorPosition()
+          ) {
+            if (navPrime.cursor.orientation === CursorOrientation.Before) {
+              navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+            }
+            // Proceed with deletion at the end of the prior (assumed)
+            // InlineText) ...
+            return preprocessNodeForDeletion(navPrime, direction);
+          }
+          // If we get here, probably this is the first InlineText in a block
+          // which for now we don't handle.  In the future this may need to
+          // delete "backwards" from one block to another. But for now that is
+          // not implemented.
+          return undefined;
+        } else if (index === parent.node.children.length) {
+          // In this case we are deleting one past the end of the current InlineText
+          // This is pretty similar to the situation above just the obverse.
+          const navPrime = navigator.clone();
+          if (
+            parent.node instanceof InlineText &&
+            navPrime.navigateToParentUnchecked() &&
+            navPrime.navigateToNextSiblingUnchecked() &&
+            navPrime.navigateToFirstDescendantCursorPosition()
+          ) {
+            if (navPrime.cursor.orientation === CursorOrientation.After) {
+              navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
+            }
+            // Proceed with deletion at the end of the prior (assumed)
+            // InlineText)
+            return preprocessNodeForDeletion(navPrime, direction);
+          }
+          // If we get here, probably this is the last InlineText in a block
+          // which for now we don't handle.  In the future this may need to
+          // delete "forwards" from one block to another. But for now that is
+          // not implemented.
+          return undefined;
+        } else {
           if (parent.node.text.length === 1 && parent.node instanceof InlineText) {
             // In this case we are about to remove the last character in an
             // inline text In this case, we prefer to delete the inline text.
@@ -235,9 +297,7 @@ function preprocessNodeForDeletion(
                 nav2.navigateToLastDescendantCursorPosition();
                 return nav2;
               },
-              // navigator,
               nodeToDelete: navPrime,
-              // oldBehaviorToDeleteSoon: "            deleteNode(navPrime, services);",
             };
           } else {
             // In this case, the nodeToDelete is already on the right node
@@ -272,20 +332,6 @@ function preprocessNodeForDeletion(
 
             return { newNavigatorPosition: navigator, nodeToDelete };
           }
-        } else {
-          // In this case we are deleting the character behind this one. This
-          // doesn't need to do anything in the case of non-InlineText's but for
-          // InlineTexts it can try to delete the actual prior text. But because
-          // of the way the cursor navigator works this genreally won't happen
-          // because it almost always prefers after orientation for graphemes except
-          // when it absolutely cannot make that work.
-          //
-          // To make our lives easier we just do nothing here for now. I
-          // think this is ok...
-          //
-          // In the future this may need to delete "backwards" from one block
-          // to another. But for now that is not implemented.
-          return undefined;
         }
       });
     case PositionClassification.EmptyInsertionPoint:

@@ -38,6 +38,10 @@ export class CursorNavigator {
     return new Cursor(this.nodeNavigator.path, this.currentOrientation);
   }
 
+  public changeCursorOrientationUnchecked(orientation: CursorOrientation): void {
+    this.currentOrientation = orientation;
+  }
+
   public classifyCurrentPosition(): PositionClassification {
     return PositionClassification.classify(this.nodeNavigator);
   }
