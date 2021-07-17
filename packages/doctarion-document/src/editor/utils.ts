@@ -91,16 +91,6 @@ export function getUnselectedInteractors<T extends OperationInteractorTarget | O
 }
 
 /**
- * Used after the document has been updated in an operation to make sure the
- * element chain of the document has updated elements.
- */
-export function refreshNavigator(nav: CursorNavigator): CursorNavigator {
-  const n = new CursorNavigator(nav.document);
-  n.navigateToUnchecked(nav.cursor);
-  return n;
-}
-
-/**
  * The returned interactors (if there are interactors) are in the exact same
  * order as they appear in the interactors.ordered list.
  */

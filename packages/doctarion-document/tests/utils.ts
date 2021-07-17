@@ -4,7 +4,12 @@
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
 import { Editor, EditorState } from "../src/editor";
-import { InteractorOrderingEntryCursorType, InteractorStatus } from "../src/editor/interactor";
+import {
+  Interactor,
+  InteractorId,
+  InteractorOrderingEntryCursorType,
+  InteractorStatus,
+} from "../src/editor/interactor";
 import {
   Block,
   Document,
@@ -182,30 +187,54 @@ export const DebugEditorHelpers = (() => {
       .join(", ");
   };
 
-  const debugEditorStateSimple = (editor: Editor) => {
+  const debugEditorStateForInteractor = (editor: Editor, interactor: Interactor, description?: string) => {
     const nav = new NodeNavigator(editor.document);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const c = editor.focusedInteractor?.mainCursor;
-    if (!c) {
-      throw new Error("There is no focused interactor.");
+    if (interactor.isSelection) {
+      throw new Error("The interactor is a selection.");
     }
-    if (editor.focusedInteractor?.isSelection) {
-      throw new Error("The focused interactor is a selection.");
-    }
-    const { cursorDebug, chain } = debugCursor(c, nav);
+    const { cursorDebug, chain } = debugCursor(interactor.mainCursor, nav);
     if (chain) {
       const elementString = debugElementChainSimple(chain);
-      return `
+      return `${description || ""}
 CURSOR: ${cursorDebug}
 SLICE:  ${elementString}`;
     } else {
-      return `
+      return `${description || ""}
 CURSOR: ${cursorDebug}
-SLICE:  !INVALID CURSOR POSITION (probably not a grapheme or insertion point?)!
+SLICE:  !INVALID CURSOR POSITION!
 DOCUMENT BLOCKS:
 ${JSON.stringify(editor.document.children, undefined, 4)}
 `;
     }
+  };
+
+  const debugEditorStateSimple = (editor: Editor) => {
+    if (!editor.focusedInteractor) {
+      throw new Error("There is no focused interactor.");
+    }
+    return debugEditorStateForInteractor(editor, editor.focusedInteractor);
+  };
+
+  const debugEditorStateLessSimple = (editor: Editor) => {
+    return editor.interactorOrdering
+      .filter((i) => i.cursor === InteractorOrderingEntryCursorType.Main)
+      .map((i, index) => {
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        return debugEditorStateForInteractor(editor, editor.interactors[i.id], "INTR. #" + (index + 1));
+      })
+      .join("\n");
+  };
+
+  const debugBlockAtInteractor = (editor: Editor | EditorState, interactorId: InteractorId): string => {
+    const i = editor.interactors[interactorId];
+    const c = i.mainCursor;
+    if (i.isSelection) {
+      throw new Error("The focused interactor is a selection.");
+    }
+    const prePath = c.path;
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    const path = "" + prePath?.parts[0].index;
+    return debugBlockSimple(editor.document, path);
   };
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {
@@ -218,14 +247,15 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
     if (!c) {
       throw new Error("There is no focused interactor.");
     }
-    if (i.isSelection) {
-      throw new Error("The focused interactor is a selection.");
-    }
-    const prePath = c.path;
-    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-    const path = "" + prePath?.parts[0].index;
-    return debugBlockSimple(editor.document, path);
+    return debugBlockAtInteractor(editor, i.id);
   };
 
-  return { debugSoloNode, debugInteractorOrdering, debugEditorStateSimple, debugCurrentBlock };
+  return {
+    debugSoloNode,
+    debugInteractorOrdering,
+    debugEditorStateSimple,
+    debugEditorStateLessSimple,
+    debugCurrentBlock,
+    debugBlockAtInteractor,
+  };
 })();

@@ -187,16 +187,6 @@ export class Path {
     return lodash.isEqual(this.parts, other.parts);
   }
 
-  // replaceParent(path: Path, fn: (label: PathPartLabel, index: number) => PathPart): Path {
-  //   if (path.length <= 1) {
-  //     return path;
-  //   }
-  //   const newPath = [...path];
-  //   const parent = newPath[newPath.length - 2];
-  //   newPath[newPath.length - 2] = fn(parent[0], parent[1]);
-  //   return newPath;
-  // },
-
   public replaceTip(newTip: PathPart): Path {
     if (this.parts.length <= 1) {
       return this;
@@ -208,6 +198,13 @@ export class Path {
 
   public toString(): string {
     return this.parts.map((p) => p.toString()).join("/");
+  }
+
+  public withoutTip(): Path {
+    if (this.parts.length === 0) {
+      return this;
+    }
+    return new Path(this.parts.slice(0, this.parts.length - 1));
   }
 
   public static parse(s: PathString): Path {

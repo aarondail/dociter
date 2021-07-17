@@ -11,7 +11,7 @@ import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { CursorTargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
-import { ifLet, refreshNavigator, selectTargets } from "./utils";
+import { ifLet, selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -85,17 +85,27 @@ export const deleteAt = createCoreOperation<
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const primary = lodash.first(toDeleteEntry.elements)!;
 
+    console.log("deleteing node: ", primary.nodeToDelete.path.toString());
     deleteNode(primary.nodeToDelete, services);
 
     const postDeleteCursor = (primary.newNavigatorPosition instanceof CursorNavigator
       ? primary.newNavigatorPosition
       : primary.newNavigatorPosition()
     ).cursor;
+    const n3 = new NodeNavigator(state.document);
+    n3.navigateTo(postDeleteCursor.path);
+    console.log(
+      "postdelecursor ",
+      postDeleteCursor.toString(),
+      immer.isDraft(n3.tip.node) ? immer.current(n3.tip.node) : n3.tip.node
+    );
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
-    for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(postDeleteCursor)) {
-      // console.log("HERE in updating interactor", immer.current(interactor), cursorType, postDeleteCursor.toString());
+    for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
+      new Cursor(primary.nodeToDelete.path, CursorOrientation.Before)
+    )) {
+      console.log("HERE in updating interactor", immer.current(interactor), cursorType, postDeleteCursor.toString());
 
       const newCursorOrNoChangeReason = (cursorType === InteractorOrderingEntryCursorType.Main
         ? interactor.mainCursor
@@ -103,7 +113,7 @@ export const deleteAt = createCoreOperation<
           interactor.selectionAnchorCursor!
       ).adjustDueToRelativeDeletionAt(primary.nodeToDelete.path);
 
-      // console.log(newCursorOrNoChangeReason.toString());
+      console.log(newCursorOrNoChangeReason.toString());
 
       if (newCursorOrNoChangeReason instanceof Cursor) {
         if (cursorType === InteractorOrderingEntryCursorType.Main) {
@@ -209,7 +219,9 @@ function preprocessNodeForDeletion(
   const navigator = startingNavigator.clone();
   const nodeToDelete = navigator.toNodeNavigator();
 
-  switch (navigator.classifyCurrentPosition()) {
+  console.log(navigator.cursor.toString(), "::::", nodeToDelete.tip.node);
+  const cursorPositionType = navigator.classifyCurrentPosition();
+  switch (cursorPositionType) {
     case PositionClassification.Grapheme:
       return ifLet(navigator.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
         if (!NodeUtils.isTextContainer(parent.node)) {
@@ -227,7 +239,7 @@ function preprocessNodeForDeletion(
             nodeToDelete.navigateToNextSibling();
           }
         }
-
+        console.log("B", index);
         if (index === -1) {
           // This case is typically when we are on the very first code point of
           // the very first inline text in a block element. That is because the
@@ -288,14 +300,20 @@ function preprocessNodeForDeletion(
             // In this case we are about to remove the last character in an
             // inline text In this case, we prefer to delete the inline text.
             const navPrime = navigator.toNodeNavigator();
+            console.log(navPrime.path.toString());
             navPrime.navigateToParent();
             return {
               newNavigatorPosition: () => {
-                const nav2 = refreshNavigator(navigator);
-                nav2.navigateToParentUnchecked();
-                nav2.navigateToPrecedingSiblingUnchecked();
-                nav2.navigateToLastDescendantCursorPosition();
-                return nav2;
+                return retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction);
+                // const nav2 = refreshNavigator(navigator);
+                // console.log("nav2", nav2.cursor.toString());
+                // nav2.navigateToParentUnchecked();
+                // console.log("nav2", nav2.cursor.toString());
+                // nav2.navigateToPrecedingSiblingUnchecked();
+                // console.log("nav2", nav2.cursor.toString());
+                // nav2.navigateToLastDescendantCursorPosition();
+                // console.log("nav2", nav2.cursor.toString());
+                // return nav2;
               },
               nodeToDelete: navPrime,
             };
@@ -336,27 +354,10 @@ function preprocessNodeForDeletion(
       });
     case PositionClassification.EmptyInsertionPoint:
     case PositionClassification.NavigableNonTextNode:
-      if (direction === undefined || direction === DeleteAtDirection.Backward) {
-        return {
-          nodeToDelete,
-          newNavigatorPosition: () => {
-            const nav2 = refreshNavigator(navigator);
-            nav2.navigateToPrecedingSiblingUnchecked();
-            nav2.navigateToLastDescendantCursorPosition();
-            return nav2;
-          },
-        };
-      } else {
-        return {
-          nodeToDelete,
-          newNavigatorPosition: () => {
-            const nav2 = refreshNavigator(navigator);
-            nav2.navigateToPrecedingSiblingUnchecked();
-            nav2.navigateToLastDescendantCursorPosition();
-            return nav2;
-          },
-        };
-      }
+      return {
+        nodeToDelete,
+        newNavigatorPosition: () => retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction),
+      };
     case PositionClassification.InBetweenInsertionPoint:
       if (direction === undefined || direction === DeleteAtDirection.Backward) {
         navigator.navigateToPrecedingCursorPosition();
@@ -368,4 +369,57 @@ function preprocessNodeForDeletion(
         nodeToDelete: null,
       };
   }
+}
+
+function retargtedNavigatorAfterDeletion(
+  nav: CursorNavigator,
+  positionClassification: PositionClassification,
+  direction?: DeleteAtDirection
+): CursorNavigator {
+  // The node that the navigator is pointed to is now deleted, along with
+  // (possibly) its parent and even grand parent (I think?).
+
+  const n = new CursorNavigator(nav.document);
+  if (n.navigateToUnchecked(nav.cursor)) {
+    console.log("qqqq1");
+    // OK we were able to navigate to the same cursor location but a different
+    // node
+    if (positionClassification === PositionClassification.Grapheme) {
+      console.log("qqqq2");
+      n.navigateToParentUnchecked();
+    }
+    if (n.navigateToPrecedingSiblingUnchecked()) {
+      console.log("qqqq20a", n.cursor.toString());
+      n.navigateToLastDescendantCursorPosition();
+    } else {
+      console.log("qqqq20b");
+      n.navigateToFirstDescendantCursorPosition();
+    }
+  } else {
+    console.log("qqqq1b");
+    // Try one level higher as a fallback
+    const p = nav.cursor.path.withoutTip();
+    if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
+      console.log("qqqq3a");
+
+      n.navigateToLastDescendantCursorPosition();
+      // if (n.navigateToPrecedingSiblingUnchecked()) {
+      //   n.navigateToLastDescendantCursorPosition();
+      // } else {
+      //   n.navigateToFirstDescendantCursorPosition();
+      // }
+    } else {
+      console.log("qqqq3b");
+      // OK try one more level higher again
+      const p2 = nav.cursor.path.withoutTip().withoutTip();
+      if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
+        // Not sure this is really right...
+        n.navigateToLastDescendantCursorPosition();
+        console.log("qqqq4");
+      } else {
+        throw new Error("Could not refresh navigator is not a valid cursor");
+      }
+    }
+  }
+  return n;
 }

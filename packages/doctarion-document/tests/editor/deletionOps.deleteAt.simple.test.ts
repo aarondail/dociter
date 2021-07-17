@@ -48,6 +48,35 @@ CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
     });
 
+    it("stops at the beginning of the doc", () => {
+      let editor = new Editor({ document: testDoc1 });
+      editor.update(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0/0
+SLICE:  HEADER ONE > TEXT {} > "1"`);
+
+      // This is a no-op
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0/0
+SLICE:  HEADER ONE > TEXT {} > "1"`);
+
+      editor = new Editor({ document: testDoc1 });
+      editor.update(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0
+SLICE:  HEADER ONE`);
+
+      // This is not a no-op and deletes the empty paragraph we were at
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0/0
+SLICE:  PARAGRAPH > TEXT {} > "MM"`);
+    });
+
     it("deletes through InlineText and removes empty InlineText", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.update(OPS.jump({ to: { path: "1/3/1", orientation: After } }));
@@ -76,43 +105,6 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
 PARAGRAPH > TEXT {} > "MM"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
     });
-
-    //     fit("deletes through InlineText xxx", () => {
-    //       const editor = new Editor({ document: testDoc1 });
-    //       editor.update(OPS.jump({ to: { path: "1/3/0", orientation: CursorOrientation.Before } }));
-    //       expect(debugState(editor)).toMatchInlineSnapshot(`
-    //         "
-    //         CURSOR: 1/2/1 |>
-    //         SLICE:  PARAGRAPH > TEXT {} > \\"NN\\""
-    //       `);
-    //       editor.update(OPS.moveForward({}));
-    //       expect(debugState(editor)).toMatchInlineSnapshot(`
-    //         "
-    //         CURSOR: 1/3/0 |>
-    //         SLICE:  PARAGRAPH > TEXT {} > \\"AA\\""
-    //       `);
-    //       editor.update(OPS.moveBack({}));
-    //       expect(debugState(editor)).toMatchInlineSnapshot(`
-    //         "
-    //         CURSOR: 1/2/1 |>
-    //         SLICE:  PARAGRAPH > TEXT {} > \\"NN\\""
-    //       `);
-
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toMatchInlineSnapshot(`
-    //         "
-    //         CURSOR: 1/2/0 |>
-    //         SLICE:  PARAGRAPH > TEXT {} > \\"N\\""
-    //       `);
-    //       expect(debugCurrentBlock(editor)).toMatchInlineSnapshot(`
-    //         "
-    //         PARAGRAPH > TEXT {} > \\"MM\\"
-    //         PARAGRAPH > TEXT {} > \\"\\"
-    //         PARAGRAPH > TEXT {} > \\"N\\"
-    //         PARAGRAPH > TEXT {} > \\"AA\\"
-    //         PARAGRAPH > TEXT {BOLD} > \\"BB\\""
-    //       `);
-    //     });
 
     it("from an empty inline text it works ok", () => {
       const editor = new Editor({ document: testDoc1 });
