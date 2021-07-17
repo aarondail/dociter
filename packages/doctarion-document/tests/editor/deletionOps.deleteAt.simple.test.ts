@@ -2,9 +2,9 @@ import { CursorOrientation } from "../../src/cursor";
 import { Editor, OPS, TargetInteractors } from "../../src/editor";
 import { DeleteAtDirection } from "../../src/editor/deletionOps";
 import { HeaderLevel } from "../../src/models";
-import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
+import { DebugEditorHelpers, doc, header, inlineEmoji, inlineText, inlineUrlLink, paragraph } from "../utils";
 
-const { On, After } = CursorOrientation;
+const { Before, On, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 
@@ -12,8 +12,7 @@ const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
   paragraph(inlineText("MM"), inlineText(""), inlineText("NN"), inlineText("AA"), inlineText("BB", { bold: true })),
   paragraph(),
-  paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD")),
-  header(HeaderLevel.One)
+  paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
 );
 
 describe("deleteAt for a single interactor", () => {
@@ -239,11 +238,47 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "", orientation: On } }));
 
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+
       // Make sure there is nothing to the right
       editor.resetHistory();
       editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
       expect(editor.history).toHaveLength(0);
     });
+
+    it("will delete inline emoji directly", () => {
+      const editor = new Editor({ document: doc(paragraph(inlineText("AB"), inlineEmoji("tree"), inlineText("CD"))) });
+      editor.update(OPS.jump({ to: { path: "0/1", orientation: On } }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/1
+SLICE:  PARAGRAPH > EMOJI tree`);
+
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "AB"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > TEXT {} > "AB"
+PARAGRAPH > TEXT {} > "CD"`);
+    });
+
+    //     xit("will delete inline emoji indirectly when cursor is adjacent", () => {
+    //       const editor = new Editor({ document: doc(paragraph(inlineText("AB"), inlineEmoji("tree"), inlineText("CD"))) });
+    //       editor.update(OPS.jump({ to: { path: "0/2/0", orientation: Before } }));
+    //       expect(debugState(editor)).toEqual(`
+    // CURSOR: <| 0/2/0
+    // SLICE:  PARAGRAPH > TEXT {} > "CD"`);
+
+    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+    //       expect(debugState(editor)).toEqual(`
+    // CURSOR: <| 0/1/0
+    // SLICE:  PARAGRAPH > TEXT {} > "CD"`);
+    //       expect(debugCurrentBlock(editor)).toEqual(`
+    // PARAGRAPH > TEXT {} > "AB"
+    // PARAGRAPH > TEXT {} > "CD"`);
+    //     });
+    //     xit("will join paragraphs", () => {});
+    //     xit("will paragraph into header and header into paragraph", () => {});
   });
 
   describe("forwards", () => {
@@ -267,6 +302,29 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+    });
+
+    it("stops at the end of the doc", () => {
+      let editor = new Editor({ document: testDoc1 });
+      editor.update(OPS.jump({ to: { path: "3/2/0", orientation: After } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 3/2/0 |>
+SLICE:  PARAGRAPH > TEXT {} > "D"`);
+      // This is a no-op
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 3/2/0 |>
+SLICE:  PARAGRAPH > TEXT {} > "D"`);
+
+      editor = new Editor({ document: doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("A"))) });
+      editor.update(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      // This is not a no-op and deletes the empty paragraph we were at
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/1 |>
+SLICE:  HEADER ONE > TEXT {} > "H1"`);
     });
 
     it("deletes through InlineText and removes empty InlineText", () => {
@@ -461,5 +519,10 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       editor.update(OPS.moveForward({ target: TargetInteractors.Focused }));
       expect(editor.history).toHaveLength(0);
     });
+
+    //     xit("will not delete inline emoji directly", () => {});
+    //     xit("will not delete inline emoji indirectly when cursor is adjacent", () => {});
+    //     xit("will join paragraphs", () => {});
+    //     xit("will paragraph into header and header into paragraph", () => {});
   });
 });

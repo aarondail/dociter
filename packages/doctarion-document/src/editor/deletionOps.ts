@@ -239,7 +239,7 @@ function preprocessNodeForDeletion(
             nodeToDelete.navigateToNextSibling();
           }
         }
-        console.log("B", index);
+        console.log("preprocessNodeForDeletion: switch(Grapheme)", index);
         if (index === -1) {
           // This case is typically when we are on the very first code point of
           // the very first inline text in a block element. That is because the
@@ -255,10 +255,12 @@ function preprocessNodeForDeletion(
           // backwards from one InlineText to another inside the same block
           // (e.g. ParagraphBlock)
           const navPrime = navigator.clone();
+          const parentHasPreceedingSibling =
+            navPrime.navigateToParentUnchecked() && navPrime.navigateToPrecedingSiblingUnchecked();
           if (
             parent.node instanceof InlineText &&
-            navPrime.navigateToParentUnchecked() &&
-            navPrime.navigateToPrecedingSiblingUnchecked() &&
+            parentHasPreceedingSibling &&
+            // navPrime is on the preceeding sibling...
             navPrime.navigateToLastDescendantCursorPosition()
           ) {
             if (navPrime.cursor.orientation === CursorOrientation.Before) {
@@ -268,8 +270,9 @@ function preprocessNodeForDeletion(
             // InlineText) ...
             return preprocessNodeForDeletion(navPrime, direction);
           }
-          // If we get here, probably this is the first InlineText in a block
-          // which for now we don't handle.  In the future this may need to
+          // If we get here, probably this is the first InlineText in a block or
+          // the start of an InlineText that is preceeded by another inline.
+          // Which for now we don't handle.  In the future this may need to
           // delete "backwards" from one block to another. But for now that is
           // not implemented.
           return undefined;
@@ -303,23 +306,11 @@ function preprocessNodeForDeletion(
             console.log(navPrime.path.toString());
             navPrime.navigateToParent();
             return {
-              newNavigatorPosition: () => {
-                return retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction);
-                // const nav2 = refreshNavigator(navigator);
-                // console.log("nav2", nav2.cursor.toString());
-                // nav2.navigateToParentUnchecked();
-                // console.log("nav2", nav2.cursor.toString());
-                // nav2.navigateToPrecedingSiblingUnchecked();
-                // console.log("nav2", nav2.cursor.toString());
-                // nav2.navigateToLastDescendantCursorPosition();
-                // console.log("nav2", nav2.cursor.toString());
-                // return nav2;
-              },
+              newNavigatorPosition: () => retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction),
               nodeToDelete: navPrime,
             };
           } else {
             // In this case, the nodeToDelete is already on the right node
-            // Would it be better to just try jumping to something?
             if (direction === undefined || direction === DeleteAtDirection.Backward) {
               navigator.navigateToPrecedingCursorPosition();
 
@@ -348,6 +339,7 @@ function preprocessNodeForDeletion(
               }
             }
 
+            console.log("ok after deleteion position will be: ", navigator.cursor.toString());
             return { newNavigatorPosition: navigator, nodeToDelete };
           }
         }
@@ -376,6 +368,7 @@ function retargtedNavigatorAfterDeletion(
   positionClassification: PositionClassification,
   direction?: DeleteAtDirection
 ): CursorNavigator {
+  console.log("retargedNavigatoAfterDeletion");
   // The node that the navigator is pointed to is now deleted, along with
   // (possibly) its parent and even grand parent (I think?).
 
