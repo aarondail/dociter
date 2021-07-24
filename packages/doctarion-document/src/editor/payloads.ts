@@ -1,4 +1,4 @@
-import { OperationCursorTarget, OperationInteractorTarget, OperationTarget } from "./target";
+import { OperationTarget } from "./target";
 
 // -----------------------------------------------------------------------------
 // Common, base, operation payload types.
@@ -10,7 +10,7 @@ import { OperationCursorTarget, OperationInteractorTarget, OperationTarget } fro
  */
 export interface InteractorMovementPayload {
   readonly select?: boolean;
-  readonly target?: OperationInteractorTarget;
+  readonly target?: OperationTarget;
 }
 
 /**
@@ -19,13 +19,4 @@ export interface InteractorMovementPayload {
  */
 export interface AnyTargetPayload {
   readonly target?: OperationTarget;
-}
-
-/**
- * This is a payload that can be used for operations that work on non-selections
- * only, but can work on both interactors as well as arbitrary document
- * positions.
- */
-export interface CursorTargetPayload {
-  readonly target?: OperationInteractorTarget | OperationCursorTarget;
 }

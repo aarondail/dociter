@@ -32,8 +32,6 @@ export const deleteAt = createCoreOperation<
   // Targets is an array of navigators point to cursor positions to delete, as
   // well as (optionally) the associated interactor.
   const targets = selectTargets(state, services, payload.target);
-  // These are interactors that are NOT in targets
-  // const unselectedInteractors = getUnselectedInteractors(state, payload.target, targets);
 
   const toDelete = new LiftingPathMap<{
     newNavigatorPosition: CursorNavigator | (() => CursorNavigator);

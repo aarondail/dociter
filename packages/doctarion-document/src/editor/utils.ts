@@ -6,14 +6,7 @@ import { EditorState } from "../editor";
 import { Interactor, InteractorId } from "./interactor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";
-import {
-  OperationCursorTarget,
-  OperationInteractorTarget,
-  getTargetedCursors,
-  getTargetedInteractorIds,
-  isOperationCursorTarget,
-  isOperationInteractorTarget,
-} from "./target";
+import { OperationTarget, getTargetedInteractorIds } from "./target";
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
   if (a !== undefined) {
@@ -22,7 +15,7 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
   return undefined;
 }
 
-// TODO delete this
+// TODO delete this?
 export function getCursorNavigatorAndValidate(
   state: EditorState,
   services: EditorOperationServices,
@@ -64,58 +57,46 @@ export function getCursorNavigatorFor(
   return nav;
 }
 
-export function getUnselectedInteractors<T extends OperationInteractorTarget | OperationCursorTarget>(
-  state: Draft<EditorState>,
-  target: T,
-  selectedTargets: (T extends OperationInteractorTarget
-    ? { interactor: Draft<Interactor>; navigator: CursorNavigator }
-    : { navigator: CursorNavigator })[]
-): Draft<Interactor>[] {
-  if (isOperationInteractorTarget(target)) {
-    const set = new Set();
-    for (const target of selectedTargets) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      set.add(((target as any).interactor as Interactor).id);
-    }
-    const result = [];
-    for (const interactor of Object.values(state.interactors)) {
-      if (!set.has(interactor.id)) {
-        result.push(interactor);
-      }
-    }
-    return result;
-  } else if (isOperationCursorTarget(target)) {
-    return Object.values(state.interactors);
-  }
-  return [];
-}
+// export function getUnselectedInteractors(
+//   state: Draft<EditorState>,
+//   target: OperationTarget,
+//   selectedTargets: { interactor: Draft<Interactor>; navigator: CursorNavigator }[]
+// ): Draft<Interactor>[] {
+//   // if (isOperationInteractorTarget(target)) {
+//   const set = new Set();
+//   for (const target of selectedTargets) {
+//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+//     set.add(((target as any).interactor as Interactor).id);
+//   }
+//   const result = [];
+//   for (const interactor of Object.values(state.interactors)) {
+//     if (!set.has(interactor.id)) {
+//       result.push(interactor);
+//     }
+//   }
+//   return result;
+//   // } else if (isOperationCursorTarget(target)) {
+//   //   return Object.values(state.interactors);
+//   // }
+//   // return [];
+// }
 
 /**
  * The returned interactors (if there are interactors) are in the exact same
  * order as they appear in the interactors.ordered list.
  */
-export function selectTargets<T extends OperationInteractorTarget | OperationCursorTarget>(
+export function selectTargets(
   state: Draft<EditorState>,
   services: EditorOperationServices,
-  target: T
-): (T extends OperationInteractorTarget
-  ? { interactor: Draft<Interactor>; navigator: CursorNavigator }
-  : { navigator: CursorNavigator })[] {
-  const result: { interactor?: Interactor; navigator: CursorNavigator }[] = [];
+  target: OperationTarget
+): { interactor: Draft<Interactor>; navigator: CursorNavigator }[] {
+  const result: { interactor: Draft<Interactor>; navigator: CursorNavigator }[] = [];
 
-  const recordResult = (t: InteractorId | Cursor) => {
-    const interactor = t instanceof Cursor ? undefined : state.interactors[t];
-    const nav = getCursorNavigatorFor(interactor ? interactor : (t as Cursor), state, services);
+  const recordResult = (t: InteractorId) => {
+    const interactor = state.interactors[t];
+    const nav = getCursorNavigatorFor(interactor, state, services);
     result.push({ interactor, navigator: nav });
   };
-
-  if (isOperationInteractorTarget(target)) {
-    getTargetedInteractorIds(target, state).forEach(recordResult);
-  } else if (isOperationCursorTarget(target)) {
-    getTargetedCursors(target).forEach(recordResult);
-  }
-
-  // This is beyond the understanding of typescripts type system but it is really ok
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-  return result as any;
+  getTargetedInteractorIds(target, state).forEach(recordResult);
+  return result;
 }
