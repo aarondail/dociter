@@ -17,21 +17,24 @@ export interface ReadonlyCursorNavigator {
 }
 
 /**
- * This class is similar to NodeNavigator but intead of navigating
+ * This class is similar to NodeNavigator but instead of navigating
  * between the nodes of a document it navigates between the places where a
  * cursor could be placed.
  *
  * To make the behavior of things like navigation more deterministic we prefer
  * some cursor positions to others even when they are equivalent. Specifically
  * we bias towards positions after nodes and we prefer to those that relate to
- * a grapheme vs not realted to one.
+ * a grapheme vs not related to one.
  */
 export class CursorNavigator implements ReadonlyCursorNavigator {
   private currentOrientation: CursorOrientation;
   // This nodeNavigator stores the current node the cursor is on
   private nodeNavigator: NodeNavigator;
 
-  public constructor(public readonly document: Document, private readonly layoutReporter?: NodeLayoutReporter) {
+  public constructor(
+    public readonly document: Document,
+    private readonly layoutReporter: NodeLayoutReporter | undefined
+  ) {
     // The document is always at the root of the chain
     this.currentOrientation = CursorOrientation.On;
     this.nodeNavigator = new NodeNavigator(document);
@@ -126,8 +129,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
   }
 
   /**
-   * This method along with its counterparts navigateToPreceedingCursorPosition
-   * are in some ways the core functionality of the navigator. For determinging
+   * This method along with its counterparts navigateToPrecedingCursorPosition
+   * are in some ways the core functionality of the navigator. For determining
    * where the cursor really goes, these two methods are responsible.
    */
   public navigateToNextCursorPosition(): boolean {

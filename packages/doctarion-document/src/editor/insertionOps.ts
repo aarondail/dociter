@@ -207,7 +207,7 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
 
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);
-    const updatedCursorNav = new CursorNavigator(state.document);
+    const updatedCursorNav = new CursorNavigator(state.document, services.layout);
     updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorOrientation.Before);
     updatedCursorNav.navigateToLastDescendantCursorPosition();
 
