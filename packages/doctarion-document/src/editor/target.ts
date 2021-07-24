@@ -1,13 +1,3 @@
-// TODO revisit these
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-// import { Range } from "../basic-traversal";
-// import { Cursor } from "../cursor";
-
 import { InteractorId, InteractorOrderingEntryCursorType, InteractorStatus } from "./interactor";
 import { EditorState } from "./state";
 
@@ -30,24 +20,6 @@ export type OperationTarget =
   | { readonly interactorId: InteractorId }
   | { readonly interactorIds: readonly InteractorId[] };
 
-// export type OperationCursorTarget = Cursor | { readonly cursors: readonly Cursor[] };
-// export type OperationRangeTarget = Range | { readonly ranges: readonly Range[] };
-// export type OperationNonInteractorTarget = OperationCursorTarget | OperationCursorTarget;
-
-// export type OperationTarget = OperationInteractorTarget | OperationNonInteractorTarget;
-
-// export function isOperationInteractorTarget(target: OperationTarget): target is OperationInteractorTarget {
-//   const untypedTarget = target as any;
-//   return (
-//     target === undefined ||
-//     // Maybe this should more specifically check whether identifier matches one
-//     // of the `TargetIdentifiers`...
-//     typeof target === "string" ||
-//     untypedTarget.interactorId !== undefined ||
-//     untypedTarget.interactorIds !== undefined
-//   );
-// }
-
 /**
  * Note this always returns the targeted interactor ids in the order they are
  * found in `interactors.ordered`.
@@ -57,6 +29,7 @@ export function getTargetedInteractorIds(
   target: OperationTarget,
   state: EditorState
 ): readonly InteractorId[] {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   const untypedIdentifier = target as any;
 
   if (target === undefined) {
@@ -87,25 +60,14 @@ export function getTargetedInteractorIds(
           return [state.focusedInteractorId];
         }
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorId !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return [untypedIdentifier.interactorId];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorIds !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     return state.interactorOrdering.filter((e) => untypedIdentifier.interactorIds.includes(e.id)).map((e) => e.id);
   }
   return [];
 }
-
-// export function isOperationCursorTarget(identifier: OperationTarget): identifier is OperationCursorTarget {
-//   const untypedIdentifier = identifier as any;
-//   return identifier instanceof Cursor || untypedIdentifier.cursors !== undefined;
-// }
-
-// export function getTargetedCursors(identifier: OperationCursorTarget): readonly Cursor[] {
-//   const untypedIdentifier = identifier as any;
-//   if (untypedIdentifier.cursors !== undefined) {
-//     return untypedIdentifier.cursors;
-//   } else if (identifier instanceof Cursor) {
-//     return [identifier];
-//   }
-//   return [];
-// }

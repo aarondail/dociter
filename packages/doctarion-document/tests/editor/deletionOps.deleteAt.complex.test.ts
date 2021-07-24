@@ -1,13 +1,12 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CursorOrientation } from "../../src/cursor";
 import { Editor, OPS, TargetInteractors } from "../../src/editor";
 import { DeleteAtDirection } from "../../src/editor/deletionOps";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
-const { Before, After } = CursorOrientation;
+const { After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateLessSimple;
-// const debugBlockAtInteractor = DebugEditorHelpers.debugBlockAtInteractor;
+const debugBlockAtInteractor = DebugEditorHelpers.debugBlockAtInteractor;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -59,7 +58,7 @@ CURSOR: <| 2/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
     });
 
-    fit("three targetted related interactors are all updated appropriately", () => {
+    it("three targetted related interactors are all updated appropriately", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
       editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: After } }));
       editor.update(OPS.addInteractor({ at: { path: "3/1/3", orientation: After } }));
@@ -75,13 +74,18 @@ INTR. #3
 CURSOR: 3/1/2 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"`);
 
-      console.log("-========");
-      console.log("-========");
-      console.log("-========");
       editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: DeleteAtDirection.Backward }));
       expect(debugState(editor)).toEqual(`INTR. #1
-CURSOR: 3/1 |>
-SLICE:  PARAGRAPH > URL_LINK g.com`);
+CURSOR: 3/1
+SLICE:  PARAGRAPH > URL_LINK g.com > ""`);
+
+      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`INTR. #1
+CURSOR: 3/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "CC"`);
+      expect(debugBlockAtInteractor(editor, editor.interactorOrdering[0].id)).toEqual(`
+PARAGRAPH > TEXT {} > "CC"
+PARAGRAPH > TEXT {} > "DD"`);
     });
 
     // it("overlapping targetted interactors are all updated and deduped", () => {});

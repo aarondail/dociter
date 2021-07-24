@@ -287,41 +287,41 @@ PARAGRAPH > TEXT {} > "CD"`);
       // Jump to L in the "GOOGLE" text of the url link
       // Note the cursor would be at: GOOG|LE
       editor.update(OPS.jump({ to: { path: "3/1/3", orientation: After } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGE"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       // This should be a no-op
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
     });
 
     it("stops at the end of the doc", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.update(OPS.jump({ to: { path: "3/2/0", orientation: After } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/2/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "D"`);
       // This is a no-op
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/2/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "D"`);
 
       editor = new Editor({ document: doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("A"))) });
       editor.update(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       // This is not a no-op and deletes the empty paragraph we were at
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -331,13 +331,13 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       //     paragraph(inlineText("MM"), inlineText(""), inlineText("NN"), inlineText("AA"), inlineText("BB", { bold: true })),
       const editor = new Editor({ document: testDoc1 });
       editor.update(OPS.jump({ to: { path: "1/0/0", orientation: CursorOrientation.After } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
 
       // This looks like a no-op but its not
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -347,7 +347,7 @@ PARAGRAPH > TEXT {} > "NN"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -356,7 +356,7 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "N"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -364,7 +364,7 @@ SLICE:  PARAGRAPH > TEXT {} > "M"`);
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -373,17 +373,17 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "A"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
 
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {BOLD} > "B"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -399,7 +399,7 @@ PARAGRAPH > TEXT {} > "M"`);
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       // This isn't on the NN InlineText because we prefer after affinity to before generally
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/1 |>
@@ -417,7 +417,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1", orientation: After } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -432,12 +432,12 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1/0", orientation: On } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -453,14 +453,14 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1/0", orientation: On } }));
       // This deletes the empty inline url link
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       // But should leave the cursor on the paragraph
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
       // This should delete the paragraph
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       // Moving the cursor to the header
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
@@ -476,7 +476,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1", orientation: On } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -494,7 +494,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       );
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
@@ -509,7 +509,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
       const editor = new Editor({ document: d });
       editor.update(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Foreward }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);

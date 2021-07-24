@@ -39,13 +39,9 @@ export function getCursorNavigatorAndValidate(
  *
  * Throws an error if the navigation fails.
  */
-export function getCursorNavigatorFor(
-  target: Interactor | Cursor,
-  state: EditorState,
-  services: EditorServices
-): CursorNavigator {
+function getCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
-  if (!nav.navigateTo(target instanceof Cursor ? target : target.mainCursor)) {
+  if (!nav.navigateTo(target.mainCursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
       target instanceof Cursor
@@ -56,30 +52,6 @@ export function getCursorNavigatorFor(
   }
   return nav;
 }
-
-// export function getUnselectedInteractors(
-//   state: Draft<EditorState>,
-//   target: OperationTarget,
-//   selectedTargets: { interactor: Draft<Interactor>; navigator: CursorNavigator }[]
-// ): Draft<Interactor>[] {
-//   // if (isOperationInteractorTarget(target)) {
-//   const set = new Set();
-//   for (const target of selectedTargets) {
-//     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-//     set.add(((target as any).interactor as Interactor).id);
-//   }
-//   const result = [];
-//   for (const interactor of Object.values(state.interactors)) {
-//     if (!set.has(interactor.id)) {
-//       result.push(interactor);
-//     }
-//   }
-//   return result;
-//   // } else if (isOperationCursorTarget(target)) {
-//   //   return Object.values(state.interactors);
-//   // }
-//   // return [];
-// }
 
 /**
  * The returned interactors (if there are interactors) are in the exact same

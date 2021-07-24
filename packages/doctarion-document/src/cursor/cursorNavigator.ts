@@ -5,6 +5,17 @@ import { Document, NodeUtils } from "../models";
 import { Cursor, CursorOrientation } from "./cursor";
 import { PositionClassification } from "./positionClassification";
 
+export interface ReadonlyCursorNavigator {
+  readonly chain: Chain;
+  readonly parent: ChainLink | undefined;
+  readonly tip: ChainLink;
+  readonly cursor: Cursor;
+
+  classifyCurrentPosition(): PositionClassification;
+  clone(): CursorNavigator;
+  toNodeNavigator(): NodeNavigator;
+}
+
 /**
  * This class is similar to NodeNavigator but intead of navigating
  * between the nodes of a document it navigates between the places where a
@@ -15,7 +26,7 @@ import { PositionClassification } from "./positionClassification";
  * we bias towards positions after nodes and we prefer to those that relate to
  * a grapheme vs not realted to one.
  */
-export class CursorNavigator {
+export class CursorNavigator implements ReadonlyCursorNavigator {
   private currentOrientation: CursorOrientation;
   // This nodeNavigator stores the current node the cursor is on
   private nodeNavigator: NodeNavigator;

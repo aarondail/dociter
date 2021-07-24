@@ -2,14 +2,13 @@ import * as immer from "immer";
 import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, PathAdjustmentDueToRelativeDeletionNoChangeReason } from "../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
-import { hasOwnProperty } from "../miscUtils";
+import { Cursor, CursorNavigator, CursorOrientation, PositionClassification, ReadonlyCursorNavigator } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 
 import { InteractorId, InteractorOrderingEntryCursorType } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { CursorTargetPayload } from "./payloads";
+import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { ifLet, selectTargets } from "./utils";
 
@@ -17,16 +16,25 @@ const castDraft = immer.castDraft;
 
 export enum DeleteAtDirection {
   Backward = "BACKWARD",
-  Foreward = "FOREWARD",
+  Forward = "FORWARD",
 }
 
+export type DeleteAtPayload = TargetPayload & {
+  readonly direction?: DeleteAtDirection;
+  readonly dontThrowOnSelectionInteractors?: boolean;
+  // TODO continue from here, and go through rest of doc. ALSO -- fix the problem with multiple movement commands being
+  // done at same time (with the post-dlete cursor positions calculated before deletion leading to
+  // inaccurante rresults)
+  //
+  // readonly allowJoiningInSomeBoundaryCases?: boolean;
+  // readonly allowMovementInBoundaryCases?: boolean;
+};
 /**
  * This will throw an error if any of the target interactors are selections
  * unless `dontThrowOnSelectionInteractors` is set to true.
  */
-export const deleteAt = createCoreOperation<
-  CursorTargetPayload & { direction?: DeleteAtDirection; dontThrowOnSelectionInteractors?: boolean }
->("delete/at", (state, services, payload) => {
+export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state, services, payload) => {
+  const direction = payload.direction ?? DeleteAtDirection.Backward;
   const updatedInteractors: Set<InteractorId> = new Set();
 
   // Targets is an array of navigators point to cursor positions to delete, as
@@ -34,46 +42,30 @@ export const deleteAt = createCoreOperation<
   const targets = selectTargets(state, services, payload.target);
 
   const toDelete = new LiftingPathMap<{
-    newNavigatorPosition: CursorNavigator | (() => CursorNavigator);
-    nodeToDelete: NodeNavigator;
+    readonly nodeToDelete: NodeNavigator;
+    readonly originalPosition: ReadonlyCursorNavigator;
   }>();
-  for (const target of targets) {
-    // Skip any interactor (or throw error) if the interactor is a selection
-    let interactor = undefined;
-    if (hasOwnProperty(target, "interactor")) {
-      interactor = target.interactor;
-    }
+  for (const { interactor, navigator } of targets) {
+    // Skip any interactor (or throw error) if the interactor is a selection (for now)
     if (interactor && interactor.isSelection) {
       if (!payload.dontThrowOnSelectionInteractors) {
         throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
       }
     }
 
-    const result = preprocessNodeForDeletion(target.navigator, payload.direction);
-
+    const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, direction);
     if (result?.nodeToDelete) {
-      toDelete.add(result.nodeToDelete.path, {
-        newNavigatorPosition: result.newNavigatorPosition,
-        nodeToDelete: result.nodeToDelete,
-      });
-    } else if (result && interactor) {
+      toDelete.add(result.nodeToDelete.path, { nodeToDelete: result.nodeToDelete, originalPosition: navigator });
+    } else if (result?.justMoveTo) {
       // Sometimes deletion doesn't actually trigger the removal of the node, just
-      // the updating of an interactor... this handles that
-      interactor.mainCursor = castDraft(
-        (result.newNavigatorPosition instanceof CursorNavigator
-          ? result.newNavigatorPosition
-          : result.newNavigatorPosition()
-        ).cursor
-      );
+      // the updating of an interactor
+      interactor.mainCursor = castDraft(result.justMoveTo).cursor;
       updatedInteractors.add(interactor.id);
     }
   }
 
-  // So at this point, in `toDelete` we have all nodes that need to be deleted,
-  // along with the associated interactor if there was one. Some interactors may
-  // have already been updated to a new position but ONLY in the case where
-  // there was no node that needed to be deleted.
-
+  // So at this point, in `toDelete` we have all nodes that need to be deleted.
+  //
   // Next we walk backwards through the nodes there and delete them.  Note in
   // `toDelete` if there are two nodes that are in an ancestor/descendant
   // relationship only the ancestor will come up in the traversal (the
@@ -81,37 +73,22 @@ export const deleteAt = createCoreOperation<
 
   for (const toDeleteEntry of lodash.reverse(toDelete.getAllOrderedByPaths())) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const primary = lodash.first(toDeleteEntry.elements)!;
+    const { nodeToDelete, originalPosition } = lodash.first(toDeleteEntry.elements)!;
+    // This JUST deletes the node from the document
+    deleteNode(nodeToDelete, services);
 
-    console.log("deleteing node: ", primary.nodeToDelete.path.toString());
-    deleteNode(primary.nodeToDelete, services);
-
-    const postDeleteCursor = (primary.newNavigatorPosition instanceof CursorNavigator
-      ? primary.newNavigatorPosition
-      : primary.newNavigatorPosition()
-    ).cursor;
-    const n3 = new NodeNavigator(state.document);
-    n3.navigateTo(postDeleteCursor.path);
-    console.log(
-      "postdelecursor ",
-      postDeleteCursor.toString(),
-      immer.isDraft(n3.tip.node) ? immer.current(n3.tip.node) : n3.tip.node
-    );
+    const postDeleteCursor = determineCursorPositionAfterDeletion(originalPosition, direction);
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
     for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
-      new Cursor(primary.nodeToDelete.path, CursorOrientation.Before)
+      new Cursor(nodeToDelete.path, CursorOrientation.Before)
     )) {
-      console.log("HERE in updating interactor", immer.current(interactor), cursorType, postDeleteCursor.toString());
-
       const newCursorOrNoChangeReason = (cursorType === InteractorOrderingEntryCursorType.Main
         ? interactor.mainCursor
         : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           interactor.selectionAnchorCursor!
-      ).adjustDueToRelativeDeletionAt(primary.nodeToDelete.path);
-
-      console.log(newCursorOrNoChangeReason.toString());
+      ).adjustDueToRelativeDeletionAt(nodeToDelete.path);
 
       if (newCursorOrNoChangeReason instanceof Cursor) {
         if (cursorType === InteractorOrderingEntryCursorType.Main) {
@@ -125,9 +102,9 @@ export const deleteAt = createCoreOperation<
         newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
       ) {
         if (cursorType === InteractorOrderingEntryCursorType.Main) {
-          interactor.mainCursor = castDraft(postDeleteCursor);
+          interactor.mainCursor = castDraft(postDeleteCursor.cursor);
         } else {
-          interactor.selectionAnchorCursor = castDraft(postDeleteCursor);
+          interactor.selectionAnchorCursor = castDraft(postDeleteCursor.cursor);
         }
         updatedInteractors.add(interactor.id);
       }
@@ -138,6 +115,7 @@ export const deleteAt = createCoreOperation<
 });
 
 export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
+  // TODO merge w/ deletaeAt
   const interactor = state.interactors[Object.keys(state.interactors)[0]];
   if (!interactor.isSelection) {
     throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
@@ -160,11 +138,11 @@ export const deleteSelection = createCoreOperation("delete/selection", (state, s
 
   // This navigator is positioned on the place we will leave the selection after the deletion
   {
-    const nav = new CursorNavigator(state.document);
-    nav.navigateTo(range.from, CursorOrientation.Before);
-    state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-    state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
-    state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
+    // const nav = new CursorNavigator(state.document) ;
+    // nav.navigateTo(range.from, CursorOrientation.Before);
+    // state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+    // state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+    // state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
   }
 });
 
@@ -197,27 +175,19 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
 /**
  * This function takes a navigator pointing to a node as well as a direction
  * indicating whether want to try deleting before the navigator position or
- * after the navigator position and returns a navigator pointing to the proper
- * node to delete, if there is one, and a cursor navigator pointing to the node
- * the starting navigator (if it is coming from an interactor) should be on
- * after the deletion.
+ * after the navigator position. It returns a navigator pointing to the proper
+ * node to delete or, if deletion doesn't make logical sense, a cursor navigator
+ * pointing to a new node to move to.
  *
  * Also undefined can be returned, indicating there is nothing to delete and the
- * starting navigator does not need to be moved.
+ * navigator does not need to be moved.
  */
-function preprocessNodeForDeletion(
-  startingNavigator: CursorNavigator,
-  direction?: DeleteAtDirection
-):
-  | {
-      newNavigatorPosition: CursorNavigator | (() => CursorNavigator);
-      nodeToDelete: NodeNavigator | null;
-    }
-  | undefined {
-  const navigator = startingNavigator.clone();
+function findNodeForDeletion(
+  navigator: ReadonlyCursorNavigator,
+  direction: DeleteAtDirection
+): { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator } | undefined {
   const nodeToDelete = navigator.toNodeNavigator();
 
-  console.log(navigator.cursor.toString(), "::::", nodeToDelete.tip.node);
   const cursorPositionType = navigator.classifyCurrentPosition();
   switch (cursorPositionType) {
     case PositionClassification.Grapheme:
@@ -226,8 +196,9 @@ function preprocessNodeForDeletion(
           return undefined;
         }
 
+        const isBack = direction === DeleteAtDirection.Backward;
         let index = tip.pathPart.index;
-        if (direction === DeleteAtDirection.Backward) {
+        if (isBack) {
           if (navigator.cursor.orientation === CursorOrientation.Before) {
             index--;
           }
@@ -237,63 +208,35 @@ function preprocessNodeForDeletion(
             nodeToDelete.navigateToNextSibling();
           }
         }
-        console.log("preprocessNodeForDeletion: switch(Grapheme)", index);
-        if (index === -1) {
-          // This case is typically when we are on the very first code point of
-          // the very first inline text in a block element. That is because the
-          // cursor navigation code prefers to give the cursor an after
-          // orientation in most cases except for the first character of the
-          // first inline text in a block. But, not all cases.
-          //
-          // The other case this can happen is in a block with multiple inlines
-          // and, due to line wrapping, we prefer the before orientation for
-          // code points that start a new line (visually).
-          //
+
+        if ((isBack && index === -1) || (!isBack && index === parent.node.children.length)) {
           // In the code here, we just handle the case where we are deleting
-          // backwards from one InlineText to another inside the same block
-          // (e.g. ParagraphBlock)
+          // backwards (or forwards) from one InlineText to another inside the
+          // same block (e.g. ParagraphBlock)
           const navPrime = navigator.clone();
-          const parentHasPreceedingSibling =
-            navPrime.navigateToParentUnchecked() && navPrime.navigateToPrecedingSiblingUnchecked();
-          if (
-            parent.node instanceof InlineText &&
-            parentHasPreceedingSibling &&
-            // navPrime is on the preceeding sibling...
-            navPrime.navigateToLastDescendantCursorPosition()
-          ) {
-            if (navPrime.cursor.orientation === CursorOrientation.Before) {
-              navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
-            }
-            // Proceed with deletion at the end of the prior (assumed)
-            // InlineText) ...
-            return preprocessNodeForDeletion(navPrime, direction);
-          }
-          // If we get here, probably this is the first InlineText in a block or
-          // the start of an InlineText that is preceeded by another inline.
-          // Which for now we don't handle.  In the future this may need to
-          // delete "backwards" from one block to another. But for now that is
-          // not implemented.
-          return undefined;
-        } else if (index === parent.node.children.length) {
-          // In this case we are deleting one past the end of the current InlineText
-          // This is pretty similar to the situation above just the obverse.
-          const navPrime = navigator.clone();
-          if (
-            parent.node instanceof InlineText &&
+          const parentHasPrecedingOrFollowingSibling =
             navPrime.navigateToParentUnchecked() &&
-            navPrime.navigateToNextSiblingUnchecked() &&
-            navPrime.navigateToFirstDescendantCursorPosition()
+            (isBack ? navPrime.navigateToPrecedingSiblingUnchecked() : navPrime.navigateToNextSiblingUnchecked());
+          if (
+            parent.node instanceof InlineText &&
+            parentHasPrecedingOrFollowingSibling &&
+            (isBack
+              ? navPrime.navigateToLastDescendantCursorPosition()
+              : navPrime.navigateToFirstDescendantCursorPosition())
           ) {
-            if (navPrime.cursor.orientation === CursorOrientation.After) {
+            if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
+              navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+            } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
               navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
             }
             // Proceed with deletion at the end of the prior (assumed)
-            // InlineText)
-            return preprocessNodeForDeletion(navPrime, direction);
+            // InlineText) ...
+            return findNodeForDeletion(navPrime, direction);
           }
-          // If we get here, probably this is the last InlineText in a block
-          // which for now we don't handle.  In the future this may need to
-          // delete "forwards" from one block to another. But for now that is
+          // If we get here, probably this is the first InlineText in a block or
+          // the start of an InlineText that is preceded by another inline.
+          // Which for now we don't handle.  In the future this may need to
+          // delete "backwards" from one block to another. But for now that is
           // not implemented.
           return undefined;
         } else {
@@ -301,112 +244,76 @@ function preprocessNodeForDeletion(
             // In this case we are about to remove the last character in an
             // inline text In this case, we prefer to delete the inline text.
             const navPrime = navigator.toNodeNavigator();
-            console.log(navPrime.path.toString());
             navPrime.navigateToParent();
-            return {
-              newNavigatorPosition: () => retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction),
-              nodeToDelete: navPrime,
-            };
+            return { nodeToDelete: navPrime };
           } else {
             // In this case, the nodeToDelete is already on the right node
-            if (direction === undefined || direction === DeleteAtDirection.Backward) {
-              navigator.navigateToPrecedingCursorPosition();
-
-              // This fixes a bug where we navigate back but the only thing that
-              // changes is the CursorOrientation
-              if (
-                navigator.tip.pathPart &&
-                navigator.tip.pathPart.index === index &&
-                navigator.cursor.orientation === CursorOrientation.Before &&
-                navigator.toNodeNavigator().navigateToPrecedingSibling()
-              ) {
-                navigator.navigateToPrecedingCursorPosition();
-              }
-            } else {
-              navigator.navigateToNextCursorPosition();
-
-              // This fixes a bug where we navigate forward but the only thing
-              // that changes is the CursorOrientation
-              if (
-                navigator.tip.pathPart &&
-                navigator.tip.pathPart.index === index &&
-                navigator.cursor.orientation === CursorOrientation.After &&
-                navigator.toNodeNavigator().navigateToNextSibling()
-              ) {
-                navigator.navigateToNextCursorPosition();
-              }
-            }
-
-            console.log("ok after deleteion position will be: ", navigator.cursor.toString());
-            return { newNavigatorPosition: navigator, nodeToDelete };
+            return { nodeToDelete };
           }
         }
       });
     case PositionClassification.EmptyInsertionPoint:
     case PositionClassification.NavigableNonTextNode:
-      return {
-        nodeToDelete,
-        newNavigatorPosition: () => retargtedNavigatorAfterDeletion(navigator, cursorPositionType, direction),
-      };
-    case PositionClassification.InBetweenInsertionPoint:
-      if (direction === undefined || direction === DeleteAtDirection.Backward) {
-        navigator.navigateToPrecedingCursorPosition();
+      return { nodeToDelete };
+    case PositionClassification.InBetweenInsertionPoint: {
+      const navPrime = navigator.clone();
+      if (direction === DeleteAtDirection.Backward) {
+        navPrime.navigateToPrecedingCursorPosition();
       } else {
-        navigator.navigateToNextCursorPosition();
+        navPrime.navigateToNextCursorPosition();
       }
-      return {
-        newNavigatorPosition: navigator,
-        nodeToDelete: null,
-      };
+      return { justMoveTo: navPrime };
+    }
   }
 }
 
-function retargtedNavigatorAfterDeletion(
-  nav: CursorNavigator,
-  positionClassification: PositionClassification,
-  direction?: DeleteAtDirection
+function determineCursorPositionAfterDeletion(
+  originalPosition: ReadonlyCursorNavigator,
+  direction: DeleteAtDirection
 ): CursorNavigator {
-  console.log("retargedNavigatoAfterDeletion");
-  // The node that the navigator is pointed to is now deleted, along with
-  // (possibly) its parent and even grand parent (I think?).
+  // The node that the `originalPosition` navigator is pointed to is now
+  // deleted, along with (possibly) its parent and grandparent.
 
-  const n = new CursorNavigator(nav.document);
-  if (n.navigateToUnchecked(nav.cursor)) {
-    console.log("qqqq1");
-    // OK we were able to navigate to the same cursor location but a different
-    // node
-    if (positionClassification === PositionClassification.Grapheme) {
-      console.log("qqqq2");
+  const n = originalPosition.clone();
+  if (n.navigateToUnchecked(originalPosition.cursor)) {
+    if (NodeUtils.isGrapheme(originalPosition.tip.node)) {
+      if (n.parent?.node === originalPosition.parent?.node) {
+        const currentIndex = n.tip.pathPart.index;
+        const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
+        isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+
+        // This fixes a bug where we navigate back but the only thing that
+        // changes is the CursorOrientation
+        if (
+          n.tip.pathPart &&
+          n.tip.pathPart.index === currentIndex &&
+          n.cursor.orientation === (isBack ? CursorOrientation.Before : CursorOrientation.After) &&
+          (isBack ? n.toNodeNavigator().navigateToPrecedingSibling() : n.toNodeNavigator().navigateToNextSibling())
+        ) {
+          isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+        }
+        return n;
+      }
+      // OK we were able to navigate to the same cursor location but a different
+      // node or parent node
       n.navigateToParentUnchecked();
     }
     if (n.navigateToPrecedingSiblingUnchecked()) {
-      console.log("qqqq20a", n.cursor.toString());
       n.navigateToLastDescendantCursorPosition();
     } else {
-      console.log("qqqq20b");
       n.navigateToFirstDescendantCursorPosition();
     }
   } else {
-    console.log("qqqq1b");
     // Try one level higher as a fallback
-    const p = nav.cursor.path.withoutTip();
+    const p = originalPosition.cursor.path.withoutTip();
     if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
-      console.log("qqqq3a");
-
       n.navigateToLastDescendantCursorPosition();
-      // if (n.navigateToPrecedingSiblingUnchecked()) {
-      //   n.navigateToLastDescendantCursorPosition();
-      // } else {
-      //   n.navigateToFirstDescendantCursorPosition();
-      // }
     } else {
-      console.log("qqqq3b");
       // OK try one more level higher again
-      const p2 = nav.cursor.path.withoutTip().withoutTip();
+      const p2 = originalPosition.cursor.path.withoutTip().withoutTip();
       if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
         // Not sure this is really right...
         n.navigateToLastDescendantCursorPosition();
-        console.log("qqqq4");
       } else {
         throw new Error("Could not refresh navigator is not a valid cursor");
       }

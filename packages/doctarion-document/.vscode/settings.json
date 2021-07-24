@@ -14,5 +14,11 @@
         "**/*.code-search": true,
         "package-lock.json": true,
         "build": true
-    }
+    },
+    "cSpell.words": [
+        "Interactor",
+        "Interactors",
+        "dont",
+        "immer"
+    ]
 }
