@@ -108,3 +108,7 @@ This is a bug, but it also does not appear to cause any issues currently.  To
 fix it, we may have to split the insertion (and other similar operations)
 from the cursor movement so that the rendering and layout can happen first.
 Which will be tricky.
+
+### 2
+
+Same thing as ^^^ for deletion operations too I think.

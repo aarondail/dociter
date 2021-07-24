@@ -30,6 +30,10 @@ export class CursorNavigator {
     return this.nodeNavigator.chain;
   }
 
+  public get parent(): ChainLink | undefined {
+    return this.nodeNavigator.parent;
+  }
+
   public get tip(): ChainLink {
     return this.nodeNavigator.tip;
   }
