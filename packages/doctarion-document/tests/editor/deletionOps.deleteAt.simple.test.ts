@@ -379,13 +379,13 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
     it("deletes through InlineText and removes empty InlineText with proper options set", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.update(OPS.jump({ to: { path: "1/0/0", orientation: CursorOrientation.After } }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
 
       // This looks like a no-op but its not
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -395,7 +395,7 @@ PARAGRAPH > TEXT {} > "NN"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -404,7 +404,7 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "N"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -412,7 +412,7 @@ SLICE:  PARAGRAPH > TEXT {} > "M"`);
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -421,17 +421,17 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "A"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
 
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {BOLD} > "B"`);
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"`);
 
-      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowCrossInlineTextDeletion: true }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);

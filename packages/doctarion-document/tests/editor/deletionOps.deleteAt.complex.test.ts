@@ -17,7 +17,7 @@ const testDoc1 = doc(
 
 describe("deleteAt with multiple interactors", () => {
   describe("backwards", () => {
-    it("three pretty unrelated targetted interactors are updated appropriately", () => {
+    it("three pretty unrelated targeted interactors are updated appropriately", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
       editor.update(OPS.addInteractor({ at: { path: "0/0/1", orientation: After } }));
       editor.update(OPS.addInteractor({ at: { path: "1/2/0", orientation: After } }));
@@ -33,8 +33,15 @@ INTR. #3
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
 
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: DeleteAtDirection.Backward }));
+      editor.update(
+        OPS.deleteAt({
+          target: TargetInteractors.All,
+          direction: DeleteAtDirection.Backward,
+          allowAdjacentInlineTextDeletion: true,
+        })
+      );
       // 1) deletes final character in InlineText, then InlineText itself 2) deletes prior empty inline text, 3) no-op
+      // Note 2 only works because of the passed option
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: 0
 SLICE:  HEADER ONE
@@ -96,7 +103,7 @@ PARAGRAPH > TEXT {} > "DD"`);
     // it("if a deleteion causes a interactor's two cursors to combine it is no longer a selection acnhor", () => {
   });
 
-  describe("forewards", () => {
+  describe("forwards", () => {
     //     xit("three pretty unrelated targetted interactors are updated appropriately", () => {
     //       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
     //       editor.update(OPS.addInteractor({ at: { path: "0/0/0", orientation: After } }));

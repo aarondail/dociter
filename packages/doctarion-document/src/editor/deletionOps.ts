@@ -26,14 +26,14 @@ interface DeleteAtOptions {
    * does not affect nodes w/ different parents. If this is set to true, then
    * the deletion (of the grapheme in the sibling InlineText) will occur.
    */
-  readonly allowCrossInlineTextDeletion: boolean;
+  readonly allowAdjacentInlineTextDeletion: boolean;
   /**
    * By default when an interactor is positioned somewhere where the next node
    * to delete has a different parent node (e.g., the interactor is positioned
    * before the first grapheme in an `InlineText`), the deletion is a no-op. If
    * this is set to true, no deletion will happen but the interactor will be
    * moved to the next logical cursor position. Note that for cross InlineText
-   * cases, `allowCrossInlineTextDeletion`  takes precedence over this.
+   * cases, `allowAdjacentInlineTextDeletion`  takes precedence over this.
    */
   readonly allowMovementInBoundaryCases: boolean;
   // FUTURE TODO readonly allowJoiningInSomeBoundaryCases?: boolean;
@@ -45,7 +45,7 @@ export type DeleteAtPayload = TargetPayload & Partial<DeleteAtOptions>;
 
 export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state, services, payload) => {
   const options: DeleteAtOptions = {
-    allowCrossInlineTextDeletion: payload.allowCrossInlineTextDeletion ?? false,
+    allowAdjacentInlineTextDeletion: payload.allowAdjacentInlineTextDeletion ?? false,
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     direction: payload.direction ?? DeleteAtDirection.Backward,
     dontThrowOnSelectionInteractors: payload.dontThrowOnSelectionInteractors ?? false,
@@ -304,7 +304,7 @@ function findNodeForDeletion(
         // backwards (or forwards) from one InlineText to another inside the
         // same block (e.g. ParagraphBlock)
         if (
-          options.allowCrossInlineTextDeletion &&
+          options.allowAdjacentInlineTextDeletion &&
           parent.node instanceof InlineText &&
           parentHasPrecedingOrFollowingSibling &&
           navPrime.tip.node instanceof InlineText
