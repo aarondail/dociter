@@ -192,10 +192,10 @@ export const PositionClassification = enumWithMethods(PositionClassificationBase
         if (precedingSibling) {
           // Generally we don't allow before (since we prefer after) to true
           // here UNLESS the preceding object was on a new line
-          const preceedingSiblingNavigator = navigator.clone();
+          const precedingSiblingNavigator = navigator.clone();
           if (
-            preceedingSiblingNavigator.navigateToPrecedingSibling() &&
-            layoutReporter?.detectLineWrapOrBreakBetweenNodes(preceedingSiblingNavigator, navigator)
+            precedingSiblingNavigator.navigateToPrecedingSibling() &&
+            layoutReporter?.detectLineWrapOrBreakBetweenNodes(precedingSiblingNavigator, navigator)
           ) {
             result.before = true;
           }

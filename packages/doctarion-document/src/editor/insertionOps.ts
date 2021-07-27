@@ -7,7 +7,7 @@ import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, P
 import { deleteSelection } from "./deletionOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { getCursorNavigatorAndValidate, ifLet, refreshNavigator } from "./utils";
+import { getCursorNavigatorAndValidate, ifLet } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -75,7 +75,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
             const newInline = new InlineText(graphemes);
             castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
             services.tracking.register(newInline, node);
-            nav = refreshNavigator(nav);
+            nav = nav.clone(); // refreshNavigator(nav);
             nav.navigateToLastDescendantCursorPosition();
             state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
             state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;

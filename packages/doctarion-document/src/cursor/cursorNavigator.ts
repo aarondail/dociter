@@ -217,7 +217,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public navigateToNextSiblingUnchecked(): boolean {
     if (this.nodeNavigator.navigateToNextSibling()) {
-      this.currentOrientation = CursorOrientation.Before;
+      this.currentOrientation = CursorOrientation.On;
       return true;
     }
     return false;
@@ -305,7 +305,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public navigateToPrecedingSiblingUnchecked(): boolean {
     if (this.nodeNavigator.navigateToPrecedingSibling()) {
-      this.currentOrientation = CursorOrientation.After;
+      this.currentOrientation = CursorOrientation.On;
       return true;
     }
     return false;
