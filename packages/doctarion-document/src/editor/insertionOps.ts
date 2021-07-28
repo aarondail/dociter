@@ -1,7 +1,7 @@
 import * as immer from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
-import { CursorNavigator, CursorOrientation, PositionClassification } from "../cursor";
+import { CursorNavigator, CursorOrientation } from "../cursor";
 import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
 
 import { deleteSelection } from "./deletionOps";
@@ -21,87 +21,77 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
   let nav = getCursorNavigatorAndValidate(state, services, 0);
   const node = castDraft(nav.tip.node);
 
-  switch (nav.classifyCurrentPosition()) {
-    case PositionClassification.Grapheme:
-      ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-        if (!NodeUtils.isTextContainer(parent.node)) {
-          throw new Error(
-            "Found a grapheme whole parent that apparently does not have text which should be impossible"
-          );
-        }
+  if (NodeUtils.isGrapheme(node)) {
+    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+      if (!NodeUtils.isTextContainer(parent.node)) {
+        throw new Error("Found a grapheme whole parent that apparently does not have text which should be impossible");
+      }
 
-        const offset = nav.cursor.orientation === CursorOrientation.Before ? 0 : 1;
+      const offset = nav.cursor.orientation === CursorOrientation.Before ? 0 : 1;
 
-        castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
-        for (let i = 0; i < graphemes.length; i++) {
-          nav.navigateToNextCursorPosition();
-        }
-        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-        state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
-        state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
-      });
-      break;
-
-    case PositionClassification.EmptyInsertionPoint:
-      if (NodeUtils.isTextContainer(node)) {
-        castDraft(node.text).push(...graphemes);
-        nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
-        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-      } else if (NodeUtils.isInlineContainer(node)) {
+      castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
+      for (let i = 0; i < graphemes.length; i++) {
+        nav.navigateToNextCursorPosition();
+      }
+      state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+      state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+      state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
+    });
+  } else if (NodeUtils.getChildren(node)?.length === 0) {
+    if (NodeUtils.isTextContainer(node)) {
+      castDraft(node.text).push(...graphemes);
+      nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+      state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+    } else if (NodeUtils.isInlineContainer(node)) {
+      const newInline = new InlineText(graphemes);
+      castDraft(node.children).push(castDraft(newInline));
+      services.tracking.register(newInline, node);
+      nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
+      state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+    } else if (node instanceof Document) {
+      const newInline = new InlineText(graphemes);
+      const newParagraph = new ParagraphBlock(newInline);
+      services.tracking.register(newParagraph, node);
+      services.tracking.register(newInline, newParagraph);
+      castDraft(node.children).push(castDraft(newParagraph));
+      nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+      state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+      state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+      state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
+    } else {
+      throw new Error("Cursor is on an empty insertion point where there is no way to insert text somehow");
+    }
+  } else if (nav.cursor.orientation === CursorOrientation.Before) {
+    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+      if (NodeUtils.isInlineContainer(parent.node)) {
         const newInline = new InlineText(graphemes);
-        castDraft(node.children).push(castDraft(newInline));
+        castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
         services.tracking.register(newInline, node);
-        nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
-        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-      } else if (node instanceof Document) {
-        const newInline = new InlineText(graphemes);
-        const newParagraph = new ParagraphBlock(newInline);
-        services.tracking.register(newParagraph, node);
-        services.tracking.register(newInline, newParagraph);
-        castDraft(node.children).push(castDraft(newParagraph));
-        nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+        nav = nav.clone(); // refreshNavigator(nav);
+        nav.navigateToLastDescendantCursorPosition();
         state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
         state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
         state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
       } else {
-        throw new Error("Cursor is on an empty insertion point where there is no way to insert text somehow");
+        throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
       }
-      break;
-
-    case PositionClassification.InBetweenInsertionPoint:
-      if (nav.cursor.orientation === CursorOrientation.Before) {
-        ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-          if (NodeUtils.isInlineContainer(parent.node)) {
-            const newInline = new InlineText(graphemes);
-            castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
-            services.tracking.register(newInline, node);
-            nav = nav.clone(); // refreshNavigator(nav);
-            nav.navigateToLastDescendantCursorPosition();
-            state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-            state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
-            state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
-          } else {
-            throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
-          }
-        });
-      } else if (nav.cursor.orientation === CursorOrientation.After) {
-        ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-          if (NodeUtils.isInlineContainer(parent.node)) {
-            const newInline = new InlineText(graphemes);
-            castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
-            services.tracking.register(newInline, node);
-            nav.navigateToNextSiblingLastDescendantCursorPosition();
-            state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-            state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
-            state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
-          } else {
-            throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
-          }
-        });
+    });
+  } else if (nav.cursor.orientation === CursorOrientation.After) {
+    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+      if (NodeUtils.isInlineContainer(parent.node)) {
+        const newInline = new InlineText(graphemes);
+        castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
+        services.tracking.register(newInline, node);
+        nav.navigateToNextSiblingLastDescendantCursorPosition();
+        state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
+        state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
+        state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
+      } else {
+        throw new Error("Cursor is on an in-between insertion point where there is no way to inesrt text somehow");
       }
-      break;
-    default:
-      throw new Error("Cursor is at a position where text cannot be inserted");
+    });
+  } else {
+    throw new Error("Cursor is at a position where text cannot be inserted");
   }
 });
 
@@ -117,87 +107,85 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
   let destinationBlock: InlineContainingNode | undefined;
   let destinationNavigator: NodeNavigator | undefined;
 
-  switch (startingNav.classifyCurrentPosition()) {
-    case PositionClassification.Grapheme:
-      ifLet(startingNav.chain.getGrandParentToTipIfPossible(), ([grandParent, parent, tip]) => {
-        if (!NodeUtils.isTextContainer(parent.node) || !NodeUtils.isInlineContainer(grandParent.node)) {
-          throw new Error(
-            "Found grapheme outside of a parent that contains text or a grand parent that contains inline content."
-          );
-        }
+  if (NodeUtils.isGrapheme(startingNav.tip.node)) {
+    ifLet(startingNav.chain.getGrandParentToTipIfPossible(), ([grandParent, parent, tip]) => {
+      if (!NodeUtils.isTextContainer(parent.node) || !NodeUtils.isInlineContainer(grandParent.node)) {
+        throw new Error(
+          "Found grapheme outside of a parent that contains text or a grand parent that contains inline content."
+        );
+      }
 
-        if (!(parent.node instanceof InlineText)) {
-          throw new Error("Cannot insert a URL link inside a non Inilne Text node.");
-        }
+      if (!(parent.node instanceof InlineText)) {
+        throw new Error("Cannot insert a URL link inside a non Inilne Text node.");
+      }
 
-        if (!tip.pathPart || !parent.pathPart) {
-          throw new Error("Found a grapheme or inline text without a pathPart");
-        }
+      if (!tip.pathPart || !parent.pathPart) {
+        throw new Error("Found a grapheme or inline text without a pathPart");
+      }
 
-        const index = tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
-        const shouldSplitText = index !== 0 && index < parent.node.text.length;
-        if (shouldSplitText) {
-          // Split the inline text node
-          const [leftInlineText, rightInlineText] = parent.node.split(index);
-          services.tracking.unregister(parent.node);
-          services.tracking.register(leftInlineText, grandParent.node);
-          services.tracking.register(rightInlineText, grandParent.node);
+      const index = tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
+      const shouldSplitText = index !== 0 && index < parent.node.text.length;
+      if (shouldSplitText) {
+        // Split the inline text node
+        const [leftInlineText, rightInlineText] = parent.node.split(index);
+        services.tracking.unregister(parent.node);
+        services.tracking.register(leftInlineText, grandParent.node);
+        services.tracking.register(rightInlineText, grandParent.node);
 
-          castDraft(grandParent.node.children).splice(
-            parent.pathPart.index,
-            1,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ...castDraft([leftInlineText, rightInlineText])
-          );
-        }
+        castDraft(grandParent.node.children).splice(
+          parent.pathPart.index,
+          1,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...castDraft([leftInlineText, rightInlineText])
+        );
+      }
 
+      destinationInsertIndex =
+        parent.pathPart.index +
+        (shouldSplitText ? 1 : startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
+      destinationBlock = grandParent.node;
+      destinationNavigator = startingNav.toNodeNavigator();
+      destinationNavigator.navigateToParent();
+      destinationNavigator.navigateToParent();
+    });
+  } else if (NodeUtils.getChildren(startingNav.tip.node)?.length === 0) {
+    if (NodeUtils.isInlineContainer(startingNav.tip.node)) {
+      destinationInsertIndex = 0;
+      destinationBlock = startingNav.tip.node;
+      destinationNavigator = startingNav.toNodeNavigator();
+    } else if (startingNav.tip.node instanceof Document) {
+      const p = new ParagraphBlock();
+      services.tracking.register(p, state.document);
+      castDraft(state.document.children).push(castDraft(p));
+      destinationInsertIndex = 0;
+      destinationBlock = p;
+      destinationNavigator = startingNav.toNodeNavigator();
+      destinationNavigator.navigateToChild(0);
+    } else {
+      throw new EditorOperationError(
+        EditorOperationErrorCode.InvalidCursorPosition,
+        "Must be inside a block that can contain inline URLs."
+      );
+    }
+  } else if (
+    startingNav.cursor.orientation === CursorOrientation.Before ||
+    startingNav.cursor.orientation === CursorOrientation.After
+  ) {
+    ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
+      if (NodeUtils.isInlineContainer(parent.node)) {
         destinationInsertIndex =
-          parent.pathPart.index +
-          (shouldSplitText ? 1 : startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
-        destinationBlock = grandParent.node;
+          tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
+        destinationBlock = parent.node;
         destinationNavigator = startingNav.toNodeNavigator();
         destinationNavigator.navigateToParent();
-        destinationNavigator.navigateToParent();
-      });
-      break;
-
-    case PositionClassification.EmptyInsertionPoint:
-      if (NodeUtils.isInlineContainer(startingNav.tip.node)) {
-        destinationInsertIndex = 0;
-        destinationBlock = startingNav.tip.node;
-        destinationNavigator = startingNav.toNodeNavigator();
-      } else if (startingNav.tip.node instanceof Document) {
-        const p = new ParagraphBlock();
-        services.tracking.register(p, state.document);
-        castDraft(state.document.children).push(castDraft(p));
-        destinationInsertIndex = 0;
-        destinationBlock = p;
-        destinationNavigator = startingNav.toNodeNavigator();
-        destinationNavigator.navigateToChild(0);
       } else {
         throw new EditorOperationError(
           EditorOperationErrorCode.InvalidCursorPosition,
-          "Must be inside a block that can contain inline URLs."
+          "Cannot insert inline url link in a between insertion point in a parent that cannot contain inlines."
         );
       }
-      break;
-    case PositionClassification.InBetweenInsertionPoint:
-      ifLet(startingNav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-        if (NodeUtils.isInlineContainer(parent.node)) {
-          destinationInsertIndex =
-            tip.pathPart.index + (startingNav.cursor.orientation === CursorOrientation.Before ? 0 : 1);
-          destinationBlock = parent.node;
-          destinationNavigator = startingNav.toNodeNavigator();
-          destinationNavigator.navigateToParent();
-        } else {
-          throw new EditorOperationError(
-            EditorOperationErrorCode.InvalidCursorPosition,
-            "Cannot insert inline url link in a between insertion point in a parent that cannot contain inlines."
-          );
-        }
-      });
-      break;
-  } // switch
+    });
+  }
 
   if (destinationBlock !== undefined && destinationInsertIndex !== undefined && destinationNavigator !== undefined) {
     // And insert url link

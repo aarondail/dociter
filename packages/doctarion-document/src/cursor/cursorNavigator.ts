@@ -3,7 +3,7 @@ import { NodeLayoutReporter } from "../layout-reporting";
 import { Document, NodeUtils } from "../models";
 
 import { Cursor, CursorOrientation } from "./cursor";
-import { PositionClassification } from "./positionClassification";
+import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
 
 export interface ReadonlyCursorNavigator {
   readonly chain: Chain;
@@ -11,7 +11,6 @@ export interface ReadonlyCursorNavigator {
   readonly tip: ChainLink;
   readonly cursor: Cursor;
 
-  classifyCurrentPosition(): PositionClassification;
   clone(): CursorNavigator;
   toNodeNavigator(): NodeNavigator;
 }
@@ -60,10 +59,6 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     this.currentOrientation = orientation;
   }
 
-  public classifyCurrentPosition(): PositionClassification {
-    return PositionClassification.classify(this.nodeNavigator);
-  }
-
   public clone(): CursorNavigator {
     const navigator = new CursorNavigator(this.document, this.layoutReporter);
     navigator.currentOrientation = this.currentOrientation;
@@ -91,8 +86,20 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     if (this.navigateToNextCursorPosition()) {
       this.navigateToPrecedingCursorPosition();
     } else {
-      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
-      if (!positions.before && !positions.on && !positions.after) {
+      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      if (this.currentOrientation === CursorOrientation.On && positions.on) {
+        this.currentOrientation = CursorOrientation.On;
+      } else if (this.currentOrientation === CursorOrientation.Before && positions.before) {
+        this.currentOrientation = CursorOrientation.Before;
+      } else if (this.currentOrientation === CursorOrientation.After && positions.after) {
+        this.currentOrientation = CursorOrientation.After;
+      } else if (positions.on) {
+        this.currentOrientation = CursorOrientation.On;
+      } else if (positions.before) {
+        this.currentOrientation = CursorOrientation.Before;
+      } else if (positions.after) {
+        this.currentOrientation = CursorOrientation.After;
+      } else {
         this.navigateToPrecedingCursorPosition();
       }
     }
@@ -102,7 +109,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public navigateToFirstDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
-    if (PositionClassification.isEmptyInsertionPoint(this.nodeNavigator.tip.node)) {
+    // Is empty insertion point
+    if (NodeUtils.getChildren(this.nodeNavigator.tip.node)?.length === 0) {
       this.currentOrientation = CursorOrientation.On;
       return true;
     }
@@ -116,7 +124,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public navigateToLastDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
-    if (PositionClassification.isEmptyInsertionPoint(this.nodeNavigator.tip.node)) {
+    // Is empty insertion point
+    if (NodeUtils.getChildren(this.nodeNavigator.tip.node)?.length === 0) {
       this.currentOrientation = CursorOrientation.On;
       return true;
     }
@@ -141,7 +150,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     // before or neutral to another orientation without changing the node that the
     // navigator is on
     if (orientation === CursorOrientation.Before) {
-      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
@@ -150,7 +159,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
         return true;
       }
     } else if (orientation === CursorOrientation.On) {
-      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.after) {
         this.currentOrientation = CursorOrientation.After;
         return true;
@@ -159,10 +168,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       if (this.nodeNavigator.nextSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorOrientationsAt(
-          parentNavigator,
-          this.layoutReporter
-        );
+        const parentPositions = getNavigableCursorOrientationsAt(parentNavigator, this.layoutReporter);
         if (parentPositions.after) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -185,7 +191,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     // the block above this loop.
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsByDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const newPositions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.before) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
@@ -241,7 +247,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     let skipDescendants = false;
 
     if (orientation === CursorOrientation.After) {
-      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
@@ -250,7 +256,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
         return true;
       }
     } else if (orientation === CursorOrientation.On) {
-      const positions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (positions.before) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
@@ -259,10 +265,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       if (this.nodeNavigator.precedingSiblingNode === undefined) {
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
-        const parentPositions = PositionClassification.getValidCursorOrientationsAt(
-          parentNavigator,
-          this.layoutReporter
-        );
+        const parentPositions = getNavigableCursorOrientationsAt(parentNavigator, this.layoutReporter);
         if (parentPositions.before) {
           this.nodeNavigator = parentNavigator;
           return true;
@@ -273,7 +276,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateBackwardsByDfs({ skipDescendants })) {
-      const newPositions = PositionClassification.getValidCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
+      const newPositions = getNavigableCursorOrientationsAt(this.nodeNavigator, this.layoutReporter);
       if (newPositions.after) {
         this.currentOrientation = CursorOrientation.After;
         return true;
@@ -319,7 +322,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       if (clone.navigateToNextCursorPosition()) {
         clone.navigateToPrecedingCursorPosition();
       } else {
-        const positions = PositionClassification.getValidCursorOrientationsAt(clone.nodeNavigator, this.layoutReporter);
+        const positions = getNavigableCursorOrientationsAt(clone.nodeNavigator, this.layoutReporter);
         if (!positions.before && !positions.on && !positions.after) {
           clone.navigateToPrecedingCursorPosition();
         }

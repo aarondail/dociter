@@ -2,7 +2,7 @@ import * as immer from "immer";
 import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, PathAdjustmentDueToRelativeDeletionNoChangeReason } from "../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, PositionClassification, ReadonlyCursorNavigator } from "../cursor";
+import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineText, NodeUtils } from "../models";
 
 import { InteractorId, InteractorOrderingEntryCursorType } from "./interactor";
@@ -10,7 +10,7 @@ import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
-import { ifLet, selectTargets } from "./utils";
+import { selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -20,6 +20,13 @@ export enum DeleteAtDirection {
 }
 
 interface DeleteAtOptions {
+  /**
+   * By default when an interactor is positioned around
+   * an InlineEmoji the deletion will be a no-op because the deletion
+   * does not affect nodes w/ different parents. If this is set to true, then
+   * the deletion (of the adjacent InlineEmoji) will occur.
+   */
+  readonly allowAdjacentInlineEmojiDeletion: boolean;
   /**
    * By default when an interactor is positioned on an edge (so to speak)
    * between two InlineText's the deletion will be a no-op because the deletion
@@ -45,6 +52,7 @@ export type DeleteAtPayload = TargetPayload & Partial<DeleteAtOptions>;
 
 export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state, services, payload) => {
   const options: DeleteAtOptions = {
+    allowAdjacentInlineEmojiDeletion: payload.allowAdjacentInlineEmojiDeletion ?? false,
     allowAdjacentInlineTextDeletion: payload.allowAdjacentInlineTextDeletion ?? false,
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     direction: payload.direction ?? DeleteAtDirection.Backward,
@@ -269,80 +277,74 @@ function findNodeForDeletion(
   const isBack = options.direction === DeleteAtDirection.Backward;
   const nodeToDelete = navigator.toNodeNavigator();
 
-  switch (navigator.classifyCurrentPosition()) {
-    case PositionClassification.Grapheme: {
-      const parentAndTip = navigator.chain.getParentAndTipIfPossible();
-      if (!parentAndTip) {
-        return undefined;
+  const currentNode = navigator.tip.node;
+  if (NodeUtils.isGrapheme(currentNode)) {
+    const parentAndTip = navigator.chain.getParentAndTipIfPossible();
+    if (!parentAndTip) {
+      return undefined;
+    }
+    const [parent, tip] = parentAndTip;
+
+    if (!NodeUtils.isTextContainer(parent.node)) {
+      return undefined;
+    }
+
+    let index = tip.pathPart.index;
+    if (isBack) {
+      if (navigator.cursor.orientation === CursorOrientation.Before) {
+        index--;
       }
-      const [parent, tip] = parentAndTip;
-
-      if (!NodeUtils.isTextContainer(parent.node)) {
-        return undefined;
-      }
-
-      let index = tip.pathPart.index;
-      if (isBack) {
-        if (navigator.cursor.orientation === CursorOrientation.Before) {
-          index--;
-        }
-      } else {
-        if (navigator.cursor.orientation === CursorOrientation.After) {
-          index++;
-          nodeToDelete.navigateToNextSibling();
-        }
-      }
-
-      // Are we at the edge of the text containing Node (InlineText or InlineUrlLink?)
-      if ((isBack && index === -1) || (!isBack && index === parent.node.children.length)) {
-        const navPrime = navigator.clone();
-        const parentHasPrecedingOrFollowingSibling =
-          navPrime.navigateToParentUnchecked() &&
-          (isBack ? navPrime.navigateToPrecedingSiblingUnchecked() : navPrime.navigateToNextSiblingUnchecked());
-
-        // In the code here, we just handle the case where we are deleting
-        // backwards (or forwards) from one InlineText to another inside the
-        // same block (e.g. ParagraphBlock)
-        if (
-          options.allowAdjacentInlineTextDeletion &&
-          parent.node instanceof InlineText &&
-          parentHasPrecedingOrFollowingSibling &&
-          navPrime.tip.node instanceof InlineText
-        ) {
-          isBack
-            ? navPrime.navigateToLastDescendantCursorPosition()
-            : navPrime.navigateToFirstDescendantCursorPosition();
-          if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
-            navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
-          } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
-            navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
-          }
-          // Proceed with deletion at the end of the prior (assumed)
-          // InlineText) ...
-          return findNodeForDeletion(navPrime, options);
-        }
-
-        // Joining logic should probably be added here in the future
-
-        break; // Reach possible movement logic outside of switch
-      } else {
-        if (parent.node.text.length === 1 && parent.node instanceof InlineText) {
-          // In this case we are about to remove the last character in an
-          // inline text In this case, we prefer to delete the inline text.
-          const navPrime = navigator.toNodeNavigator();
-          navPrime.navigateToParent();
-          return { nodeToDelete: navPrime };
-        } else {
-          // In this case, the nodeToDelete is already on the right node
-          return { nodeToDelete };
-        }
+    } else {
+      if (navigator.cursor.orientation === CursorOrientation.After) {
+        index++;
+        nodeToDelete.navigateToNextSibling();
       }
     }
-    case PositionClassification.EmptyInsertionPoint:
-    case PositionClassification.NavigableNonTextNode:
-      return { nodeToDelete };
-    case PositionClassification.InBetweenInsertionPoint:
-      break; // Reach possible movement logic outside of switch
+
+    // Are we at the edge of the text containing Node (InlineText or InlineUrlLink?)
+    if ((isBack && index === -1) || (!isBack && index === parent.node.children.length)) {
+      const navPrime = navigator.clone();
+      const parentHasPrecedingOrFollowingSibling =
+        navPrime.navigateToParentUnchecked() &&
+        (isBack ? navPrime.navigateToPrecedingSiblingUnchecked() : navPrime.navigateToNextSiblingUnchecked());
+
+      // In the code here, we just handle the case where we are deleting
+      // backwards (or forwards) from one InlineText to another inside the
+      // same block (e.g. ParagraphBlock)
+      if (
+        options.allowAdjacentInlineTextDeletion &&
+        parent.node instanceof InlineText &&
+        parentHasPrecedingOrFollowingSibling &&
+        navPrime.tip.node instanceof InlineText
+      ) {
+        isBack ? navPrime.navigateToLastDescendantCursorPosition() : navPrime.navigateToFirstDescendantCursorPosition();
+        if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
+          navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+        } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
+          navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
+        }
+        // Proceed with deletion at the end of the prior (assumed)
+        // InlineText) ...
+        return findNodeForDeletion(navPrime, options);
+      }
+
+      // Joining logic should probably be added here in the future
+
+      // Reach possible movement logic outside of switch
+    } else {
+      if (parent.node.text.length === 1 && parent.node instanceof InlineText) {
+        // In this case we are about to remove the last character in an
+        // inline text In this case, we prefer to delete the inline text.
+        const navPrime = navigator.toNodeNavigator();
+        navPrime.navigateToParent();
+        return { nodeToDelete: navPrime };
+      } else {
+        // In this case, the nodeToDelete is already on the right node
+        return { nodeToDelete };
+      }
+    }
+  } else if (navigator.cursor.orientation === CursorOrientation.On) {
+    return { nodeToDelete };
   }
 
   // Non-deletion potential movement logic

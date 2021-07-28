@@ -5,14 +5,18 @@ Placing a cursor (aka caret) in the document, and moving it, is hard.
 
 * Grapheme - A unit of text corresponding to what a user would consider a character as a person would underestand it.
 * Nodes - A document is a collection of nodes. Cursors, largely go between graphemes.
-* PositionClassification - There are 5 different kinds of cursor positions in a document.
+* Cursor - A point to a node in a document as well as an orientation.
 * Orientation - A cursor can be BEFORE a node, AFTER a node, or on a node which we call ON.
 * Orientation Preference - There are sometimes multiple cursor positions that are different but equivalent, e.g. after node A and before node B can be the same position. To make things more deterministic, and make the cursor placement and navigation behave more like a user expects we have a preference system to choose one cursor placement when there are multiple that would techincally work.
 * Interactor - The concept of a cursor, possibly with a selection (anchored by another cursor) in the document. A document can have multiple interactors at any given time (for multiple cursors or multiple selections) and they can individually be active or inactive.
 
-## PositionClassification Details 
+## Cursor Positioning 
 
-There are five or so KINDS of places where a cursor may be placed GENERALLY:
+Cursors can be placed ON any element of a document, but only a subset of those positions along with some before and after positions are "navigable positions". 
+
+What "navigable" here means is a cursor position that can be navigated to (via forwards or backwards navigation, or up and down movement).
+
+There are four kinds of navigable cursor positions:
 
 1. Around (but not on) graphemes in some text containing Inline element (e.g.
    InlineText or InlineUrlLink).
@@ -26,36 +30,17 @@ There are five or so KINDS of places where a cursor may be placed GENERALLY:
 4. On a node that is not text containing and is not a grapheme. These are
    nodes that can be navigated to with normal cursor movement but cannot
    contain text, like a emoji or inline image.
-5. On _any_ node (including graphemes and nodes like those described by 4).
-   This position can not be reached by normal navigation within the
-   document. Rather it is always the result of selections. E.g., selecting an
-   entire Paragraph node.
 
 
 We refer to 1 as "graphemes", 2 as "empty insertion points", 3 as "in-between
-insertion points", 4 as "navigable non-text nodes", and 5 as "unconstrained any
-node".
+insertion points", 4 as "navigable non-text nodes".
 
-## PositionClassification and Orientation
+## Orientation
 
-For position types 1 and 3, the cursor can be before or after the node its on,
-meaning its between the node and its preceeding or following sibling, but not
-actually on the node. This is represented by the cursor having a Before or After
-CursorOrientation. For position types 2, 4, and 5 the cursor is always on the
-node. This is represented by the cursor having a On CursorOrientation
-
-## PositionClassification and Text Insertion
-
-For position types 1, 2, and 3, they represent positions where text can be
-inserted, whereas types 4 and 5 don't. Text may (potentially) replace the node
-the cursor is on, but it can't be inserted (generally) while preserving the
-node.
-
-## PositionClassification and Navigation
-
-All the position types except type 5 can be reached by navigating through the
-document with simple navigation operations. E.g., moving back, forward, up,
-down, etc.  5 is not like that and can only be obtained during selection.
+For "grapheme" and "in-between insertion point" positions, the cursor can be
+before or after the node its on, meaning its between the node and its preceding
+or following sibling, but not actually on the node. This is represented by the
+cursor having a Before or After CursorOrientation. 
 
 ## Orientation Preference Details
 
@@ -67,11 +52,11 @@ Because of that, to make the behavior of things like navigation more
 deterministic, and make the editor behave in a way that is more like what a
 user expects we prefer some cursor positions to others even when they are
 equivalent.  Specifically we bias towards positions after nodes and we prefer
-to those that relate to a grapheme vs not realted to one.
+to those that relate to a grapheme vs not related to one.
 
-## Line Endings afecting Orientation
+## Line Endings affecting Orientation
 
-One caes that is very complicated is when graphemes are at the end of a line
+One case that is very complicated is when graphemes are at the end of a line
 that wraps (i.e.  its at the end of a line visually that is due to a newline
 character or because of a soft line wrap due to how the document is
 rendered/laid out visually, not because its at the end of an inline which is
