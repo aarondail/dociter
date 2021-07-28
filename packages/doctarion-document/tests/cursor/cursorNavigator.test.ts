@@ -151,7 +151,7 @@ const TestHelpers = {
 
 describe("navigateTo", () => {
   it("navigates to graphemes in a fleshed out doc", () => {
-    const nav = new CursorNavigator(testDoc1);
+    const nav = new CursorNavigator(testDoc1, undefined);
     nav.navigateTo("1/1/2", CursorOrientation.After);
     expect(debugCursorNavigator(nav)).toEqual("1/1/2 |>");
     expect(nav.tip.node).toEqual("R");
@@ -173,13 +173,16 @@ describe("navigateTo", () => {
     expect(debugCursorNavigator(nav)).toEqual("<| 2/2/0");
     expect(nav.tip.node).toEqual("f");
 
-    const nav2 = new CursorNavigator(doc(paragraph(inlineText("A"), inlineUrlLink("a.com", ""), inlineText("B"))));
+    const nav2 = new CursorNavigator(
+      doc(paragraph(inlineText("A"), inlineUrlLink("a.com", ""), inlineText("B"))),
+      undefined
+    );
     nav2.navigateTo("0/2/0", CursorOrientation.Before);
     expect(nav2.tip.node).toEqual("B");
   });
 
   it("navigates to graphemes and changes orientation in some cases", () => {
-    const nav = new CursorNavigator(testDoc1);
+    const nav = new CursorNavigator(testDoc1, undefined);
     expect(nav.navigateTo("2/2/3", CursorOrientation.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("2/2/2 |>");
     expect(nav.tip.node).toEqual("n");
@@ -190,7 +193,7 @@ describe("navigateTo", () => {
   });
 
   it("navigates to empty insertion points", () => {
-    const nav = new CursorNavigator(testDoc2);
+    const nav = new CursorNavigator(testDoc2, undefined);
     expect(nav.navigateTo("0", CursorOrientation.On)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("0");
 
@@ -202,7 +205,7 @@ describe("navigateTo", () => {
   });
 
   it("navigates to between insertion points", () => {
-    const nav = new CursorNavigator(testDoc3);
+    const nav = new CursorNavigator(testDoc3, undefined);
 
     expect(nav.navigateTo("0/0", CursorOrientation.Before)).toBeTruthy();
     expect(debugCursorNavigator(nav)).toEqual("<| 0/0");
@@ -219,7 +222,7 @@ describe("navigateTo", () => {
   });
 
   it("autocorrects navigation in some cases", () => {
-    const nav = new CursorNavigator(doc(paragraph(inlineText("ASD"), inlineUrlLink("g.com", ""))));
+    const nav = new CursorNavigator(doc(paragraph(inlineText("ASD"), inlineUrlLink("g.com", ""))), undefined);
     nav.navigateTo("0/1", CursorOrientation.Before);
     expect(debugCursorNavigator(nav)).toEqual("0/0/2 |>");
   });
@@ -234,7 +237,7 @@ describe("navigateToNextCursorPosition", () => {
 
   describe("goes through core inline to inline scenarios", () => {
     it.each(coreInlineToInlineScenariosForNext)("%p", (input, output) => {
-      const nav = new CursorNavigator(doc(paragraph(...TestHelpers.parseConciseDescription(input))));
+      const nav = new CursorNavigator(doc(paragraph(...TestHelpers.parseConciseDescription(input))), undefined);
 
       const paths = [];
       let i = 10;
@@ -250,7 +253,7 @@ describe("navigateToNextCursorPosition", () => {
   });
 
   it("should navigate through graphemes", () => {
-    const nav = new CursorNavigator(testDoc1);
+    const nav = new CursorNavigator(testDoc1, undefined);
     const next = nextPrime.bind(undefined, nav);
     next(1);
     expect(nav.tip.node).toEqual("H");
@@ -303,7 +306,7 @@ describe("navigateToNextCursorPosition", () => {
   });
 
   it("should navigate through empty insertion points", () => {
-    const nav = new CursorNavigator(testDoc2);
+    const nav = new CursorNavigator(testDoc2, undefined);
     const next = nextPrime.bind(undefined, nav);
     next(1);
     expect(nav.tip.node).toEqual(paragraph()); // of final sentence
@@ -336,7 +339,7 @@ describe("navigateToNextCursorPosition", () => {
   });
 
   it("should navigate through between insertion points", () => {
-    const nav = new CursorNavigator(testDoc3);
+    const nav = new CursorNavigator(testDoc3, undefined);
     // TODO deal with naviginat thorugh empty inline url link at start of firs tblock
     const next = nextPrime.bind(undefined, nav);
     next(1);
@@ -465,7 +468,7 @@ describe("navigateToNextCursorPosition", () => {
   });
 
   it("should navigate through emoji", () => {
-    const nav = new CursorNavigator(testDoc5);
+    const nav = new CursorNavigator(testDoc5, undefined);
 
     const next = nextPrime.bind(undefined, nav);
     next(1);
@@ -507,7 +510,7 @@ describe("navigateToPrecedingCursorPosition", () => {
 
   describe("goes through core inline to inline scenarios", () => {
     it.each(coreInlineToInlineScenariosForPreceding)("%p", (input, output) => {
-      const nav = new CursorNavigator(doc(paragraph(...TestHelpers.parseConciseDescription(input))));
+      const nav = new CursorNavigator(doc(paragraph(...TestHelpers.parseConciseDescription(input))), undefined);
 
       let i = 20;
       while (nav.navigateToNextCursorPosition()) {
@@ -535,7 +538,7 @@ describe("navigateToPrecedingCursorPosition", () => {
   });
 
   it("should navigate through graphemes", () => {
-    const nav = new CursorNavigator(testDoc1);
+    const nav = new CursorNavigator(testDoc1, undefined);
     const back = backPrime.bind(undefined, nav);
     nav.navigateTo("2/2/1", CursorOrientation.After);
     expect(nav.tip.node).toEqual("i"); // of final sentence
@@ -597,7 +600,7 @@ describe("navigateToPrecedingCursorPosition", () => {
   });
 
   it("should navigate through empty insertion points", () => {
-    const nav = new CursorNavigator(testDoc2);
+    const nav = new CursorNavigator(testDoc2, undefined);
 
     const back = backPrime.bind(undefined, nav);
     nav.navigateTo("3/0/0", CursorOrientation.Before);
@@ -628,7 +631,7 @@ describe("navigateToPrecedingCursorPosition", () => {
   });
 
   it("should navigate through between insertion points", () => {
-    const nav = new CursorNavigator(testDoc3);
+    const nav = new CursorNavigator(testDoc3, undefined);
     const back = backPrime.bind(undefined, nav);
     nav.navigateTo("2/0/0", CursorOrientation.Before);
     expect(nav.tip.node).toEqual("D"); // of final sentence
@@ -742,7 +745,7 @@ describe("navigateToPrecedingCursorPosition", () => {
   });
 
   it("should navigate through emoji", () => {
-    const nav = new CursorNavigator(testDoc5);
+    const nav = new CursorNavigator(testDoc5, undefined);
     nav.navigateToLastDescendantCursorPosition();
     const back = backPrime.bind(undefined, nav);
 
@@ -775,7 +778,7 @@ describe("navigateToPrecedingCursorPosition", () => {
 
 describe("navigateToLastDescendantCursorPosition", () => {
   it("should handle empty insertion points", () => {
-    const nav = new CursorNavigator(doc(paragraph(inlineText(""))));
+    const nav = new CursorNavigator(doc(paragraph(inlineText(""))), undefined);
     nav.navigateToUnchecked("0/0", CursorOrientation.After);
     nav.navigateToLastDescendantCursorPosition();
     expect(debugCursorNavigator(nav)).toEqual("0/0");
