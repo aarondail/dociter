@@ -7,6 +7,8 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json",
     "build:w": "tsc --build tsconfig.build.json -w",
+    "compile": "tsc --build tsconfig.json",
+    "compile:w": "tsc --build tsconfig.json -w",
     "test": "jest",
     "test:w": "jest --watch",
     "format": "prettier --write {src,tests}/**/*.ts",
@@ -31,6 +33,7 @@
   },
   "lint-staged": {
     "{src,tests}/**/*.{js,ts,jsx,tsx}": [
+      "compile",
       "eslint --fix",
       "jest --bail --findRelatedTests"
     ]
