@@ -205,18 +205,21 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
 }
 
 function determineCursorPositionAfterDeletion(
-  originalPosition: ReadonlyCursorNavigator,
+  originalPositionAndNode: ReadonlyCursorNavigator,
   direction: DeleteAtDirection
 ): CursorNavigator {
   // The node that the `originalPosition` navigator is pointed to is now
   // deleted, along with (possibly) its parent and grandparent.
+  const originalNode = originalPositionAndNode.tip.node;
+  const originalParent = originalPositionAndNode.parent?.node;
+  const originalCursor = originalPositionAndNode.cursor;
+  const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
 
-  const n = originalPosition.clone();
-  if (n.navigateToUnchecked(originalPosition.cursor)) {
-    if (NodeUtils.isGrapheme(originalPosition.tip.node)) {
-      if (n.parent?.node === originalPosition.parent?.node) {
+  const n = originalPositionAndNode.clone();
+  if (n.navigateToUnchecked(originalCursor)) {
+    if (NodeUtils.isGrapheme(originalNode)) {
+      if (n.parent?.node === originalParent) {
         const currentIndex = n.tip.pathPart.index;
-        const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
         isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
 
         // This fixes a bug where we navigate but the only thing that changed is
@@ -234,30 +237,25 @@ function determineCursorPositionAfterDeletion(
       // OK we were able to navigate to the same cursor location but a different
       // node or parent node
       n.navigateToParentUnchecked();
-    } else if (originalPosition.tip.node instanceof InlineEmoji) {
-      if (n.parent?.node === originalPosition.parent?.node) {
+    } else if (originalNode instanceof InlineEmoji) {
+      if (n.parent?.node === originalPositionAndNode.parent?.node) {
         const currentIndex = n.tip.pathPart.index;
-        const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
-        if (isBack) {
-          // JIC this node is an InlineUrlText or something do this
-          n.navigateToFirstDescendantCursorPosition();
-          // Then move the previous position
+        // JIC this node is an InlineUrlText or something do this
+        n.navigateToFirstDescendantCursorPosition();
+        // Then move the previous position... this actually works properly no
+        // matter which direction we were moving... mostly. The check for here
+        // is saying that if we are moving forward and landed On something
+        // (which must be an empty inline text or emoji) don't move. This is a
+        // little bit weird and specific so the logic here could definitely be
+        // wrong.
+        if (isBack || n.cursor.orientation !== CursorOrientation.On) {
           n.navigateToPrecedingCursorPosition();
-        } else {
-          // JIC this node is an InlineUrlText or something do this
-          n.navigateToLastDescendantCursorPosition();
-          // Then move the next position
-          n.navigateToNextCursorPosition();
         }
 
         // This fixes a bug where we navigate but the only thing that changed is
         // the CursorOrientation
         if (n.tip.pathPart && n.tip.pathPart.index === currentIndex) {
-          // Only emoji will be "On" here
-          if (
-            n.cursor.orientation === CursorOrientation.On &&
-            originalPosition.cursor.orientation !== CursorOrientation.On
-          ) {
+          if (n.cursor.orientation === CursorOrientation.On && originalCursor.orientation !== CursorOrientation.On) {
             isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
           }
         }
@@ -274,12 +272,12 @@ function determineCursorPositionAfterDeletion(
     }
   } else {
     // Try one level higher as a fallback
-    const p = originalPosition.cursor.path.withoutTip();
+    const p = originalCursor.path.withoutTip();
     if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
       n.navigateToLastDescendantCursorPosition();
     } else {
       // OK try one more level higher again
-      const p2 = originalPosition.cursor.path.withoutTip().withoutTip();
+      const p2 = originalCursor.path.withoutTip().withoutTip();
       if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
         // Not sure this is really right...
         n.navigateToLastDescendantCursorPosition();
