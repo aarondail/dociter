@@ -3,7 +3,7 @@ import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, PathAdjustmentDueToRelativeDeletionNoChangeReason } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { InlineText, NodeUtils } from "../models";
+import { InlineEmoji, InlineText, NodeUtils } from "../models";
 
 import { InteractorId, InteractorOrderingEntryCursorType } from "./interactor";
 import { createCoreOperation } from "./operation";
@@ -219,8 +219,8 @@ function determineCursorPositionAfterDeletion(
         const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
         isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
 
-        // This fixes a bug where we navigate back but the only thing that
-        // changes is the CursorOrientation
+        // This fixes a bug where we navigate but the only thing that changed is
+        // the CursorOrientation
         if (
           n.tip.pathPart &&
           n.tip.pathPart.index === currentIndex &&
@@ -228,6 +228,38 @@ function determineCursorPositionAfterDeletion(
           (isBack ? n.toNodeNavigator().navigateToPrecedingSibling() : n.toNodeNavigator().navigateToNextSibling())
         ) {
           isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+        }
+        return n;
+      }
+      // OK we were able to navigate to the same cursor location but a different
+      // node or parent node
+      n.navigateToParentUnchecked();
+    } else if (originalPosition.tip.node instanceof InlineEmoji) {
+      if (n.parent?.node === originalPosition.parent?.node) {
+        const currentIndex = n.tip.pathPart.index;
+        const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
+        if (isBack) {
+          // JIC this node is an InlineUrlText or something do this
+          n.navigateToFirstDescendantCursorPosition();
+          // Then move the previous position
+          n.navigateToPrecedingCursorPosition();
+        } else {
+          // JIC this node is an InlineUrlText or something do this
+          n.navigateToLastDescendantCursorPosition();
+          // Then move the next position
+          n.navigateToNextCursorPosition();
+        }
+
+        // This fixes a bug where we navigate but the only thing that changed is
+        // the CursorOrientation
+        if (n.tip.pathPart && n.tip.pathPart.index === currentIndex) {
+          // Only emoji will be "On" here
+          if (
+            n.cursor.orientation === CursorOrientation.On &&
+            originalPosition.cursor.orientation !== CursorOrientation.On
+          ) {
+            isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+          }
         }
         return n;
       }
@@ -276,6 +308,7 @@ function findNodeForDeletion(
 ): { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator } | undefined {
   const isBack = options.direction === DeleteAtDirection.Backward;
   const nodeToDelete = navigator.toNodeNavigator();
+  const orientation = navigator.cursor.orientation;
 
   const currentNode = navigator.tip.node;
   if (NodeUtils.isGrapheme(currentNode)) {
@@ -291,11 +324,11 @@ function findNodeForDeletion(
 
     let index = tip.pathPart.index;
     if (isBack) {
-      if (navigator.cursor.orientation === CursorOrientation.Before) {
+      if (orientation === CursorOrientation.Before) {
         index--;
       }
     } else {
-      if (navigator.cursor.orientation === CursorOrientation.After) {
+      if (orientation === CursorOrientation.After) {
         index++;
         nodeToDelete.navigateToNextSibling();
       }
@@ -323,8 +356,22 @@ function findNodeForDeletion(
         } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
           navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
         }
-        // Proceed with deletion at the end of the prior (assumed)
-        // InlineText) ...
+        return findNodeForDeletion(navPrime, options);
+      }
+
+      // In this case we are handling deleting backwards or forwards onto an emoji
+      if (
+        options.allowAdjacentInlineEmojiDeletion &&
+        parent.node instanceof InlineText &&
+        parentHasPrecedingOrFollowingSibling &&
+        navPrime.tip.node instanceof InlineEmoji
+      ) {
+        isBack ? navPrime.navigateToLastDescendantCursorPosition() : navPrime.navigateToFirstDescendantCursorPosition();
+        if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
+          navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+        } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
+          navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
+        }
         return findNodeForDeletion(navPrime, options);
       }
 
@@ -343,8 +390,24 @@ function findNodeForDeletion(
         return { nodeToDelete };
       }
     }
-  } else if (navigator.cursor.orientation === CursorOrientation.On) {
+  } else if (orientation === CursorOrientation.On) {
     return { nodeToDelete };
+  } else if (options.allowAdjacentInlineEmojiDeletion) {
+    // Orientation has to be before or after here in this block
+    if ((orientation === CursorOrientation.After && isBack) || (orientation === CursorOrientation.Before && !isBack)) {
+      if (nodeToDelete.tip.node instanceof InlineEmoji) {
+        return { nodeToDelete };
+      }
+    } else {
+      // This case is either before and going back or after and going forward
+      const navPrime = nodeToDelete.clone();
+      if (
+        (isBack ? navPrime.navigateToPrecedingSibling() : navPrime.navigateToNextSibling()) &&
+        navPrime.tip.node instanceof InlineEmoji
+      ) {
+        return { nodeToDelete: navPrime };
+      }
+    }
   }
 
   // Non-deletion potential movement logic

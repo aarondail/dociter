@@ -281,122 +281,96 @@ PARAGRAPH > TEXT {} > "AB"
 PARAGRAPH > TEXT {} > "CD"`);
     });
 
-    //     it("will move to inline emoji with the proper options", () => {
-    //       const editor = new Editor({
-    //         document: doc(paragraph(inlineText("AB"), inlineEmoji("turtle"), inlineEmoji("tree"), inlineText("CD"))),
-    //       });
-    //       editor.update(OPS.jump({ to: { path: "0/3/0", orientation: Before } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/2
-    // SLICE:  PARAGRAPH > EMOJI tree`);
-    //     });
+    it("will move to inline emoji with the proper options", () => {
+      const editor = new Editor({
+        document: doc(
+          paragraph(inlineEmoji("a"), inlineEmoji("b"), inlineText("CD"),  inlineEmoji("c"), inlineUrlLink("G.com", "G"))
+        ),
+      });
+      editor.update(OPS.jump({ to: { path: "0/2/0", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/1
+SLICE:  PARAGRAPH > EMOJI b`);
 
-    //     it("will delete multiple emoji", () => {
-    //       const editor = new Editor({
-    //         document: doc(paragraph(inlineText("AB"), inlineEmoji("turtle"), inlineEmoji("tree"), inlineText("CD"))),
-    //       });
-    //       editor.update(OPS.jump({ to: { path: "0/2", orientation: On } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/1
-    // SLICE:  PARAGRAPH > EMOJI turtle`);
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/0/1 |>
-    // SLICE:  PARAGRAPH > TEXT {} > "AB"`);
-    //     });
+      editor.update(OPS.jump({ to: { path: "0/0", orientation: After } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0
+SLICE:  PARAGRAPH > EMOJI a`);
 
-    //     xit("will delete inline emoji indirectly when cursor is adjacent with proper options", () => {
-    //       const editor = new Editor({ document: doc(paragraph(inlineText("AB"), inlineEmoji("tree"), inlineText("CD"))) });
-    //       editor.update(OPS.jump({ to: { path: "0/2/0", orientation: Before } }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: <| 0/2/0
-    // SLICE:  PARAGRAPH > TEXT {} > "CD"`);
+            editor.update(OPS.jump({ to: { path: "0/4", orientation: Before } }));
+            editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
+            expect(debugState(editor)).toEqual(`
+CURSOR: 0/3
+SLICE:  PARAGRAPH > EMOJI c`);
+          });
+    });
 
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: <| 0/1/0
-    // SLICE:  PARAGRAPH > TEXT {} > "CD"`);
-    //       expect(debugCurrentBlock(editor)).toEqual(`
-    // PARAGRAPH > TEXT {} > "AB"
-    // PARAGRAPH > TEXT {} > "CD"`);
-    //     });
+    it("will delete multiple emoji", () => {
+      const editor = new Editor({
+        document: doc(paragraph(inlineText("AB"), inlineEmoji("turtle"), inlineEmoji("tree"), inlineText("CD"))),
+      });
+      editor.update(OPS.jump({ to: { path: "0/2", orientation: On } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/1
+SLICE:  PARAGRAPH > EMOJI turtle`);
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowMovementInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "AB"`);
+    });
 
-    //     fit("will not delete inline emoji by default from in-between insertion points", () => {
-    //       const editor = new Editor({
-    //         document: doc(
-    //           paragraph(inlineEmoji("turtle"), inlineEmoji("tree"), inlineUrlLink("G.com", "GOOGLE"), inlineEmoji("end"))
-    //         ),
-    //       });
+    it("will delete inline emoji indirectly when cursor is adjacent with proper options", () => {
+      let editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineText("AB"))) });
+      editor.update(OPS.jump({ to: { path: "0/1/0", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0/0
+SLICE:  PARAGRAPH > TEXT {} > "AB"`);
 
-    //       // The deletions in here should all be no-ops
+      editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineEmoji("second"))) });
+      editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0
+SLICE:  PARAGRAPH > EMOJI second`);
 
-    //       editor.update(OPS.jump({ to: { path: "0/3", orientation: After } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/3 |>
-    // SLICE:  PARAGRAPH > EMOJI end`);
+      editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineUrlLink("G.com", "GOOGLE"))) });
+      editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 0/0
+SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
+    });
 
-    //       editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/0 |>
-    // SLICE:  PARAGRAPH > EMOJI turtle`);
+    it("will not delete inline emoji by default from in-between insertion points", () => {
+      const editor = new Editor({
+        document: doc(
+          paragraph(inlineEmoji("turtle"), inlineEmoji("tree"), inlineUrlLink("G.com", "GOOGLE"), inlineEmoji("end"))
+        ),
+      });
 
-    //       expect(debugCurrentBlock(editor)).toEqual(`
-    // PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
-    //     });
+      // The deletions in here should all be no-ops
+      editor.update(OPS.jump({ to: { path: "0/3", orientation: After } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/3 |>
+SLICE:  PARAGRAPH > EMOJI end`);
 
-    //     xit("will move to inline emoji from in-between insertion points with the proper options", () => {
-    //       const editor = new Editor({
-    //         document: doc(
-    //           paragraph(inlineEmoji("turtle"), inlineEmoji("tree"), inlineUrlLink("G.com", "GOOGLE"), inlineEmoji("end"))
-    //         ),
-    //       });
+      editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
+      editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0 |>
+SLICE:  PARAGRAPH > EMOJI turtle`);
 
-    //       editor.update(OPS.jump({ to: { path: "0/3", orientation: After } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/3
-    // SLICE:  PARAGRAPH > EMOJI end`);
-
-    //       editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/0
-    // SLICE:  PARAGRAPH > EMOJI turtle`);
-    //     });
-
-    //     xit("will delete inline emoji from in-between insertion points with the proper options", () => {
-    //       const editor = new Editor({
-    //         document: doc(
-    //           paragraph(inlineEmoji("turtle"), inlineEmoji("tree"), inlineUrlLink("G.com", "GOOGLE"), inlineEmoji("end"))
-    //         ),
-    //       });
-    //       editor.update(OPS.jump({ to: { path: "0/3", orientation: After } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: 0/2 |>
-    // SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
-
-    //       editor.update(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: <| 0/0
-    // SLICE:  PARAGRAPH > EMOJI tree`);
-
-    //       editor.update(OPS.jump({ to: { path: "0/0", orientation: After } }));
-    //       editor.update(OPS.deleteAt({ direction: DeleteAtDirection.Backward }));
-    //       expect(debugState(editor)).toEqual(`
-    // CURSOR: <| 0/0
-    // SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
-
-    //       expect(debugCurrentBlock(editor)).toEqual(`
-    // PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
-    //     });
-
-    // xit(" make all tests for emoji in forward section too")
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > EMOJI turtle
+PARAGRAPH > EMOJI tree
+PARAGRAPH > URL_LINK G.com > "GOOGLE"
+PARAGRAPH > EMOJI end`);
+    });
 
     //     xit("will join paragraphs", () => {});
     //     xit("will paragraph into header and header into paragraph", () => {});
