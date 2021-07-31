@@ -8,6 +8,11 @@ import { EditorOperationError, EditorOperationErrorCode } from "./operationError
 import { EditorOperationServices, EditorServices } from "./services";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
+export enum FlowDirection {
+  Backward = "BACKWARD",
+  Forward = "FORWARD",
+}
+
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
   if (a !== undefined) {
     return callback(a);

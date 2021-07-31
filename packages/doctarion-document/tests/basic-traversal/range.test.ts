@@ -9,7 +9,7 @@ const testDoc1 = doc(
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"))
 );
 
-test("getMostAncestorialElementsInRange", () => {
+test("getMostAncestralElementsInRange", () => {
   const check = (s1: string, s2: string) => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const p = Path.parse;

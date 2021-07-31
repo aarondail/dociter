@@ -33,7 +33,6 @@
   },
   "lint-staged": {
     "{src,tests}/**/*.{js,ts,jsx,tsx}": [
-      "compile",
       "eslint --fix",
       "jest --bail --findRelatedTests"
     ]

@@ -10,14 +10,9 @@ import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
-import { selectTargets } from "./utils";
+import { FlowDirection, selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
-
-export enum DeleteAtDirection {
-  Backward = "BACKWARD",
-  Forward = "FORWARD",
-}
 
 interface DeleteAtOptions {
   /**
@@ -44,7 +39,7 @@ interface DeleteAtOptions {
    */
   readonly allowMovementInBoundaryCases: boolean;
   // FUTURE TODO readonly allowJoiningInSomeBoundaryCases?: boolean;
-  readonly direction: DeleteAtDirection;
+  readonly direction: FlowDirection;
   readonly dontThrowOnSelectionInteractors: boolean;
 }
 
@@ -55,7 +50,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     allowAdjacentInlineEmojiDeletion: payload.allowAdjacentInlineEmojiDeletion ?? false,
     allowAdjacentInlineTextDeletion: payload.allowAdjacentInlineTextDeletion ?? false,
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
-    direction: payload.direction ?? DeleteAtDirection.Backward,
+    direction: payload.direction ?? FlowDirection.Backward,
     dontThrowOnSelectionInteractors: payload.dontThrowOnSelectionInteractors ?? false,
   };
 
@@ -206,14 +201,14 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
 
 function determineCursorPositionAfterDeletion(
   originalPositionAndNode: ReadonlyCursorNavigator,
-  direction: DeleteAtDirection
+  direction: FlowDirection
 ): CursorNavigator {
   // The node that the `originalPosition` navigator is pointed to is now
   // deleted, along with (possibly) its parent and grandparent.
   const originalNode = originalPositionAndNode.tip.node;
   const originalParent = originalPositionAndNode.parent?.node;
   const originalCursor = originalPositionAndNode.cursor;
-  const isBack = direction === undefined || direction === DeleteAtDirection.Backward;
+  const isBack = direction === undefined || direction === FlowDirection.Backward;
 
   const n = originalPositionAndNode.clone();
   if (n.navigateToUnchecked(originalCursor)) {
@@ -304,7 +299,7 @@ function findNodeForDeletion(
   navigator: ReadonlyCursorNavigator,
   options: DeleteAtOptions
 ): { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator } | undefined {
-  const isBack = options.direction === DeleteAtDirection.Backward;
+  const isBack = options.direction === FlowDirection.Backward;
   const nodeToDelete = navigator.toNodeNavigator();
   const orientation = navigator.cursor.orientation;
 
