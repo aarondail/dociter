@@ -67,7 +67,10 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
         const newInline = new InlineText(graphemes);
         castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
         services.tracking.register(newInline, node);
-        nav = nav.clone(); // refreshNavigator(nav);
+        // refreshNavigator(nav);
+        const oldNav = nav;
+        nav = new CursorNavigator(state.document, services.layout);
+        nav.navigateToUnchecked(oldNav.cursor);
         nav.navigateToLastDescendantCursorPosition();
         state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
         state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
