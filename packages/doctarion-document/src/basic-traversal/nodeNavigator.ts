@@ -14,7 +14,7 @@ import { PathPart } from "./pathPart";
  * that state. That said, any data returned from the class won't be mutated by
  * future method calls (as the typescript type definitions say).
  *
- * For the DFS related navigaqtion methods in this class, see the image on this
+ * For the DFS related navigation methods in this class, see the image on this
  * page to get a clear idea of the order in which the DFS visits nodes:
  * https://en.wikipedia.org/wiki/Depth-first_search
  */

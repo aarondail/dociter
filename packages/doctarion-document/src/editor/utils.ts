@@ -13,13 +13,6 @@ export enum FlowDirection {
   Forward = "FORWARD",
 }
 
-export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
-  if (a !== undefined) {
-    return callback(a);
-  }
-  return undefined;
-}
-
 // TODO delete this?
 export function getCursorNavigatorAndValidate(
   state: EditorState,
@@ -56,6 +49,13 @@ function getCursorNavigatorFor(target: Interactor, state: EditorState, services:
     );
   }
   return nav;
+}
+
+export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
+  if (a !== undefined) {
+    return callback(a);
+  }
+  return undefined;
 }
 
 /**
