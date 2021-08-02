@@ -21,11 +21,14 @@ import { EditorState } from "../state";
  */
 export class EditorInteractorService {
   private editorState: Draft<EditorState> | null;
+  private updatedInteractors: Set<InteractorId> | null;
 
   public constructor(private readonly editorEvents: EditorEvents) {
     this.editorState = null;
+    this.updatedInteractors = null;
     this.editorEvents.updateStart.addListener(this.handleEditorUpdateStart);
     this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
+    this.editorEvents.operationFinished.addListener(this.handleOperationFinished);
   }
 
   public add(newInteractor: Interactor): boolean {
@@ -42,7 +45,7 @@ export class EditorInteractorService {
       // cursor... the only material thing that could be different is the
       // selection anchor. We don't really want to add a duplicate. Its a little
       // murky what is the best thing to do in the case of selections so we just
-      // deal w/ non selctions here.
+      // deal w/ non selections here.
       if (!newInteractor.isSelection) {
         return false;
       }
@@ -104,11 +107,6 @@ export class EditorInteractorService {
     }
 
     const results = [];
-    // console.log(immer.current(this.editorState.interactorOrdering));
-    // console.log(
-    //   Object.values(this.editorState.interactors)[0].mainCursor.path.toString(),
-    //   Object.values(this.editorState.interactors)[0].mainCursor.orientation
-    // );
 
     let startingIndex = binarySearch(this.editorState.interactorOrdering, cursor, this.findCursorComparator);
 
@@ -132,18 +130,17 @@ export class EditorInteractorService {
       return;
     }
 
-    if (typeof id === "string") {
-      this.notifyUpdatedCore(id);
-    } else {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      id.forEach(this.notifyUpdatedCore);
+    if (!this.updatedInteractors) {
+      this.updatedInteractors = new Set();
     }
 
-    // Then take care of status and cursor position changes by just doing the
-    // simplest thing possible and resorting the ordered iterators.
-    this.editorState.interactorOrdering.sort(this.comparator);
-
-    this.dedupe();
+    if (typeof id === "string") {
+      this.updatedInteractors.add(id);
+    } else {
+      for (const actualId of id) {
+        this.updatedInteractors.add(actualId);
+      }
+    }
   }
 
   private comparator = (a: InteractorOrderingEntry, b: InteractorOrderingEntry) => {
@@ -200,7 +197,7 @@ export class EditorInteractorService {
 
   /**
    * There definitely could be more situations in which we want to dedupe
-   * interactors, but for right now we only dedupe interactors that ARENT a
+   * interactors, but for right now we only dedupe interactors that aren't a
    * selection AND have the same status AND their mainCursor is equal.
    *
    * This must be called after the interactorOrdering has been sorted.
@@ -211,7 +208,7 @@ export class EditorInteractorService {
     }
 
     // Dedupe
-    let dupeIndecies: number[] | undefined;
+    let dupeIndices: number[] | undefined;
     let dupeIds: InteractorId[] | undefined;
     for (let i = 0; i < this.editorState.interactorOrdering.length - 1; i++) {
       const a = this.editorState.interactorOrdering[i];
@@ -229,20 +226,20 @@ export class EditorInteractorService {
         // possible difference would be that the selection anchor is different
         // but we have ruled that out actually by checking `isSelection` above
         // here.
-        if (!dupeIndecies) {
-          dupeIndecies = [];
+        if (!dupeIndices) {
+          dupeIndices = [];
           dupeIds = [];
         }
-        dupeIndecies.unshift(i + 1);
+        dupeIndices.unshift(i + 1);
         dupeIds!.push(b.id);
       }
     }
 
-    if (dupeIndecies) {
+    if (dupeIndices) {
       // Note this is in reverse order!
       // Also note that because we ONLY dedupe interactors that are not
       // selections we only ever have one entry to delete from this array
-      dupeIndecies.forEach((index) => this.editorState!.interactorOrdering.splice(index, 1));
+      dupeIndices.forEach((index) => this.editorState!.interactorOrdering.splice(index, 1));
       dupeIds?.forEach((id) => {
         delete this.editorState!.interactors[id];
         if (this.editorState!.focusedInteractorId === id) {
@@ -280,13 +277,27 @@ export class EditorInteractorService {
 
   private handleEditorUpdateDone = () => {
     this.editorState = null;
+    this.updatedInteractors = null;
   };
 
   private handleEditorUpdateStart = (newState: Draft<EditorState>) => {
     this.editorState = newState;
   };
 
-  private notifyUpdatedCore = (id: InteractorId) => {
+  private handleOperationFinished = () => {
+    if (this.updatedInteractors) {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      for (const id of this.updatedInteractors) {
+        this.updateInteractorOrderingFor(id);
+      }
+      // Then take care of status and cursor position changes by just doing the
+      // simplest thing possible and resorting the ordered iterators.
+      this.editorState?.interactorOrdering.sort(this.comparator);
+      this.dedupe();
+    }
+  };
+
+  private updateInteractorOrderingFor = (id: InteractorId) => {
     const interactor = this.editorState!.interactors[id];
     if (!interactor) {
       return;

@@ -160,6 +160,7 @@ export class Editor {
     const newState = immer.produce(this.state, (draft) => {
       this.eventEmitters.updateStart.emit(draft);
       result = op.operationRunFunction(draft, this.operationServices, command.payload) as ReturnType;
+      this.eventEmitters.operationFinished.emit(draft);
     });
 
     // If there were no changes, don't do anything

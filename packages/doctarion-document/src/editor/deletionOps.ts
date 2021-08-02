@@ -1,11 +1,17 @@
 import * as immer from "immer";
 import lodash from "lodash";
 
-import { LiftingPathMap, NodeNavigator, PathAdjustmentDueToRelativeDeletionNoChangeReason } from "../basic-traversal";
+import {
+  LiftingPathMap,
+  NodeNavigator,
+  Path,
+  PathAdjustmentDueToRelativeDeletionNoChangeReason,
+  PathString,
+} from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
 
-import { InteractorId, InteractorOrderingEntryCursorType } from "./interactor";
+import { InteractorOrderingEntryCursorType } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
@@ -54,8 +60,6 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     dontThrowOnSelectionInteractors: payload.dontThrowOnSelectionInteractors ?? false,
   };
 
-  const updatedInteractors: Set<InteractorId> = new Set();
-
   const targets = selectTargets(state, services, payload.target);
 
   const toDelete = new LiftingPathMap<{
@@ -78,7 +82,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       // Sometimes deletion doesn't actually trigger the removal of the node, just
       // the updating of an interactor
       interactor.mainCursor = castDraft(result.justMoveTo).cursor;
-      updatedInteractors.add(interactor.id);
+      services.interactors.notifyUpdated(interactor.id);
     }
   }
 
@@ -99,10 +103,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
-    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, updatedInteractors, postDeleteCursor);
+    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, postDeleteCursor);
   }
-
-  services.interactors.notifyUpdated(Array.from(updatedInteractors));
 });
 
 export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
@@ -137,10 +139,28 @@ export const deleteSelection = createCoreOperation("delete/selection", (state, s
   }
 });
 
+export const deletePrimitive = createCoreOperation<{ node: Path | PathString }>(
+  "delete/primitive",
+  (state, services, payload) => {
+    const originalCursorPosition = new CursorNavigator(state.document, services.layout);
+    if (!originalCursorPosition.navigateTo(payload.node)) {
+      return;
+    }
+
+    const nodeToDelete = originalCursorPosition.toNodeNavigator();
+    deleteNode(nodeToDelete, services);
+
+    const postDeleteCursor = determineCursorPositionAfterDeletion(originalCursorPosition, FlowDirection.Backward);
+
+    // Now, for all interactor cursors (main or selection) after this node,
+    // update them to account for the deletion
+    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, postDeleteCursor);
+  }
+);
+
 function adjustInteractorPositionsAfterNodeDeletion(
   services: EditorOperationServices,
   nodeToDelete: NodeNavigator,
-  updatedInteractors: Set<string>,
   postDeleteCursor: CursorNavigator
 ) {
   for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
@@ -158,7 +178,7 @@ function adjustInteractorPositionsAfterNodeDeletion(
       } else {
         interactor.selectionAnchorCursor = castDraft(newCursorOrNoChangeReason);
       }
-      updatedInteractors.add(interactor.id);
+      services.interactors.notifyUpdated(interactor.id);
     } else if (
       newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor ||
       newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
@@ -168,7 +188,7 @@ function adjustInteractorPositionsAfterNodeDeletion(
       } else {
         interactor.selectionAnchorCursor = castDraft(postDeleteCursor.cursor);
       }
-      updatedInteractors.add(interactor.id);
+      services.interactors.notifyUpdated(interactor.id);
     }
   }
 }
