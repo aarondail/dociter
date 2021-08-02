@@ -21,8 +21,8 @@ export class EditorNodeTrackingService {
 
   public constructor(private readonly idGenerator: FriendlyIdGenerator, private readonly editorEvents: EditorEvents) {
     this.editorState = null;
-    this.editorEvents.updateStart.addListener(this.handleEditorUpdateStart);
-    this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
+    this.editorEvents.operationWillRun.addListener(this.handleOperationWillRun);
+    this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
   }
 
   public notifyNodeMoved(node: Node, newParentId: NodeId): void {
@@ -60,11 +60,11 @@ export class EditorNodeTrackingService {
     }
   }
 
-  private handleEditorUpdateDone = () => {
+  private handleOperationHasCompleted = () => {
     this.editorState = null;
   };
 
-  private handleEditorUpdateStart = (newState: Draft<EditorState>) => {
+  private handleOperationWillRun = (newState: Draft<EditorState>) => {
     this.editorState = newState;
   };
 }

@@ -26,9 +26,9 @@ export class EditorInteractorService {
   public constructor(private readonly editorEvents: EditorEvents) {
     this.editorState = null;
     this.updatedInteractors = null;
-    this.editorEvents.updateStart.addListener(this.handleEditorUpdateStart);
-    this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
-    this.editorEvents.operationFinished.addListener(this.handleOperationFinished);
+    this.editorEvents.operationWillRun.addListener(this.handleOperationWillRun);
+    this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
+    this.editorEvents.operationHasRun.addListener(this.handleOperationHasRun);
   }
 
   public add(newInteractor: Interactor): boolean {
@@ -263,8 +263,6 @@ export class EditorInteractorService {
       return NaN;
     }
 
-    const x = afc.compareTo(needle);
-    // console.log("In binary search, comparing: ", afc.toString(), "to needle ", needle.toString(), " result => ", x);
     switch (afc.compareTo(needle)) {
       case SimpleComparison.Before:
         return -1;
@@ -275,16 +273,12 @@ export class EditorInteractorService {
     }
   };
 
-  private handleEditorUpdateDone = () => {
+  private handleOperationHasCompleted = () => {
     this.editorState = null;
     this.updatedInteractors = null;
   };
 
-  private handleEditorUpdateStart = (newState: Draft<EditorState>) => {
-    this.editorState = newState;
-  };
-
-  private handleOperationFinished = () => {
+  private handleOperationHasRun = () => {
     if (this.updatedInteractors) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       for (const id of this.updatedInteractors) {
@@ -295,6 +289,10 @@ export class EditorInteractorService {
       this.editorState?.interactorOrdering.sort(this.comparator);
       this.dedupe();
     }
+  };
+
+  private handleOperationWillRun = (newState: Draft<EditorState>) => {
+    this.editorState = newState;
   };
 
   private updateInteractorOrderingFor = (id: InteractorId) => {

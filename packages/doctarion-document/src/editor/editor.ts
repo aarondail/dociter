@@ -158,9 +158,9 @@ export class Editor {
     let result!: ReturnType;
     const oldState = this.state;
     const newState = immer.produce(this.state, (draft) => {
-      this.eventEmitters.updateStart.emit(draft);
+      this.eventEmitters.operationWillRun.emit(draft);
       result = op.operationRunFunction(draft, this.operationServices, command.payload) as ReturnType;
-      this.eventEmitters.operationFinished.emit(draft);
+      this.eventEmitters.operationHasRun.emit(draft);
     });
 
     // If there were no changes, don't do anything
@@ -171,9 +171,9 @@ export class Editor {
       // Reset future
       this.futureList.splice(0, this.futureList.length);
     }
-    this.eventEmitters.updateDone.emit(this.state);
+    this.eventEmitters.operationHasCompleted.emit(this.state);
     if (newState.document !== oldState.document) {
-      this.eventEmitters.documentUpdated.emit(this.state.document);
+      this.eventEmitters.documentHasBeenUpdated.emit(this.state.document);
     }
 
     return result;

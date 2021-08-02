@@ -18,7 +18,7 @@ export class EditorNodeLookupService {
   // Note the editorState can _and will_ be updated by the Editor
   public constructor(initialEditorState: EditorState, private readonly editorEvents: EditorEvents) {
     this.editorState = initialEditorState;
-    this.editorEvents.updateDone.addListener(this.handleEditorUpdateDone);
+    this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
   }
 
   public getChainTo(nodeId: NodeId): Chain | undefined {
@@ -79,7 +79,7 @@ export class EditorNodeLookupService {
     return idChain;
   }
 
-  private handleEditorUpdateDone = (newState: EditorState) => {
+  private handleOperationHasCompleted = (newState: EditorState) => {
     this.editorState = newState;
   };
 }
