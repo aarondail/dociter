@@ -6,8 +6,11 @@
 // -----------------------------------------------------------------------------
 
 import { FriendlyIdGenerator } from "doctarion-utils";
+import { Draft } from "immer";
 
 import { NodeLayoutReporter } from "../../layout-reporting";
+import { EditorOperationCommand } from "../operation";
+import { EditorState } from "../state";
 
 import { EditorInteractorService } from "./interactorService";
 import { EditorNodeLookupService } from "./nodeLookupService";
@@ -18,6 +21,12 @@ import { EditorNodeTrackingService } from "./nodeTrackingService";
  */
 export interface EditorOperationServices {
   readonly idGenerator: FriendlyIdGenerator;
+
+  // TODO some other name?
+  readonly execute: <ReturnType>(
+    currentState: Draft<EditorState>,
+    command: EditorOperationCommand<unknown, ReturnType, string>
+  ) => ReturnType;
 
   readonly lookup: EditorNodeLookupService;
   /**
@@ -50,7 +59,7 @@ export type EditorServices = Pick<EditorOperationServices, "lookup" | "layout">;
  */
 export type EditorProvidedServices = Pick<
   EditorOperationServices,
-  "tracking" | "lookup" | "idGenerator" | "interactors"
+  "tracking" | "lookup" | "idGenerator" | "interactors" | "execute"
 >;
 
 /**

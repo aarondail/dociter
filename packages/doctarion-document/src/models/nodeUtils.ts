@@ -1,4 +1,4 @@
-import { HeaderBlock, InlineContainingNode, ParagraphBlock } from "./blocks";
+import { Block, HeaderBlock, InlineContainingNode, ParagraphBlock } from "./blocks";
 import { Document } from "./document";
 import { Grapheme } from "./grapheme";
 import { Inline, InlineEmoji, InlineText, InlineUrlLink, TextContainingNode } from "./inlines";
@@ -22,6 +22,10 @@ export const NodeUtils = {
   hasSomeChildren(node: Node): boolean {
     const children = NodeUtils.getChildren(node);
     return children ? children.length > 0 : false;
+  },
+
+  isBlock(node: Node): node is Block {
+    return node instanceof ParagraphBlock || node instanceof HeaderBlock;
   },
 
   isGrapheme(node: Node): node is Grapheme {

@@ -58,7 +58,7 @@ export class Editor {
     const idGenerator = new FriendlyIdGenerator();
 
     this.state = {
-      // Clone because we are going to assign ids which techncially is a
+      // Clone because we are going to assign ids which technically is a
       // mutation
       document: lodash.cloneDeep(initialDocument),
       interactors: {},
@@ -79,6 +79,7 @@ export class Editor {
       // Note the tracking service is supposed to be used only during
       // operations, which is why it wants mutable state
       tracking: new EditorNodeTrackingService(idGenerator, this.events),
+      execute: this.executeRelatedOperation,
     };
 
     if (provideServices) {
@@ -196,4 +197,16 @@ export class Editor {
 
     return result;
   }
+
+  private executeRelatedOperation = <ReturnType>(
+    updatedState: immer.Draft<EditorState>,
+    command: EditorOperationCommand<unknown, ReturnType, string>
+  ): ReturnType => {
+    // This must only be called in the context of a currently executing operation
+    const op = this.operationRegistry.get(command.name);
+    if (!op) {
+      throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
+    }
+    return op.operationRunFunction(updatedState, this.operationServices, command.payload) as ReturnType;
+  };
 }
