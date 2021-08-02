@@ -224,6 +224,10 @@ export class NodeNavigator {
     return this.navigateToChildPrime(NodeUtils.getChildren(this.tip.node), index);
   }
 
+  public navigateToDocumentNode(): boolean {
+    return this.navigateToStartOfDfs();
+  }
+
   public navigateToEndOfDfs(): boolean {
     // Jump to the document at the root
     this.navigateToStartOfDfs();
@@ -313,10 +317,6 @@ export class NodeNavigator {
       }
     }
     return false;
-  }
-
-  public navigateToRoot(): boolean {
-    return this.navigateToStartOfDfs();
   }
 
   /**

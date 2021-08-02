@@ -9,7 +9,7 @@ import {
   PathString,
 } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { InlineEmoji, InlineText, NodeUtils } from "../models";
+import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
 import { InteractorOrderingEntryCursorType } from "./interactor";
 import { createCoreOperation } from "./operation";
@@ -139,15 +139,16 @@ export const deleteSelection = createCoreOperation("delete/selection", (state, s
   }
 });
 
-export const deletePrimitive = createCoreOperation<{ node: Path | PathString }>(
+export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
   "delete/primitive",
   (state, services, payload) => {
+    const nodeToDelete = new NodeNavigator(state.document);
     const originalCursorPosition = new CursorNavigator(state.document, services.layout);
-    if (!originalCursorPosition.navigateTo(payload.node)) {
+
+    if (!nodeToDelete.navigateTo(payload.path) || !originalCursorPosition.navigateTo(payload.path)) {
       return;
     }
 
-    const nodeToDelete = originalCursorPosition.toNodeNavigator();
     deleteNode(nodeToDelete, services);
 
     const postDeleteCursor = determineCursorPositionAfterDeletion(originalCursorPosition, FlowDirection.Backward);
@@ -199,8 +200,15 @@ function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServi
   const pathPart = nodeNavigator.tip.pathPart;
 
   if (!parent || !pathPart) {
+    if (node instanceof Document) {
+      nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
+        skipGraphemes: true,
+      });
+      castDraft(node).children = [];
+    }
     return;
   }
+
   const kids = NodeUtils.getChildren(parent.node);
   const kidIndex = pathPart.index;
 
@@ -297,7 +305,10 @@ function determineCursorPositionAfterDeletion(
         // Not sure this is really right...
         n.navigateToLastDescendantCursorPosition();
       } else {
-        throw new Error("Could not refresh navigator is not a valid cursor");
+        // Not sure this is really right...
+        if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
+          throw new Error("Could not refresh navigator is not a valid cursor");
+        }
       }
     }
   }

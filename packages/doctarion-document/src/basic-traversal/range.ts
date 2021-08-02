@@ -99,7 +99,7 @@ export class Range {
           } else {
             // This must be the document itself
             const n2 = nav.clone();
-            n2.navigateToRoot();
+            n2.navigateToDocumentNode();
             results.push(n2.chain);
             return false;
           }

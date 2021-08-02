@@ -107,6 +107,14 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return true;
   }
 
+  public navigateToDocumentNodeUnchecked(): boolean {
+    if (this.nodeNavigator.navigateToDocumentNode()) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
+  }
+
   public navigateToFirstDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
     // Is empty insertion point
