@@ -18,10 +18,10 @@ describe("deleteAt with multiple interactors", () => {
   describe("backwards", () => {
     it("three pretty unrelated targeted interactors are updated appropriately", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
-      editor.update(OPS.addInteractor({ at: { path: "0/0/1", orientation: After } }));
-      editor.update(OPS.addInteractor({ at: { path: "1/2/0", orientation: After } }));
-      editor.update(OPS.addInteractor({ at: { path: "3/1/0", orientation: After } }));
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
+      editor.execute(OPS.addInteractor({ at: { path: "0/0/1", orientation: After } }));
+      editor.execute(OPS.addInteractor({ at: { path: "1/2/0", orientation: After } }));
+      editor.execute(OPS.addInteractor({ at: { path: "3/1/0", orientation: After } }));
+      editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "H"
@@ -32,7 +32,7 @@ INTR. #3
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
 
-      editor.update(
+      editor.execute(
         OPS.deleteAt({
           target: TargetInteractors.All,
           direction: FlowDirection.Backward,
@@ -51,7 +51,7 @@ INTR. #3
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
 
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
+      editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       // 1) first header is deleted, cursor now on MM, 2) deletes character from prior InlineText, 3) no-op
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: <| 0/0/0
@@ -66,10 +66,10 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
 
     it("three targeted related interactors are all updated appropriately", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
-      editor.update(OPS.addInteractor({ at: { path: "3/1/1", orientation: After } }));
-      editor.update(OPS.addInteractor({ at: { path: "3/1/3", orientation: After } }));
-      editor.update(OPS.addInteractor({ at: { path: "3/1/5", orientation: After } }));
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
+      editor.execute(OPS.addInteractor({ at: { path: "3/1/1", orientation: After } }));
+      editor.execute(OPS.addInteractor({ at: { path: "3/1/3", orientation: After } }));
+      editor.execute(OPS.addInteractor({ at: { path: "3/1/5", orientation: After } }));
+      editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: 3/1/0 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"
@@ -80,12 +80,12 @@ INTR. #3
 CURSOR: 3/1/2 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"`);
 
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
+      editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: 3/1
 SLICE:  PARAGRAPH > URL_LINK g.com > ""`);
 
-      editor.update(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
+      editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`INTR. #1
 CURSOR: 3/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "CC"`);

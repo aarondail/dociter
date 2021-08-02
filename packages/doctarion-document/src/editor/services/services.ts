@@ -22,7 +22,10 @@ import { EditorNodeTrackingService } from "./nodeTrackingService";
 export interface EditorOperationServices {
   readonly idGenerator: FriendlyIdGenerator;
 
-  // TODO some other name?
+  /**
+   * Use this to execute (during an operation) another related operation.  You
+   * have to pass the state (the draft of the immer state).
+   */
   readonly execute: <ReturnType>(
     currentState: Draft<EditorState>,
     command: EditorOperationCommand<unknown, ReturnType, string>

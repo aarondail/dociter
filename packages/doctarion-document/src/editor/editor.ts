@@ -122,7 +122,7 @@ export class Editor {
         cn.navigateToPrecedingCursorPosition();
         cursor = cn.cursor;
       }
-      this.update(addInteractor({ at: cursor, focused: true }));
+      this.execute(addInteractor({ at: cursor, focused: true }));
     }
   }
 
@@ -149,27 +149,7 @@ export class Editor {
     return this.state.interactorOrdering;
   }
 
-  public redo(): void {
-    const futureButNowState = this.futureList.pop();
-    if (futureButNowState) {
-      this.historyList.push(this.state);
-      this.state = futureButNowState;
-    }
-  }
-  public resetHistory(): void {
-    this.historyList = [];
-    this.futureList = [];
-  }
-
-  public undo(): void {
-    const oldButNewState = this.historyList.pop();
-    if (oldButNewState) {
-      this.futureList.push(this.state);
-      this.state = oldButNewState;
-    }
-  }
-
-  public update<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
+  public execute<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
     const op = this.operationRegistry.get(command.name);
     if (!op) {
       throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
@@ -196,6 +176,26 @@ export class Editor {
     }
 
     return result;
+  }
+
+  public redo(): void {
+    const futureButNowState = this.futureList.pop();
+    if (futureButNowState) {
+      this.historyList.push(this.state);
+      this.state = futureButNowState;
+    }
+  }
+  public resetHistory(): void {
+    this.historyList = [];
+    this.futureList = [];
+  }
+
+  public undo(): void {
+    const oldButNewState = this.historyList.pop();
+    if (oldButNewState) {
+      this.futureList.push(this.state);
+      this.state = oldButNewState;
+    }
   }
 
   private executeRelatedOperation = <ReturnType>(
