@@ -1,10 +1,27 @@
 import {
   Path,
+  PathAdjustmentDueToMoveReason,
   PathAdjustmentDueToRelativeDeletionNoChangeReason,
   PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason,
   PathComparison,
 } from "../../src/basic-traversal/path";
 import { SimpleComparison } from "../../src/miscUtils";
+
+test("adjustDueToMove", () => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const p = Path.parse;
+  const t = (path: string, oldPrefix: string, newPrefix: string, newIndex: number) =>
+    p(path).adjustDueToMove(p(oldPrefix), p(newPrefix), newIndex).toString();
+
+  expect(t("0/1", "0", "2", 1)).toEqual("2/1");
+  expect(t("3/4/5/6", "3/4", "1/2/3", 4)).toEqual("1/2/3/4/6");
+  expect(t("", "", "2", 1)).toEqual("2");
+  expect(t("0/4", "", "2", 1)).toEqual("2/1/4");
+  expect(t("0/1", "0/1", "", 1)).toEqual("");
+  expect(t("0/1", "0/1", "5", 1)).toEqual("5");
+
+  expect(t("1/2/3", "1/1", "3", 1)).toEqual(PathAdjustmentDueToMoveReason.NoChangeBecauseOldPrefixDoesntMatch);
+});
 
 test("adjustDueToRelativeDeletionAt", () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method

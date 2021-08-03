@@ -15,6 +15,10 @@ import { PathPart } from "./pathPart";
 
 export type PathString = string;
 
+export enum PathAdjustmentDueToMoveReason {
+  NoChangeBecauseOldPrefixDoesntMatch = "NO_CHANGE_BECAUSE_OLD_PREFIX_DOESNT_MATCH",
+}
+
 export enum PathAdjustmentDueToRelativeDeletionNoChangeReason {
   NoChangeBecauseEqual = "NO_CHANGE_BECAUSE_EQUAL",
   NoChangeBecauseAncestor = "NO_CHANGE_BECAUSE_ANCESTOR",
@@ -31,6 +35,26 @@ export class Path {
   [immerable] = true;
 
   public constructor(public readonly parts: readonly PathPart[]) {}
+
+  public adjustDueToMove(
+    oldPrefix: Path,
+    newPrefix: Path,
+    newIndexUnderPrefix: number
+  ): PathAdjustmentDueToMoveReason | Path {
+    const [left, right] = this.split(oldPrefix.parts.length);
+    if (!left.equalTo(oldPrefix)) {
+      return PathAdjustmentDueToMoveReason.NoChangeBecauseOldPrefixDoesntMatch;
+    }
+
+    const [connectivePart, reallyRight] = right.split(1);
+
+    if (connectivePart.parts.length === 0) {
+      return newPrefix;
+    }
+
+    const updatedConnectivePart = connectivePart.parts[0].setIndex(newIndexUnderPrefix);
+    return new Path([...newPrefix.parts, updatedConnectivePart, ...reallyRight.parts]);
+  }
 
   /**
    * This adjusts this path to account for a deletion of a different path
@@ -56,7 +80,7 @@ export class Path {
       if (atTarget) {
         if (cmp === SimpleComparison.Before) {
           const newParts = [...this.parts];
-          newParts[i] = newParts[i].modifyIndex(-1);
+          newParts[i] = newParts[i].adjustIndex(-1);
           return new Path(newParts);
         } else if (cmp === SimpleComparison.Equal) {
           if (this.parts.length === at.parts.length) {
@@ -105,7 +129,7 @@ export class Path {
           const newParts = [...this.parts];
           // The use of 1 instead of -1 is the other difference from the
           // deletion algorithm above...
-          newParts[i] = newParts[i].modifyIndex(1);
+          newParts[i] = newParts[i].adjustIndex(1);
           return new Path(newParts);
         }
         // No updates needed
@@ -194,6 +218,14 @@ export class Path {
     const newParts = [...this.parts];
     newParts[newParts.length - 1] = newTip;
     return new Path(newParts);
+  }
+
+  public sliceFromRoot(count: number): Path {
+    return new Path(this.parts.slice(0, count));
+  }
+
+  public split(leftLength: number): readonly [Path, Path] {
+    return [new Path(this.parts.slice(0, leftLength)), new Path(this.parts.slice(leftLength))];
   }
 
   public toString(): string {

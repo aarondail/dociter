@@ -8,6 +8,10 @@ export class PathPart {
 
   public constructor(readonly index: number) {}
 
+  public adjustIndex(offset: number): PathPart {
+    return new PathPart(this.index + offset);
+  }
+
   public compareTo(other: PathPart): SimpleComparison {
     if (this.index === other.index) {
       return SimpleComparison.Equal;
@@ -21,12 +25,12 @@ export class PathPart {
     return this.index === other.index;
   }
 
-  public modifyIndex(offset: number): PathPart {
-    return new PathPart(this.index + offset);
-  }
-
   public resolve(node: Node): Node | undefined {
     return NodeUtils.getChildren(node)?.[this.index];
+  }
+
+  public setIndex(index: number): PathPart {
+    return new PathPart(index);
   }
 
   public toString(): string {

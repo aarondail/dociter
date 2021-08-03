@@ -16,8 +16,10 @@
         "build": true
     },
     "cSpell.words": [
+        "Doesnt",
         "Interactor",
         "Interactors",
+        "Reparenting",
         "automagically",
         "dedupe",
         "deduping",

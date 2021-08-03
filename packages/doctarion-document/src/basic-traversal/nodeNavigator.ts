@@ -382,21 +382,21 @@ const navigateToSiblingHelpers = (() => {
 
   const preceding = (parent: Node | ChainLink, childPath: PathPart): Node | undefined => {
     const parentNode = nodeOrLinkToNode(parent);
-    const newPathPart = childPath.modifyIndex(-1);
+    const newPathPart = childPath.adjustIndex(-1);
     const childNode = newPathPart.resolve(parentNode);
     return childNode;
   };
 
   const next = (parent: Node | ChainLink, childPath: PathPart): Node | undefined => {
     const parentNode = nodeOrLinkToNode(parent);
-    const newPathPart = childPath.modifyIndex(1);
+    const newPathPart = childPath.adjustIndex(1);
     const childNode = newPathPart.resolve(parentNode);
     return childNode;
   };
 
   const relativeLink = (parent: Node | ChainLink, childPath: PathPart, offset: number): ChainLink | undefined => {
     const parentNode = nodeOrLinkToNode(parent);
-    const newPathPart = childPath.modifyIndex(offset);
+    const newPathPart = childPath.adjustIndex(offset);
     const childNode = newPathPart.resolve(parentNode);
     if (childNode) {
       return new ChainLink(childNode, newPathPart);
