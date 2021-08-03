@@ -2,7 +2,8 @@
 import binarySearch from "binary-search";
 import { Draft, castDraft, original } from "immer";
 
-import { Cursor } from "../../cursor";
+import { Path, PathComparison } from "../../basic-traversal";
+import { Cursor, CursorOrientation } from "../../cursor";
 import { SimpleComparison } from "../../miscUtils";
 import { EditorEvents } from "../events";
 import {
@@ -119,6 +120,51 @@ export class EditorInteractorService {
     for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
       const current = this.editorState.interactorOrdering[i];
       const interactor = this.editorState.interactors[current.id];
+
+      results.push({ interactor, cursorType: current.cursor });
+    }
+    return results;
+  }
+
+  public interactorCursorsDescendantsOf(
+    path: Path
+  ): readonly {
+    readonly interactor: Draft<Interactor>;
+    readonly cursorType: InteractorOrderingEntryCursorType;
+  }[] {
+    if (!this.editorState) {
+      return [];
+    }
+
+    const results = [];
+
+    let startingIndex = binarySearch(
+      this.editorState.interactorOrdering,
+      new Cursor(path, CursorOrientation.Before),
+      this.findCursorComparator
+    );
+
+    if (startingIndex < 0) {
+      // In this case the startingIndex is saying the target is (or would be)
+      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
+      startingIndex = (startingIndex + 1) * -1;
+    }
+
+    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
+      const current = this.editorState.interactorOrdering[i];
+      const interactor = this.editorState.interactors[current.id];
+
+      const cursor =
+        current.cursor === InteractorOrderingEntryCursorType.Main
+          ? interactor.mainCursor
+          : interactor.selectionAnchorCursor!;
+      const cmp = cursor.path.compareTo(path);
+      if (cmp === PathComparison.Equal) {
+        continue;
+      }
+      if (cmp !== PathComparison.Descendent) {
+        break;
+      }
 
       results.push({ interactor, cursorType: current.cursor });
     }
