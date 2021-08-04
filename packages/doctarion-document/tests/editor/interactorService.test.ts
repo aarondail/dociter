@@ -314,3 +314,65 @@ describe("interactorCursorsDescendantsOf", () => {
     expect.hasAssertions();
   });
 });
+
+describe("interactorCursorsAtOrDescendantsOf", () => {
+  const TEST_OPERATION_NAME = "TEST";
+  let changeableTestFunction: (state: Draft<EditorState>, services: EditorOperationServices) => void;
+  const testOperation = createOperation(TEST_OPERATION_NAME, (state, services) => {
+    changeableTestFunction(state, services);
+  });
+
+  const debugInteractorCursorsDescendantsOf = (services: EditorOperationServices, at: string) => {
+    return services.interactors
+      .interactorCursorsAtOrDescendantsOf(Path.parse(at))
+      .map(
+        ({ interactor, cursorType }) =>
+          `${
+            cursorType === InteractorOrderingEntryCursorType.Main
+              ? interactor.mainCursor.toString()
+              : interactor.selectionAnchorCursor?.toString() || ""
+          }${cursorType === InteractorOrderingEntryCursorType.SelectionAnchor ? " (Sa)" : ""}`
+      );
+  };
+
+  let editor: Editor;
+
+  beforeEach(() => {
+    editor = new Editor({
+      document: testDoc1,
+      additionalOperations: [testOperation],
+      omitDefaultInteractor: true,
+    });
+  });
+
+  it("correctly works with multiple interactors", () => {
+    changeableTestFunction = (state, services) => {
+      // The test is here
+      expect(debugInteractorCursorsDescendantsOf(services, "")).toMatchInlineSnapshot(`
+        Array [
+          "BEFORE 0/0/0",
+          "AFTER 0/0/0",
+          "AFTER 1/0/1",
+          "ON 2",
+          "BEFORE 3/1/0",
+        ]
+      `);
+
+      expect(debugInteractorCursorsDescendantsOf(services, "2")).toMatchInlineSnapshot(`
+      Array [
+        "ON 2",
+      ]
+    `);
+    };
+    // More test setup
+    editor.execute(OPS.addInteractor({ at: { path: "0/0/0", orientation: CursorOrientation.Before } }));
+    editor.execute(OPS.addInteractor({ at: { path: "0/0/0", orientation: CursorOrientation.After } }));
+    editor.execute(OPS.addInteractor({ at: { path: "1/0/1", orientation: CursorOrientation.After } }));
+    editor.execute(OPS.addInteractor({ at: { path: "2", orientation: CursorOrientation.On } }));
+    editor.execute(OPS.addInteractor({ at: { path: "3/1/0", orientation: CursorOrientation.Before } }));
+    // Run changeableTestFunction
+    editor.execute({ name: TEST_OPERATION_NAME, payload: {} });
+    // JIC
+    expect.hasAssertions();
+  });
+});

@@ -97,6 +97,48 @@ export class EditorInteractorService {
     delete this.editorState.interactors[id];
   }
 
+  public interactorCursorsAt(
+    path: Path
+  ): readonly {
+    readonly interactor: Draft<Interactor>;
+    readonly cursorType: InteractorOrderingEntryCursorType;
+  }[] {
+    if (!this.editorState) {
+      return [];
+    }
+
+    const results = [];
+
+    let startingIndex = binarySearch(
+      this.editorState.interactorOrdering,
+      new Cursor(path, CursorOrientation.Before),
+      this.findCursorComparator
+    );
+
+    if (startingIndex < 0) {
+      // In this case the startingIndex is saying the target is (or would be)
+      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
+      startingIndex = (startingIndex + 1) * -1;
+    }
+
+    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
+      const current = this.editorState.interactorOrdering[i];
+      const interactor = this.editorState.interactors[current.id];
+
+      const cursor =
+        current.cursor === InteractorOrderingEntryCursorType.Main
+          ? interactor.mainCursor
+          : interactor.selectionAnchorCursor!;
+      const cmp = cursor.path.compareTo(path);
+      if (cmp !== PathComparison.Equal) {
+        break;
+      }
+
+      results.push({ interactor, cursorType: current.cursor });
+    }
+    return results;
+  }
+
   public interactorCursorsAtOrAfter(
     cursor: Cursor
   ): readonly {
@@ -120,6 +162,49 @@ export class EditorInteractorService {
     for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
       const current = this.editorState.interactorOrdering[i];
       const interactor = this.editorState.interactors[current.id];
+
+      results.push({ interactor, cursorType: current.cursor });
+    }
+    return results;
+  }
+
+  public interactorCursorsAtOrDescendantsOf(
+    path: Path
+  ): readonly {
+    readonly interactor: Draft<Interactor>;
+    readonly cursorType: InteractorOrderingEntryCursorType;
+  }[] {
+    if (!this.editorState) {
+      return [];
+    }
+
+    const results = [];
+
+    let startingIndex = binarySearch(
+      this.editorState.interactorOrdering,
+      new Cursor(path, CursorOrientation.Before),
+      this.findCursorComparator
+    );
+
+    if (startingIndex < 0) {
+      // In this case the startingIndex is saying the target is (or would be)
+      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
+      startingIndex = (startingIndex + 1) * -1;
+    }
+
+    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
+      const current = this.editorState.interactorOrdering[i];
+      const interactor = this.editorState.interactors[current.id];
+
+      const cursor =
+        current.cursor === InteractorOrderingEntryCursorType.Main
+          ? interactor.mainCursor
+          : interactor.selectionAnchorCursor!;
+      const cmp = cursor.path.compareTo(path);
+      // The only diff from the following function is here (omitting the equal check)
+      if (cmp !== PathComparison.Equal && cmp !== PathComparison.Descendent) {
+        break;
+      }
 
       results.push({ interactor, cursorType: current.cursor });
     }
