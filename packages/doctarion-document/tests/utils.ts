@@ -7,6 +7,7 @@ import { Editor, EditorState } from "../src/editor";
 import {
   Interactor,
   InteractorId,
+  InteractorOrderingEntry,
   InteractorOrderingEntryCursorType,
   InteractorStatus,
 } from "../src/editor/interactor";
@@ -161,7 +162,7 @@ export const DebugEditorHelpers = (() => {
 
     const realIdToFakeIdMap = new Map<string, number>();
     return editor.interactorOrdering
-      .map(({ id, cursor }) => {
+      .map(({ id, cursorType }) => {
         let fakeId: number;
         if (realIdToFakeIdMap.has(id)) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -172,17 +173,13 @@ export const DebugEditorHelpers = (() => {
         }
         const interactor = editor.interactors[id];
 
-        const c = debugCursor(
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          cursor === InteractorOrderingEntryCursorType.Main ? interactor.mainCursor : interactor.selectionAnchorCursor!,
-          nav
-        ).cursorDebug;
+        const c = debugCursor(InteractorOrderingEntry.getCursor(interactor, cursorType), nav).cursorDebug;
         const f = editor.focusedInteractor === interactor;
         const s =
           f || interactor.status === InteractorStatus.Inactive
             ? `(${f ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
             : "";
-        return `${fakeId}.${cursor === InteractorOrderingEntryCursorType.Main ? "M" : "Sa"} ${s}${c}`;
+        return `${fakeId}.${cursorType === InteractorOrderingEntryCursorType.Main ? "M" : "Sa"} ${s}${c}`;
       })
       .join(", ");
   };
@@ -217,7 +214,7 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
   const debugEditorStateLessSimple = (editor: Editor) => {
     return editor.interactorOrdering
-      .filter((i) => i.cursor === InteractorOrderingEntryCursorType.Main)
+      .filter((i) => i.cursorType === InteractorOrderingEntryCursorType.Main)
       .map((i, index) => {
         // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
         return debugEditorStateForInteractor(editor, editor.interactors[i.id], "INTR. #" + (index + 1));

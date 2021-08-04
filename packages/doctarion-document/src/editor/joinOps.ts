@@ -6,7 +6,7 @@ import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } f
 import { Block, NodeUtils } from "../models";
 
 import { deletePrimitive } from "./deletionOps";
-import { InteractorOrderingEntryCursorType } from "./interactor";
+import { InteractorOrderingEntry } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
@@ -86,11 +86,7 @@ function adjustInteractorPositionsAfterMoveChildren(
     for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(
       destinationNode.path
     )) {
-      let cursor =
-        cursorType === InteractorOrderingEntryCursorType.Main
-          ? interactor.mainCursor
-          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            interactor.selectionAnchorCursor!;
+      let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
 
       if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
         const backupNavigator = new CursorNavigator(state.document, services.layout);
@@ -111,39 +107,25 @@ function adjustInteractorPositionsAfterMoveChildren(
           continue;
         }
       }
-      if (cursorType === InteractorOrderingEntryCursorType.Main) {
-        interactor.mainCursor = castDraft(cursor);
-      } else {
-        interactor.selectionAnchorCursor = castDraft(cursor);
-      }
+      InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
       services.interactors.notifyUpdated(interactor.id);
     }
   } else {
     for (const { interactor, cursorType } of services.interactors.interactorCursorsAt(destinationNode.path)) {
-      let cursor =
-        cursorType === InteractorOrderingEntryCursorType.Main
-          ? interactor.mainCursor
-          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            interactor.selectionAnchorCursor!;
+      let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
 
       const backupNavigator = new CursorNavigator(state.document, services.layout);
       backupNavigator.navigateTo(cursor);
       backupNavigator.navigateToNextCursorPosition();
       cursor = castDraft(backupNavigator.cursor);
 
-      if (cursorType === InteractorOrderingEntryCursorType.Main) {
-        interactor.mainCursor = castDraft(cursor);
-      } else {
-        interactor.selectionAnchorCursor = castDraft(cursor);
-      }
+      InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
       services.interactors.notifyUpdated(interactor.id);
     }
   }
 
   for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(sourceNode.path)) {
-    let cursor =
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      cursorType === InteractorOrderingEntryCursorType.Main ? interactor.mainCursor : interactor.selectionAnchorCursor!;
+    let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
 
     if (
       cursor.orientation === CursorOrientation.On &&
@@ -171,11 +153,7 @@ function adjustInteractorPositionsAfterMoveChildren(
       }
     }
 
-    if (cursorType === InteractorOrderingEntryCursorType.Main) {
-      interactor.mainCursor = castDraft(cursor);
-    } else {
-      interactor.selectionAnchorCursor = castDraft(cursor);
-    }
+    InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
     services.interactors.notifyUpdated(interactor.id);
   }
 }

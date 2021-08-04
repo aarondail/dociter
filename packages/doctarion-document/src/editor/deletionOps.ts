@@ -11,7 +11,7 @@ import {
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
-import { InteractorOrderingEntryCursorType } from "./interactor";
+import { InteractorOrderingEntry } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
@@ -167,28 +167,19 @@ function adjustInteractorPositionsAfterNodeDeletion(
   for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
     new Cursor(nodeToDelete.path, CursorOrientation.Before)
   )) {
-    const newCursorOrNoChangeReason = (cursorType === InteractorOrderingEntryCursorType.Main
-      ? interactor.mainCursor
-      : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.selectionAnchorCursor!
+    const newCursorOrNoChangeReason = InteractorOrderingEntry.getCursor(
+      interactor,
+      cursorType
     ).adjustDueToRelativeDeletionAt(nodeToDelete.path);
 
     if (newCursorOrNoChangeReason instanceof Cursor) {
-      if (cursorType === InteractorOrderingEntryCursorType.Main) {
-        interactor.mainCursor = castDraft(newCursorOrNoChangeReason);
-      } else {
-        interactor.selectionAnchorCursor = castDraft(newCursorOrNoChangeReason);
-      }
+      InteractorOrderingEntry.setCursor(interactor, cursorType, newCursorOrNoChangeReason);
       services.interactors.notifyUpdated(interactor.id);
     } else if (
       newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor ||
       newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
     ) {
-      if (cursorType === InteractorOrderingEntryCursorType.Main) {
-        interactor.mainCursor = castDraft(postDeleteCursor.cursor);
-      } else {
-        interactor.selectionAnchorCursor = castDraft(postDeleteCursor.cursor);
-      }
+      InteractorOrderingEntry.setCursor(interactor, cursorType, postDeleteCursor.cursor);
       services.interactors.notifyUpdated(interactor.id);
     }
   }

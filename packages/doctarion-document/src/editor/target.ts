@@ -40,13 +40,13 @@ export function getTargetedInteractorIds(
     switch (target) {
       case TargetInteractors.All:
         return state.interactorOrdering
-          .filter((e) => e.cursor === InteractorOrderingEntryCursorType.Main)
+          .filter((e) => e.cursorType === InteractorOrderingEntryCursorType.Main)
           .map((e) => e.id);
       case TargetInteractors.AllActive:
         // eslint-disable-next-line no-case-declarations
         const ids: InteractorId[] = [];
         state.interactorOrdering
-          .filter((e) => e.cursor === InteractorOrderingEntryCursorType.Main)
+          .filter((e) => e.cursorType === InteractorOrderingEntryCursorType.Main)
           .map((e) => e.id)
           .forEach((id) => {
             const interactor = state.interactors[id];

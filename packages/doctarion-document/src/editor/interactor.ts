@@ -1,4 +1,4 @@
-import { immerable } from "immer";
+import { Draft, castDraft, immerable } from "immer";
 
 import { NodeNavigator, Range } from "../basic-traversal";
 import { Cursor, CursorOrientation } from "../cursor";
@@ -31,7 +31,7 @@ export class Interactor {
 
   /**
    * This returns either the mainCursor or the selectionAnchorCursor depending
-   * on which one preceeds the other.
+   * on which one precedes the other.
    */
   public get forwardCursor(): Cursor {
     if (!this.selectionAnchorCursor) {
@@ -88,5 +88,22 @@ export enum InteractorOrderingEntryCursorType {
 
 export interface InteractorOrderingEntry {
   readonly id: InteractorId;
-  readonly cursor: InteractorOrderingEntryCursorType;
+  readonly cursorType: InteractorOrderingEntryCursorType;
 }
+
+export const InteractorOrderingEntry = {
+  getCursor(interactor: Interactor, cursorType: InteractorOrderingEntryCursorType): Cursor {
+    return cursorType === InteractorOrderingEntryCursorType.Main
+      ? interactor.mainCursor
+      : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        interactor.selectionAnchorCursor!;
+  },
+
+  setCursor(interactor: Draft<Interactor>, cursorType: InteractorOrderingEntryCursorType, cursor: Cursor): void {
+    if (cursorType === InteractorOrderingEntryCursorType.Main) {
+      interactor.mainCursor = castDraft(cursor);
+    } else {
+      interactor.selectionAnchorCursor = castDraft(cursor);
+    }
+  },
+};
