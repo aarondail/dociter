@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import * as immer from "immer";
 import lodash from "lodash";
 
@@ -29,9 +30,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
   const targets = selectTargets(state, services, payload.target);
 
-  const toJoin = new LiftingPathMap<{
-    readonly block: NodeNavigator;
-  }>();
+  const toJoin = new LiftingPathMap<{ readonly block: NodeNavigator }>();
 
   for (const { interactor, navigator } of targets) {
     // Skip any interactor (or throw error) if the interactor is a selection (for now)
@@ -80,19 +79,26 @@ function adjustInteractorPositionsAfterMoveChildren(
   destinationBlockOriginalChildCount: number,
   direction: FlowDirection
 ) {
+  const isBack = direction === FlowDirection.Backward;
   // In the forward case only, we have to update interactors of the destination node since the
   // source nodes get inserted in front of them.
-  if (direction === FlowDirection.Forward) {
-    for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(
-      destinationNode.path
-    )) {
-      let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
+  // In the backward we need to update cursors ONLY if they are exactly on their destination node.
+  for (const { interactor, cursorType } of isBack
+    ? services.interactors.interactorCursorsAt(destinationNode.path)
+    : services.interactors.interactorCursorsAtOrDescendantsOf(destinationNode.path)) {
+    let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
 
+    if (isBack) {
+      const n = new CursorNavigator(state.document, services.layout);
+      n.navigateTo(cursor);
+      n.navigateToNextCursorPosition();
+      cursor = castDraft(n.cursor);
+    } else {
       if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
-        const backupNavigator = new CursorNavigator(state.document, services.layout);
-        backupNavigator.navigateToUnchecked(cursor);
-        backupNavigator.navigateToLastDescendantCursorPosition();
-        cursor = castDraft(backupNavigator.cursor);
+        const n = new CursorNavigator(state.document, services.layout);
+        n.navigateToUnchecked(cursor);
+        n.navigateToLastDescendantCursorPosition();
+        cursor = castDraft(n.cursor);
       } else {
         // Technically not a move but I am being lazy here and this works
         const newCursorOrNoChangeReason = cursor.adjustDueToMove(
@@ -107,23 +113,12 @@ function adjustInteractorPositionsAfterMoveChildren(
           continue;
         }
       }
-      InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-      services.interactors.notifyUpdated(interactor.id);
     }
-  } else {
-    for (const { interactor, cursorType } of services.interactors.interactorCursorsAt(destinationNode.path)) {
-      let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
-
-      const backupNavigator = new CursorNavigator(state.document, services.layout);
-      backupNavigator.navigateTo(cursor);
-      backupNavigator.navigateToNextCursorPosition();
-      cursor = castDraft(backupNavigator.cursor);
-
-      InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-      services.interactors.notifyUpdated(interactor.id);
-    }
+    InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
+    services.interactors.notifyUpdated(interactor.id);
   }
 
+  // Now update interactors inside at or inside the source node
   for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(sourceNode.path)) {
     let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
 
@@ -131,11 +126,11 @@ function adjustInteractorPositionsAfterMoveChildren(
       cursor.orientation === CursorOrientation.On &&
       (cursor.path.equalTo(destinationNode.path) || cursor.path.equalTo(sourceNode.path))
     ) {
-      const backupNavigator = new CursorNavigator(state.document, services.layout);
-      backupNavigator.navigateTo(cursor);
-      if (direction === FlowDirection.Forward) {
-        backupNavigator.navigateToNextCursorPosition();
-        cursor = castDraft(backupNavigator.cursor);
+      if (!isBack) {
+        const n = new CursorNavigator(state.document, services.layout);
+        n.navigateTo(cursor);
+        n.navigateToNextCursorPosition();
+        cursor = castDraft(n.cursor);
       }
     } else {
       const newCursorOrNoChangeReason = cursor.adjustDueToMove(
@@ -152,7 +147,6 @@ function adjustInteractorPositionsAfterMoveChildren(
         continue;
       }
     }
-
     InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
     services.interactors.notifyUpdated(interactor.id);
   }
