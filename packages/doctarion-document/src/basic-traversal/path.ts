@@ -39,7 +39,7 @@ export class Path {
   public adjustDueToMove(
     oldPrefix: Path,
     newPrefix: Path,
-    newIndexUnderPrefix: number
+    indexOffsetUnderPrefix: number
   ): PathAdjustmentDueToMoveReason | Path {
     const [left, right] = this.split(oldPrefix.parts.length);
     if (!left.equalTo(oldPrefix)) {
@@ -52,7 +52,7 @@ export class Path {
       return newPrefix;
     }
 
-    const updatedConnectivePart = connectivePart.parts[0].setIndex(newIndexUnderPrefix);
+    const updatedConnectivePart = connectivePart.parts[0].adjustIndex(indexOffsetUnderPrefix);
     return new Path([...newPrefix.parts, updatedConnectivePart, ...reallyRight.parts]);
   }
 

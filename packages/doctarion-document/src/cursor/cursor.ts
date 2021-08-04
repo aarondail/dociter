@@ -2,6 +2,7 @@ import { immerable } from "immer";
 
 import {
   Path,
+  PathAdjustmentDueToMoveReason,
   PathAdjustmentDueToRelativeDeletionNoChangeReason,
   PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason,
   PathComparison,
@@ -23,6 +24,18 @@ export class Cursor {
   [immerable] = true;
 
   public constructor(public readonly path: Path, public readonly orientation: CursorOrientation) {}
+
+  public adjustDueToMove(
+    oldPrefix: Path,
+    newPrefix: Path,
+    indexOffsetUnderPrefix: number
+  ): Cursor | PathAdjustmentDueToMoveReason {
+    const pathOrReason = this.path.adjustDueToMove(oldPrefix, newPrefix, indexOffsetUnderPrefix);
+    if (pathOrReason instanceof Path) {
+      return new Cursor(pathOrReason, this.orientation);
+    }
+    return pathOrReason;
+  }
 
   /**
    * This adjusts this cursor's path to account for a deletion of a different
@@ -52,7 +65,7 @@ export class Cursor {
 
   /**
    * This compares two Cursors. It returns before if this Cursor comes before
-   * the other one in the way the cursors move thorugh a Document. It returns equal
+   * the other one in the way the cursors move thorough a Document. It returns equal
    * if both Cursors are exactly the same, and After otherwise.
    */
   public compareTo(other: Cursor): SimpleComparison {

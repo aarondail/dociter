@@ -13,8 +13,12 @@ test("adjustDueToMove", () => {
   const t = (path: string, oldPrefix: string, newPrefix: string, newIndex: number) =>
     p(path).adjustDueToMove(p(oldPrefix), p(newPrefix), newIndex).toString();
 
-  expect(t("0/1", "0", "2", 1)).toEqual("2/1");
-  expect(t("3/4/5/6", "3/4", "1/2/3", 4)).toEqual("1/2/3/4/6");
+  expect(t("0/1", "0", "2", 0)).toEqual("2/1");
+  expect(t("0/1", "0", "2", 1)).toEqual("2/2");
+  expect(t("0/1", "0", "2", -1)).toEqual("2/0");
+  expect(t("3/4/5/6", "3/4", "1/2/3", 0)).toEqual("1/2/3/5/6");
+  expect(t("3/4/5/6", "3/4", "1/2/3", 4)).toEqual("1/2/3/9/6");
+  expect(t("3/4/5/6", "3/4", "1/2/3", -4)).toEqual("1/2/3/1/6");
   expect(t("", "", "2", 1)).toEqual("2");
   expect(t("0/4", "", "2", 1)).toEqual("2/1/4");
   expect(t("0/1", "0/1", "", 1)).toEqual("");
