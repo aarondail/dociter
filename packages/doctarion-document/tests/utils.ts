@@ -257,5 +257,6 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
     debugEditorStateLessSimple,
     debugCurrentBlock,
     debugBlockAtInteractor,
+    debugBlockSimple,
   };
 })();

@@ -13,10 +13,12 @@ import * as CursorOps from "./cursorOps";
 import * as DeletionOps from "./deletionOps";
 import * as InsertionOps from "./insertionOps";
 import * as InteractorOps from "./interactorOps";
+import * as JoinOps from "./joinOps";
 
 export const OPS = {
   ...CursorOps,
   ...DeletionOps,
   ...InsertionOps,
   ...InteractorOps,
+  ...JoinOps,
 };

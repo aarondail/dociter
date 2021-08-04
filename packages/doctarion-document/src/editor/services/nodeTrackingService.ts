@@ -1,7 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import { Draft } from "immer";
 
-import { Node } from "../../models";
+import { Node, ObjectNode } from "../../models";
 import { EditorEvents } from "../events";
 import { NodeId } from "../nodeId";
 import { EditorState } from "../state";
@@ -25,10 +25,14 @@ export class EditorNodeTrackingService {
     this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
   }
 
-  public notifyNodeMoved(node: Node, newParentId: NodeId): void {
+  public notifyNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
     const id = NodeId.getId(node);
     if (id && this.editorState) {
-      this.editorState.nodeParentMap[id] = newParentId;
+      if (newParent instanceof ObjectNode) {
+        this.editorState.nodeParentMap[id] = NodeId.getId(newParent);
+      } else {
+        this.editorState.nodeParentMap[id] = newParent;
+      }
     }
   }
 
