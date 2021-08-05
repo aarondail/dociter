@@ -15,6 +15,13 @@ import {
 } from "../interactor";
 import { EditorState } from "../state";
 
+enum CommonInteractorCursorCollectionFunctionBehavior {
+  At,
+  AtOrAfter,
+  AtOrDescendants,
+  Descendants,
+}
+
 /**
  * This manages all interactors.
  *
@@ -103,37 +110,10 @@ export class EditorInteractorService {
     readonly interactor: Draft<Interactor>;
     readonly cursorType: InteractorOrderingEntryCursorType;
   }[] {
-    if (!this.editorState) {
-      return [];
-    }
-
-    const results = [];
-
-    let startingIndex = binarySearch(
-      this.editorState.interactorOrdering,
+    return this.commonInteractorCursorCollectionFunction(
       new Cursor(path, CursorOrientation.Before),
-      this.findCursorComparator
+      CommonInteractorCursorCollectionFunctionBehavior.At
     );
-
-    if (startingIndex < 0) {
-      // In this case the startingIndex is saying the target is (or would be)
-      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
-      startingIndex = (startingIndex + 1) * -1;
-    }
-
-    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
-      const current = this.editorState.interactorOrdering[i];
-      const interactor = this.editorState.interactors[current.id];
-
-      const cursor = InteractorOrderingEntry.getCursor(interactor, current.cursorType);
-      const cmp = cursor.path.compareTo(path);
-      if (cmp !== PathComparison.Equal) {
-        break;
-      }
-
-      results.push({ interactor, cursorType: current.cursorType });
-    }
-    return results;
   }
 
   public interactorCursorsAtOrAfter(
@@ -142,27 +122,10 @@ export class EditorInteractorService {
     readonly interactor: Draft<Interactor>;
     readonly cursorType: InteractorOrderingEntryCursorType;
   }[] {
-    if (!this.editorState) {
-      return [];
-    }
-
-    const results = [];
-
-    let startingIndex = binarySearch(this.editorState.interactorOrdering, cursor, this.findCursorComparator);
-
-    if (startingIndex < 0) {
-      // In this case the startingIndex is saying the target is (or would be)
-      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
-      startingIndex = (startingIndex + 1) * -1;
-    }
-
-    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
-      const current = this.editorState.interactorOrdering[i];
-      const interactor = this.editorState.interactors[current.id];
-
-      results.push({ interactor, cursorType: current.cursorType });
-    }
-    return results;
+    return this.commonInteractorCursorCollectionFunction(
+      cursor,
+      CommonInteractorCursorCollectionFunctionBehavior.AtOrAfter
+    );
   }
 
   public interactorCursorsAtOrDescendantsOf(
@@ -171,41 +134,10 @@ export class EditorInteractorService {
     readonly interactor: Draft<Interactor>;
     readonly cursorType: InteractorOrderingEntryCursorType;
   }[] {
-    if (!this.editorState) {
-      return [];
-    }
-
-    const results = [];
-
-    let startingIndex = binarySearch(
-      this.editorState.interactorOrdering,
+    return this.commonInteractorCursorCollectionFunction(
       new Cursor(path, CursorOrientation.Before),
-      this.findCursorComparator
+      CommonInteractorCursorCollectionFunctionBehavior.AtOrDescendants
     );
-
-    if (startingIndex < 0) {
-      // In this case the startingIndex is saying the target is (or would be)
-      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
-      startingIndex = (startingIndex + 1) * -1;
-    }
-
-    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
-      const current = this.editorState.interactorOrdering[i];
-      const interactor = this.editorState.interactors[current.id];
-
-      const cursor =
-        current.cursorType === InteractorOrderingEntryCursorType.Main
-          ? interactor.mainCursor
-          : interactor.selectionAnchorCursor!;
-      const cmp = cursor.path.compareTo(path);
-      // The only diff from the following function is here (omitting the equal check)
-      if (cmp !== PathComparison.Equal && cmp !== PathComparison.Descendent) {
-        break;
-      }
-
-      results.push({ interactor, cursorType: current.cursorType });
-    }
-    return results;
   }
 
   public interactorCursorsDescendantsOf(
@@ -214,43 +146,10 @@ export class EditorInteractorService {
     readonly interactor: Draft<Interactor>;
     readonly cursorType: InteractorOrderingEntryCursorType;
   }[] {
-    if (!this.editorState) {
-      return [];
-    }
-
-    const results = [];
-
-    let startingIndex = binarySearch(
-      this.editorState.interactorOrdering,
+    return this.commonInteractorCursorCollectionFunction(
       new Cursor(path, CursorOrientation.Before),
-      this.findCursorComparator
+      CommonInteractorCursorCollectionFunctionBehavior.Descendants
     );
-
-    if (startingIndex < 0) {
-      // In this case the startingIndex is saying the target is (or would be)
-      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
-      startingIndex = (startingIndex + 1) * -1;
-    }
-
-    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
-      const current = this.editorState.interactorOrdering[i];
-      const interactor = this.editorState.interactors[current.id];
-
-      const cursor =
-        current.cursorType === InteractorOrderingEntryCursorType.Main
-          ? interactor.mainCursor
-          : interactor.selectionAnchorCursor!;
-      const cmp = cursor.path.compareTo(path);
-      if (cmp === PathComparison.Equal) {
-        continue;
-      }
-      if (cmp !== PathComparison.Descendent) {
-        break;
-      }
-
-      results.push({ interactor, cursorType: current.cursorType });
-    }
-    return results;
   }
 
   public notifyUpdated(id: InteractorId | InteractorId[]): void {
@@ -269,6 +168,59 @@ export class EditorInteractorService {
         this.updatedInteractors.add(actualId);
       }
     }
+  }
+
+  private commonInteractorCursorCollectionFunction(
+    startingCursor: Cursor,
+    behavior: CommonInteractorCursorCollectionFunctionBehavior
+  ): readonly {
+    readonly interactor: Draft<Interactor>;
+    readonly cursorType: InteractorOrderingEntryCursorType;
+  }[] {
+    if (!this.editorState) {
+      return [];
+    }
+
+    const results = [];
+
+    let startingIndex = binarySearch(this.editorState.interactorOrdering, startingCursor, this.findCursorComparator);
+
+    if (startingIndex < 0) {
+      // In this case the startingIndex is saying the target is (or would be)
+      // BEFORE -1 * the startingIndex and AFTER -1 * startingIndex;
+      startingIndex = (startingIndex + 1) * -1;
+    }
+
+    for (let i = startingIndex; i < this.editorState.interactorOrdering.length; i++) {
+      const current = this.editorState.interactorOrdering[i];
+      const interactor = this.editorState.interactors[current.id];
+
+      const cursor = InteractorOrderingEntry.getCursor(interactor, current.cursorType);
+      if (behavior === CommonInteractorCursorCollectionFunctionBehavior.At) {
+        const cmp = cursor.path.compareTo(startingCursor.path);
+        if (cmp !== PathComparison.Equal) {
+          break;
+        }
+      } else if (behavior === CommonInteractorCursorCollectionFunctionBehavior.AtOrAfter) {
+        // No-op
+      } else if (behavior === CommonInteractorCursorCollectionFunctionBehavior.AtOrDescendants) {
+        const cmp = cursor.path.compareTo(startingCursor.path);
+        if (cmp !== PathComparison.Equal && cmp !== PathComparison.Descendent) {
+          break;
+        }
+      } else if (behavior === CommonInteractorCursorCollectionFunctionBehavior.Descendants) {
+        const cmp = cursor.path.compareTo(startingCursor.path);
+        if (cmp === PathComparison.Equal) {
+          continue;
+        }
+        if (cmp !== PathComparison.Descendent) {
+          break;
+        }
+      }
+
+      results.push({ interactor, cursorType: current.cursorType });
+    }
+    return results;
   }
 
   private comparator = (a: InteractorOrderingEntry, b: InteractorOrderingEntry) => {
