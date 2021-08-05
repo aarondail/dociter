@@ -67,13 +67,15 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     readonly originalPosition: ReadonlyCursorNavigator;
   }>();
 
-  for (const { interactor, navigator } of targets) {
-    // Skip any interactor (or throw error) if the interactor is a selection (for now)
-    if (interactor && interactor.isSelection) {
+  for (const target of targets) {
+    if (target.isSelection) {
+      // Skip any interactor (or throw error) if the interactor is a selection (for now)
       if (!payload.dontThrowOnSelectionInteractors) {
         throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
       }
+      continue;
     }
+    const { interactor, navigator } = target;
 
     const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, options);
     if (result?.nodeToDelete) {

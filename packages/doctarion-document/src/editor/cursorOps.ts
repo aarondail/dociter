@@ -109,14 +109,20 @@ function forEachInteractorInMovementTargetPayloadDo(
   payload: InteractorMovementPayload,
   updateFn: (interactor: Draft<Interactor>, navigator: CursorNavigator) => boolean
 ): void {
-  const targets = selectTargets(state, services, payload.target);
-
   const updates: InteractorId[] = [];
-  targets.forEach(({ interactor, navigator }) => {
-    if (updateFn(interactor, navigator)) {
-      updates.push(interactor.id);
+  for (const target of selectTargets(state, services, payload.target)) {
+    if (target.isSelection) {
+      const { interactor, navigators, isMainCursorFirst } = target;
+      if (updateFn(interactor, isMainCursorFirst ? navigators[0] : navigators[1])) {
+        updates.push(interactor.id);
+      }
+    } else {
+      const { interactor, navigator } = target;
+      if (updateFn(interactor, navigator)) {
+        updates.push(interactor.id);
+      }
     }
-  });
+  }
 
   if (updates.length > 0) {
     services.interactors.notifyUpdated(updates);

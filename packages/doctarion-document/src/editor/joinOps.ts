@@ -19,8 +19,6 @@ const castDraft = immer.castDraft;
 
 interface JoinBlocksOptions {
   readonly direction: FlowDirection;
-  // TODO I think we will get rid of this at some point
-  readonly dontThrowOnSelectionInteractors: boolean;
 }
 
 export type JoinBlocksPayload = TargetPayload & Partial<JoinBlocksOptions>;
@@ -32,16 +30,24 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
   const toJoin = new LiftingPathMap<{ readonly block: NodeNavigator }>();
 
-  for (const { interactor, navigator } of targets) {
+  for (const target of targets) {
     // Skip any interactor (or throw error) if the interactor is a selection (for now)
-    if (interactor && interactor.isSelection) {
-      if (!payload.dontThrowOnSelectionInteractors) {
-        throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
+    if (target.isSelection) {
+      // const { navigators } = target;
+      // const startBlock = findBlock(navigators[0] as ReadonlyCursorNavigator);
+      // const endBlock = findBlock(navigators[1] as ReadonlyCursorNavigator);
+      // if (!startBlock || !endBlock) {
+      //   break;
+      // }
+
+      // toJoin.add(block.path, { block });
+      throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
+    } else {
+      const { navigator } = target;
+      const block = findBlock(navigator as ReadonlyCursorNavigator);
+      if (block) {
+        toJoin.add(block.path, { block });
       }
-    }
-    const block = findBlock(navigator as ReadonlyCursorNavigator);
-    if (block) {
-      toJoin.add(block.path, { block });
     }
   }
 

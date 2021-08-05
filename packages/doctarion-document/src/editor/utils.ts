@@ -33,22 +33,56 @@ export function getCursorNavigatorAndValidate(
 
 /**
  * Simple create a CursorNavigator and navigate it to the proper place for an
- * Interactor or a simple Cursor.
+ * Interactor.
  *
  * Throws an error if the navigation fails.
  */
-function getCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
+function getMainCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(target.mainCursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
-      target instanceof Cursor
-        ? // TODO give cursor a toString
-          `Cursor ${target.orientation} ${target.path.toString()} is invalid`
-        : `Interactor ${target.id || ""} had an invalid mainCursor position.`
+      `Interactor ${target.id || ""} had an invalid mainCursor position.`
     );
   }
   return nav;
+}
+
+/**
+ * Simple create two CursorNavigator for an selection Interactor (ordered) and
+ * return them.
+ *
+ * Throws an error if the navigation fails.
+ */
+function getBothCursorNavigatorsForSelection(
+  target: Interactor,
+  state: EditorState,
+  services: EditorServices
+): { navigators: [CursorNavigator, CursorNavigator]; isMainCursorFirst: boolean } | undefined {
+  const result = target.getSelectionCursorsOrdered();
+  if (!result) {
+    return;
+  }
+  const { cursors, isMainCursorFirst } = result;
+  const nav1 = new CursorNavigator(state.document, services.layout);
+
+  if (!nav1.navigateTo(cursors[0])) {
+    throw new EditorOperationError(
+      EditorOperationErrorCode.InvalidCursorPosition,
+      `Interactor ${target.id || ""} had an invalid cursor position.`
+    );
+  }
+
+  const nav2 = new CursorNavigator(state.document, services.layout);
+
+  if (!nav2.navigateTo(cursors[0])) {
+    throw new EditorOperationError(
+      EditorOperationErrorCode.InvalidCursorPosition,
+      `Interactor ${target.id || ""} had an invalid cursor position.`
+    );
+  }
+
+  return { navigators: [nav1, nav2], isMainCursorFirst };
 }
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
@@ -58,6 +92,14 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
   return undefined;
 }
 
+export type SelectTargetsResult =
+  | { isSelection: false; interactor: Draft<Interactor>; navigator: CursorNavigator }
+  | {
+      isSelection: true;
+      interactor: Draft<Interactor>;
+      navigators: [CursorNavigator, CursorNavigator];
+      isMainCursorFirst: boolean;
+    };
 /**
  * The returned interactors (if there are interactors) are in the exact same
  * order as they appear in the interactors.ordered list.
@@ -66,13 +108,20 @@ export function selectTargets(
   state: Draft<EditorState>,
   services: EditorOperationServices,
   target: OperationTarget
-): { interactor: Draft<Interactor>; navigator: CursorNavigator }[] {
-  const result: { interactor: Draft<Interactor>; navigator: CursorNavigator }[] = [];
+): SelectTargetsResult[] {
+  const result: SelectTargetsResult[] = [];
 
   const recordResult = (t: InteractorId) => {
     const interactor = state.interactors[t];
-    const nav = getCursorNavigatorFor(interactor, state, services);
-    result.push({ interactor, navigator: nav });
+    if (interactor.isSelection) {
+      const r = getBothCursorNavigatorsForSelection(interactor, state, services);
+      if (r) {
+        result.push({ isSelection: true, interactor, ...r });
+      }
+    } else {
+      const nav = getMainCursorNavigatorFor(interactor, state, services);
+      result.push({ isSelection: false, interactor, navigator: nav });
+    }
   };
   getTargetedInteractorIds(target, state).forEach(recordResult);
   return result;

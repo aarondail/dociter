@@ -29,23 +29,26 @@ export class Interactor {
     public readonly visualLineMovementHorizontalAnchor?: HorizontalAnchor
   ) {}
 
+  public get isSelection(): boolean {
+    return this.selectionAnchorCursor !== undefined;
+  }
+
   /**
-   * This returns either the mainCursor or the selectionAnchorCursor depending
-   * on which one precedes the other.
+   * This returns either the mainCursor and selectionAnchorCursor, or the
+   * selectionAnchorCursor and mainCursor, depending on which one precedes the
+   * other. If the Interactor is not a selection `undefined` is returned.
    */
-  public get forwardCursor(): Cursor {
+  public getSelectionCursorsOrdered():
+    | { readonly cursors: [Cursor, Cursor]; readonly isMainCursorFirst: boolean }
+    | undefined {
     if (!this.selectionAnchorCursor) {
-      return this.mainCursor;
+      return undefined;
     }
 
     if (this.mainCursor.compareTo(this.selectionAnchorCursor) === SimpleComparison.After) {
-      return this.selectionAnchorCursor;
+      return { cursors: [this.selectionAnchorCursor, this.mainCursor], isMainCursorFirst: false };
     }
-    return this.mainCursor;
-  }
-
-  public get isSelection(): boolean {
-    return this.selectionAnchorCursor !== undefined;
+    return { cursors: [this.mainCursor, this.selectionAnchorCursor], isMainCursorFirst: true };
   }
 
   public toRange(document: Document): Range | undefined {
