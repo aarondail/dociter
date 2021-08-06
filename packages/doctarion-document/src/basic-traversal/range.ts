@@ -1,7 +1,10 @@
 import { immerable } from "immer";
+import { filter } from "iter-tools";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { Document, Node, NodeUtils } from "../models";
+
+import { PathComparison } from "./path";
 
 // TODO consider merging this into interactor
 export class Range {
@@ -210,20 +213,32 @@ export class Range {
   /**
    * This walks through all nodes in the range.
    */
-  public walk(document: Document, callback: (chain: Chain) => void): void {
+  public walk(document: Document, callback: (chain: Chain) => void, filter?: (node: Node) => boolean): void {
     const nav = new NodeNavigator(document);
     if (!nav.navigateTo(this.from)) {
       return;
     }
 
-    callback(nav.chain);
+    if (!filter || filter(nav.tip.node)) {
+      callback(nav.chain);
+    }
     if (this.from.equalTo(this.to)) {
       return;
     }
+    let skipDescendants = false;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      if (!nav.navigateForwardsByDfs()) {
+      if (!nav.navigateForwardsByDfs(skipDescendants ? { skipDescendants } : undefined)) {
         return;
+      }
+      skipDescendants = false;
+      if (filter && !filter(nav.tip.node)) {
+        skipDescendants = true;
+        const cmp = nav.path.compareTo(this.to);
+        if (cmp === PathComparison.Ancestor || cmp === PathComparison.Equal) {
+          return;
+        }
+        continue;
       }
       callback(nav.chain);
       if (nav.path.equalTo(this.to)) {
