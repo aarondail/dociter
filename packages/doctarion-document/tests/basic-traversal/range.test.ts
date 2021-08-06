@@ -38,7 +38,7 @@ test("getChainsCoveringRange", () => {
   expect(check("0/0/0", "3/1/5")).toEqual([""]);
 });
 
-test("walk with filter", () => {
+test("walkChains with filter", () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const filterOnlyBlocks = NodeUtils.isBlock;
 
@@ -47,7 +47,7 @@ test("walk with filter", () => {
     const p = Path.parse;
     const f = (chain: Chain) => chain.path.toString();
     const r: string[] = [];
-    new Range(p(s1), p(s2)).walk(testDoc1, (n) => r.push(f(n)), filterOnlyBlocks);
+    new Range(p(s1), p(s2)).walkChains(testDoc1, (n) => r.push(f(n)), filterOnlyBlocks);
     return r;
   };
 

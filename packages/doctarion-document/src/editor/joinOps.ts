@@ -2,14 +2,13 @@
 import * as immer from "immer";
 import lodash from "lodash";
 
-import { LiftingPathMap, NodeNavigator } from "../basic-traversal";
+import { LiftingPathMap, NodeNavigator, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { Block, NodeUtils } from "../models";
 
 import { deletePrimitive } from "./deletionOps";
 import { InteractorOrderingEntry } from "./interactor";
 import { createCoreOperation } from "./operation";
-import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
@@ -33,15 +32,28 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
   for (const target of targets) {
     // Skip any interactor (or throw error) if the interactor is a selection (for now)
     if (target.isSelection) {
-      // const { navigators } = target;
-      // const startBlock = findBlock(navigators[0] as ReadonlyCursorNavigator);
-      // const endBlock = findBlock(navigators[1] as ReadonlyCursorNavigator);
-      // if (!startBlock || !endBlock) {
-      //   break;
-      // }
+      const { navigators } = target;
+      const startBlock = findBlock(navigators[0] as ReadonlyCursorNavigator);
+      const endBlock = findBlock(navigators[1] as ReadonlyCursorNavigator);
+      if (!startBlock || !endBlock) {
+        break;
+      }
 
-      // toJoin.add(block.path, { block });
-      throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
+      new Range(startBlock.path, endBlock.path).walk(
+        state.document,
+        (n) => {
+          // Skip the start block if we are going backwards, or the end block if
+          // we are going forwards
+          if (direction === FlowDirection.Backward && n.path.equalTo(startBlock.path)) {
+            // Skip
+          } else if (direction === FlowDirection.Forward && n.path.equalTo(endBlock.path)) {
+            // Skip
+          } else {
+            toJoin.add(n.path, { block: n.clone() });
+          }
+        },
+        NodeUtils.isBlock
+      );
     } else {
       const { navigator } = target;
       const block = findBlock(navigator as ReadonlyCursorNavigator);

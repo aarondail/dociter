@@ -23,7 +23,7 @@ export class Range {
    */
   public getChains(document: Document): readonly Chain[] {
     const results: Chain[] = [];
-    this.walk(document, (c) => results.push(c));
+    this.walkChains(document, (c) => results.push(c));
     return results;
   }
 
@@ -211,16 +211,21 @@ export class Range {
   }
 
   /**
-   * This walks through all nodes in the range.
+   * This walks through all nodes in the range. The callback is called with a
+   * NodeNavigator, which (note!) is reused not cloned between calls.
    */
-  public walk(document: Document, callback: (chain: Chain) => void, filter?: (node: Node) => boolean): void {
+  public walk(
+    document: Document,
+    callback: (navigator: NodeNavigator) => void,
+    filter?: (node: Node) => boolean
+  ): void {
     const nav = new NodeNavigator(document);
     if (!nav.navigateTo(this.from)) {
       return;
     }
 
     if (!filter || filter(nav.tip.node)) {
-      callback(nav.chain);
+      callback(nav);
     }
     if (this.from.equalTo(this.to)) {
       return;
@@ -240,10 +245,14 @@ export class Range {
         }
         continue;
       }
-      callback(nav.chain);
+      callback(nav);
       if (nav.path.equalTo(this.to)) {
         return;
       }
     }
+  }
+
+  public walkChains(document: Document, callback: (chain: Chain) => void, filter?: (node: Node) => boolean): void {
+    return this.walk(document, (n) => callback(n.chain), filter);
   }
 }

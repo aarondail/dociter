@@ -187,21 +187,55 @@ export const DebugEditorHelpers = (() => {
   const debugEditorStateForInteractor = (editor: Editor, interactor: Interactor, description?: string) => {
     const nav = new NodeNavigator(editor.document);
     if (interactor.isSelection) {
-      throw new Error("The interactor is a selection.");
-    }
-    const { cursorDebug, chain } = debugCursor(interactor.mainCursor, nav);
-    if (chain) {
-      const elementString = debugElementChainSimple(chain);
-      return `${description || ""}
+      const { cursorDebug: cursorDebug1, chain: chain1 } = debugCursor(interactor.mainCursor, nav);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const { cursorDebug: cursorDebug2, chain: chain2 } = debugCursor(interactor.selectionAnchorCursor!, nav);
+      let s1 = "";
+      if (chain1) {
+        const elementString = debugElementChainSimple(chain1);
+        s1 = `${description || ""}
+MAIN CURSOR: ${cursorDebug1}
+SLICE:  ${elementString}`;
+      } else {
+        s1 = `${description || ""}
+MAIN CURSOR: ${cursorDebug1}
+SLICE:  !INVALID CURSOR POSITION!
+DOCUMENT BLOCKS:
+${JSON.stringify(editor.document.children, undefined, 4)}
+`;
+      }
+
+      let s2 = "";
+      if (chain2) {
+        const elementString = debugElementChainSimple(chain2);
+        s2 = `${description || ""}
+S.A. CURSOR: ${cursorDebug2}
+SLICE:  ${elementString}`;
+      } else {
+        s2 = `${description || ""}
+S.A. CURSOR: ${cursorDebug2}
+SLICE:  !INVALID CURSOR POSITION!
+DOCUMENT BLOCKS:
+${JSON.stringify(editor.document.children, undefined, 4)}
+`;
+      }
+
+      return s1 + s2;
+    } else {
+      const { cursorDebug, chain } = debugCursor(interactor.mainCursor, nav);
+      if (chain) {
+        const elementString = debugElementChainSimple(chain);
+        return `${description || ""}
 CURSOR: ${cursorDebug}
 SLICE:  ${elementString}`;
-    } else {
-      return `${description || ""}
+      } else {
+        return `${description || ""}
 CURSOR: ${cursorDebug}
 SLICE:  !INVALID CURSOR POSITION!
 DOCUMENT BLOCKS:
 ${JSON.stringify(editor.document.children, undefined, 4)}
 `;
+      }
     }
   };
 
@@ -224,14 +258,22 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
   const debugBlockAtInteractor = (editor: Editor | EditorState, interactorId: InteractorId): string => {
     const i = editor.interactors[interactorId];
-    const c = i.mainCursor;
     if (i.isSelection) {
-      throw new Error("The focused interactor is a selection.");
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      const path1 = "" + i.mainCursor.path?.parts[0].index;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, @typescript-eslint/no-non-null-assertion
+      const path2 = "" + i.selectionAnchorCursor!.path?.parts[0].index;
+      return (
+        "\nMAIN CURSOR:" +
+        debugBlockSimple(editor.document, path1) +
+        "\nS.A. CURSOR:" +
+        debugBlockSimple(editor.document, path2)
+      );
+    } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      const path = "" + i.mainCursor.path?.parts[0].index;
+      return debugBlockSimple(editor.document, path);
     }
-    const prePath = c.path;
-    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-    const path = "" + prePath?.parts[0].index;
-    return debugBlockSimple(editor.document, path);
   };
 
   const debugCurrentBlock = (editor: Editor | EditorState): string => {

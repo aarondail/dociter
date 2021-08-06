@@ -75,7 +75,7 @@ function getBothCursorNavigatorsForSelection(
 
   const nav2 = new CursorNavigator(state.document, services.layout);
 
-  if (!nav2.navigateTo(cursors[0])) {
+  if (!nav2.navigateTo(cursors[1])) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
       `Interactor ${target.id || ""} had an invalid cursor position.`
