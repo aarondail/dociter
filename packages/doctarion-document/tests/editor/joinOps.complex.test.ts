@@ -13,7 +13,7 @@ const debugInteractorOrdering = DebugEditorHelpers.debugInteractorOrdering;
 const debugBlockSimple = DebugEditorHelpers.debugBlockSimple;
 
 const testDoc1 = doc(
-  header(HeaderLevel.One, inlineText("H1")),
+  header(HeaderLevel.One, inlineText("H1", { italic: true })),
   paragraph(inlineText("MM"), inlineText(""), inlineText("NN"), inlineText("AA"), inlineText("BB", { bold: true })),
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
@@ -68,7 +68,7 @@ describe("joinOps for a multiple interactor", () => {
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
         "
-        HEADER ONE > TEXT {} > \\"H1\\"
+        HEADER ONE > TEXT {ITALIC} > \\"H1\\"
         HEADER ONE > TEXT {} > \\"MM\\"
         HEADER ONE > TEXT {} > \\"\\"
         HEADER ONE > TEXT {} > \\"NN\\"
@@ -91,9 +91,9 @@ describe("joinOps for a multiple interactor", () => {
       editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
-SLICE:  PARAGRAPH > TEXT {} > "H1"`);
+SLICE:  PARAGRAPH > TEXT {ITALIC} > "H1"`);
       expect(debugCurrentBlock(editor)).toEqual(`
-PARAGRAPH > TEXT {} > "H1"
+PARAGRAPH > TEXT {ITALIC} > "H1"
 PARAGRAPH > TEXT {} > "MM"
 PARAGRAPH > TEXT {} > ""
 PARAGRAPH > TEXT {} > "NN"
@@ -125,7 +125,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
         "
-        HEADER ONE > TEXT {} > \\"H1\\""
+        HEADER ONE > TEXT {ITALIC} > \\"H1\\""
       `);
       expect(debugBlockSimple(editor.document, "1")).toMatchInlineSnapshot(`
         "

@@ -5,10 +5,7 @@ import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, After } = CursorOrientation;
-const debugState = DebugEditorHelpers.debugEditorStateSimple;
-const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 const debugEditorStateLessSimple = DebugEditorHelpers.debugEditorStateLessSimple;
-const debugInteractorOrdering = DebugEditorHelpers.debugInteractorOrdering;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),

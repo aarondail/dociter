@@ -4,7 +4,7 @@ import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { Block, NodeUtils } from "../models";
+import { Block, InlineText, Node, NodeUtils } from "../models";
 
 import { deletePrimitive } from "./deletionOps";
 import { InteractorOrderingEntry } from "./interactor";
@@ -64,27 +64,34 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
   }
 
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
-    const sourceBlock = elements[0].block;
-    const destinationBlock = findAppropriateSiblingBlock(sourceBlock, direction);
-    if (!destinationBlock) {
+    const sourceNav = elements[0].block;
+    const destinationNav = findAppropriateSiblingBlock(sourceNav, direction);
+    if (!destinationNav) {
       continue;
     }
-    const destinationBlockOriginalChildCount = (destinationBlock.tip.node as Block).children.length;
-    const sourceBlockOriginalChildCount = (sourceBlock.tip.node as Block).children.length;
+    const destinationBlock = destinationNav.tip.node as Block;
+    const destinationBlockOriginalChildCount = destinationBlock.children.length;
+    const sourceBlockOriginalChildCount = (sourceNav.tip.node as Block).children.length;
 
-    moveChildren(sourceBlock, destinationBlock, services, direction);
+    moveChildren(sourceNav, destinationNav, services, direction);
+
+    const mergedOneChild = mergeCompatibleInlineChildrenIfPossible(
+      destinationBlock,
+      direction === FlowDirection.Backward ? destinationBlockOriginalChildCount - 1 : sourceBlockOriginalChildCount - 1,
+      services
+    );
 
     adjustInteractorPositionsAfterMoveChildren(
       state,
       services,
-      sourceBlock,
-      destinationBlock,
+      sourceNav,
+      destinationNav,
       sourceBlockOriginalChildCount,
-      destinationBlockOriginalChildCount,
+      destinationBlockOriginalChildCount - (mergedOneChild ? 1 : 0),
       direction
     );
 
-    services.execute(state, deletePrimitive({ path: sourceBlock.path }));
+    services.execute(state, deletePrimitive({ path: sourceNav.path }));
   }
 });
 
@@ -165,6 +172,17 @@ function adjustInteractorPositionsAfterMoveChildren(
         continue;
       }
     }
+
+    // Fix up on positions just in case things have changed
+    if (cursor.orientation === CursorOrientation.On) {
+      const n = new CursorNavigator(state.document, services.layout);
+      n.navigateTo(cursor);
+      if (n.navigateToNextCursorPosition()) {
+        n.navigateToPrecedingCursorPosition();
+      }
+      cursor = castDraft(n.cursor);
+    }
+
     InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
     services.interactors.notifyUpdated(interactor.id);
   }
@@ -220,4 +238,41 @@ function moveChildren(
     }
   }
   castDraft(source).children = [];
+}
+
+function mergeCompatibleInlineChildrenIfPossible(
+  block: Node,
+  leftChildIndex: number,
+  services: EditorOperationServices
+): boolean {
+  if (!NodeUtils.isInlineContainer(block)) {
+    return false;
+  }
+  if (leftChildIndex >= 0 && leftChildIndex >= block.children.length - 1) {
+    return false;
+  }
+  const leftChild = block.children[leftChildIndex];
+  const rightChild = block.children[leftChildIndex + 1];
+
+  if (!(leftChild instanceof InlineText && rightChild instanceof InlineText)) {
+    return false;
+  }
+
+  if (
+    !(
+      leftChild.children.length === 0 ||
+      rightChild.children.length === 0 ||
+      lodash.isEqual(leftChild.modifiers, rightChild.modifiers)
+    )
+  ) {
+    return false;
+  }
+
+  if (leftChild.children.length === 0 && rightChild.children.length > 0) {
+    castDraft(leftChild).modifiers = rightChild.modifiers;
+  }
+  castDraft(leftChild).children = [...leftChild.text, ...rightChild.text];
+  services.tracking.unregister(rightChild);
+  castDraft(block.children).splice(leftChildIndex + 1, 1);
+  return true;
 }
