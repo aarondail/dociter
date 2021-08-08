@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import * as immer from "immer";
+import { Draft } from "immer";
 import lodash from "lodash";
 
-import { LiftingPathMap, NodeNavigator, Range } from "../basic-traversal";
+import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
 
@@ -88,29 +89,29 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
     moveBlockChildren(sourceNav, destinationNav, services, direction);
 
-    // TODO continue here
-    let mergedOneChild = false;
-    if (payload.mergeCompatibleInlineTextsIfPossible) {
-      mergedOneChild = mergeCompatibleInlineChildrenIfPossible(
-        destinationBlock,
-        direction === FlowDirection.Backward
-          ? destinationBlockOriginalChildCount - 1
-          : sourceBlockOriginalChildCount - 1,
-        services
-      );
-    }
-
     adjustInteractorPositionsAfterMoveChildren(
       state,
       services,
       sourceNav,
       destinationNav,
       sourceBlockOriginalChildCount,
-      destinationBlockOriginalChildCount - (mergedOneChild ? 1 : 0),
+      destinationBlockOriginalChildCount,
       direction
     );
 
     services.execute(state, deletePrimitive({ path: sourceNav.path }));
+
+    if (payload.mergeCompatibleInlineTextsIfPossible) {
+      mergeCompatibleInlineChildrenIfPossible(
+        direction === FlowDirection.Backward ? destinationNav.path : sourceNav.path,
+        destinationBlock,
+        direction === FlowDirection.Backward
+          ? destinationBlockOriginalChildCount - 1
+          : sourceBlockOriginalChildCount - 1,
+        state,
+        services
+      );
+    }
   }
 });
 
@@ -174,17 +175,38 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
   }
 
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
-    const sourceNav = elements[0].inlineText;
-    const destinationNav = getNavigatorToSiblingIfMatchingPredicate(sourceNav, direction, NodeUtils.isInlineText);
+    services.execute(state, joinInlineTextPrimitive({ path: elements[0].inlineText.path, direction }));
+  }
+});
+
+export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathString; direction: FlowDirection }>(
+  "join/inlineText/primitive",
+  (state, services, payload) => {
+    const sourceNav = new NodeNavigator(state.document);
+
+    if (!sourceNav.navigateTo(payload.path) || !(sourceNav.tip.node instanceof InlineText)) {
+      return;
+    }
+
+    const destinationNav = getNavigatorToSiblingIfMatchingPredicate(
+      sourceNav,
+      payload.direction,
+      NodeUtils.isInlineText
+    );
     if (!destinationNav) {
-      continue;
+      return;
     }
     const destinationInlineText = destinationNav.tip.node as InlineText;
-    const sourceInlineText = sourceNav.tip.node as InlineText;
+    const sourceInlineText = sourceNav.tip.node;
     const destinationInlineTextOriginalChildCount = destinationInlineText.children.length;
     const sourceInlineTextOriginalChildCount = sourceInlineText.children.length;
 
-    moveInlineTextChildren(sourceNav, destinationNav, direction);
+    moveInlineTextChildren(sourceNav, destinationNav, payload.direction);
+
+    // Adjust modifiers in edge case of an empty inline text
+    if (destinationInlineTextOriginalChildCount === 0) {
+      castDraft(destinationInlineText).modifiers = sourceInlineText.modifiers;
+    }
 
     adjustInteractorPositionsAfterMoveChildren(
       state,
@@ -193,12 +215,14 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
       destinationNav,
       sourceInlineTextOriginalChildCount,
       destinationInlineTextOriginalChildCount,
-      direction
+      payload.direction
     );
 
     services.execute(state, deletePrimitive({ path: sourceNav.path }));
+
+    return;
   }
-});
+);
 
 function adjustInteractorPositionsAfterMoveChildren(
   state: immer.Draft<EditorState>,
@@ -220,8 +244,8 @@ function adjustInteractorPositionsAfterMoveChildren(
 
     if (isBack) {
       const n = new CursorNavigator(state.document, services.layout);
-      n.navigateTo(cursor);
-      n.navigateToNextCursorPosition();
+      n.navigateToUnchecked(cursor);
+      n.navigateToFirstDescendantCursorPosition();
       cursor = castDraft(n.cursor);
     } else {
       if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
@@ -268,6 +292,12 @@ function adjustInteractorPositionsAfterMoveChildren(
         }
         cursor = castDraft(n.cursor);
       }
+      // } else if (!isBack && cursor.orientation === CursorOrientation.On) {
+      //   const n = new CursorNavigator(state.document, services.layout);
+      //   n.navigateTo(cursor);
+      //   n.navigateToNextCursorPosition();
+      //   n.navigateToPrecedingCursorPosition();
+      //   cursor = castDraft(n.cursor);
     } else {
       const newCursorOrNoChangeReason = cursor.adjustDueToMove(
         sourceNode.path,
@@ -331,21 +361,23 @@ function moveInlineTextChildren(
 }
 
 function mergeCompatibleInlineChildrenIfPossible(
+  path: Path,
   block: Node,
   leftChildIndex: number,
+  state: Draft<EditorState>,
   services: EditorOperationServices
-): boolean {
+): void {
   if (!NodeUtils.isInlineContainer(block)) {
-    return false;
+    return;
   }
   if (leftChildIndex >= 0 && leftChildIndex >= block.children.length - 1) {
-    return false;
+    return;
   }
   const leftChild = block.children[leftChildIndex];
   const rightChild = block.children[leftChildIndex + 1];
 
   if (!(leftChild instanceof InlineText && rightChild instanceof InlineText)) {
-    return false;
+    return;
   }
 
   if (
@@ -355,14 +387,16 @@ function mergeCompatibleInlineChildrenIfPossible(
       lodash.isEqual(leftChild.modifiers, rightChild.modifiers)
     )
   ) {
-    return false;
+    return;
   }
 
+  const inlineTextNav = new NodeNavigator(state.document);
+  inlineTextNav.navigateTo(path);
   if (leftChild.children.length === 0 && rightChild.children.length > 0) {
-    castDraft(leftChild).modifiers = rightChild.modifiers;
+    inlineTextNav.navigateToChild(leftChildIndex + 1);
+    services.execute(state, joinInlineTextPrimitive({ path: inlineTextNav.path, direction: FlowDirection.Backward }));
+  } else {
+    inlineTextNav.navigateToChild(leftChildIndex);
+    services.execute(state, joinInlineTextPrimitive({ path: inlineTextNav.path, direction: FlowDirection.Forward }));
   }
-  castDraft(leftChild).children = [...leftChild.text, ...rightChild.text];
-  services.tracking.unregister(rightChild);
-  castDraft(block.children).splice(leftChildIndex + 1, 1);
-  return true;
 }
