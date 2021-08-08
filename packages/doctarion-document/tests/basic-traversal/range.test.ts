@@ -40,14 +40,14 @@ test("getChainsCoveringRange", () => {
 
 test("walkChains with filter", () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const filterOnlyBlocks = NodeUtils.isBlock;
+  const ignoreBlockChildren = NodeUtils.isBlock;
 
   const check = (s1: string, s2: string) => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const p = Path.parse;
     const f = (chain: Chain) => chain.path.toString();
     const r: string[] = [];
-    new Range(p(s1), p(s2)).walkChains(testDoc1, (n) => r.push(f(n)), filterOnlyBlocks);
+    new Range(p(s1), p(s2)).walkChains(testDoc1, (n) => r.push(f(n)), ignoreBlockChildren, ignoreBlockChildren);
     return r;
   };
 

@@ -217,42 +217,46 @@ export class Range {
   public walk(
     document: Document,
     callback: (navigator: NodeNavigator) => void,
-    filter?: (node: Node) => boolean
+    filter?: (node: Node) => boolean,
+    skipDescendants?: (node: Node) => boolean
   ): void {
     const nav = new NodeNavigator(document);
     if (!nav.navigateTo(this.from)) {
       return;
     }
 
-    if (!filter || filter(nav.tip.node)) {
+    if (filter && filter(nav.tip.node)) {
       callback(nav);
     }
     if (this.from.equalTo(this.to)) {
       return;
     }
-    let skipDescendants = false;
+    let skipDescendantsPrime = false;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      if (!nav.navigateForwardsByDfs(skipDescendants ? { skipDescendants } : undefined)) {
+      if (!nav.navigateForwardsByDfs(skipDescendantsPrime ? { skipDescendants: true } : undefined)) {
         return;
       }
-      skipDescendants = false;
-      if (filter && !filter(nav.tip.node)) {
-        skipDescendants = true;
-        const cmp = nav.path.compareTo(this.to);
-        if (cmp === PathComparison.Ancestor || cmp === PathComparison.Equal) {
-          return;
-        }
-        continue;
+      skipDescendantsPrime = false;
+      if (skipDescendants && skipDescendants(nav.tip.node)) {
+        skipDescendantsPrime = true;
       }
-      callback(nav);
-      if (nav.path.equalTo(this.to)) {
+      if (filter && filter(nav.tip.node)) {
+        callback(nav);
+      }
+      const cmp = nav.path.compareTo(this.to);
+      if ((skipDescendants && cmp === PathComparison.Ancestor) || cmp === PathComparison.Equal) {
         return;
       }
     }
   }
 
-  public walkChains(document: Document, callback: (chain: Chain) => void, filter?: (node: Node) => boolean): void {
-    return this.walk(document, (n) => callback(n.chain), filter);
+  public walkChains(
+    document: Document,
+    callback: (chain: Chain) => void,
+    filter?: (node: Node) => boolean,
+    skipDescendants?: (node: Node) => boolean
+  ): void {
+    return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
   }
 }

@@ -3,7 +3,7 @@ import * as immer from "immer";
 import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, Range } from "../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
 
 import { deletePrimitive } from "./deletionOps";
@@ -12,12 +12,24 @@ import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
-import { FlowDirection, selectTargets } from "./utils";
+import {
+  FlowDirection,
+  getNavigatorToSiblingIfMatchingPredicate,
+  navigateToAncestorMatchingPredicate,
+  selectTargets,
+} from "./utils";
 
 const castDraft = immer.castDraft;
 
 interface JoinBlocksOptions {
+  /**
+   * Note for selections this doesn't affect which blocks will be joined, but it
+   * does affect whether the children are joined into the first selected block,
+   * or the last.
+   */
   readonly direction: FlowDirection;
+
+  readonly mergeCompatibleInlineTextsIfPossible?: boolean;
 }
 
 export type JoinBlocksPayload = TargetPayload & Partial<JoinBlocksOptions>;
@@ -33,8 +45,8 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     // Skip any interactor (or throw error) if the interactor is a selection (for now)
     if (target.isSelection) {
       const { navigators } = target;
-      const startBlock = findBlock(navigators[0] as ReadonlyCursorNavigator);
-      const endBlock = findBlock(navigators[1] as ReadonlyCursorNavigator);
+      const startBlock = navigateToAncestorMatchingPredicate(navigators[0].toNodeNavigator(), NodeUtils.isBlock);
+      const endBlock = navigateToAncestorMatchingPredicate(navigators[1].toNodeNavigator(), NodeUtils.isBlock);
       if (!startBlock || !endBlock) {
         break;
       }
@@ -52,11 +64,12 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
             toJoin.add(n.path, { block: n.clone() });
           }
         },
+        NodeUtils.isBlock,
         NodeUtils.isBlock
       );
     } else {
       const { navigator } = target;
-      const block = findBlock(navigator as ReadonlyCursorNavigator);
+      const block = navigateToAncestorMatchingPredicate(navigator.toNodeNavigator(), NodeUtils.isBlock);
       if (block) {
         toJoin.add(block.path, { block });
       }
@@ -65,7 +78,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
     const sourceNav = elements[0].block;
-    const destinationNav = findAppropriateSiblingBlock(sourceNav, direction);
+    const destinationNav = getNavigatorToSiblingIfMatchingPredicate(sourceNav, direction, NodeUtils.isBlock);
     if (!destinationNav) {
       continue;
     }
@@ -73,13 +86,19 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     const destinationBlockOriginalChildCount = destinationBlock.children.length;
     const sourceBlockOriginalChildCount = (sourceNav.tip.node as Block).children.length;
 
-    moveChildren(sourceNav, destinationNav, services, direction);
+    moveBlockChildren(sourceNav, destinationNav, services, direction);
 
-    const mergedOneChild = mergeCompatibleInlineChildrenIfPossible(
-      destinationBlock,
-      direction === FlowDirection.Backward ? destinationBlockOriginalChildCount - 1 : sourceBlockOriginalChildCount - 1,
-      services
-    );
+    // TODO continue here
+    let mergedOneChild = false;
+    if (payload.mergeCompatibleInlineTextsIfPossible) {
+      mergedOneChild = mergeCompatibleInlineChildrenIfPossible(
+        destinationBlock,
+        direction === FlowDirection.Backward
+          ? destinationBlockOriginalChildCount - 1
+          : sourceBlockOriginalChildCount - 1,
+        services
+      );
+    }
 
     adjustInteractorPositionsAfterMoveChildren(
       state,
@@ -88,6 +107,92 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
       destinationNav,
       sourceBlockOriginalChildCount,
       destinationBlockOriginalChildCount - (mergedOneChild ? 1 : 0),
+      direction
+    );
+
+    services.execute(state, deletePrimitive({ path: sourceNav.path }));
+  }
+});
+
+interface JoinInlineTextOptions {
+  /**
+   * Note for selections this doesn't affect which inline texts will be joined,
+   * but it does affect whether the children are joined into the first selected
+   * inline text, or the last.
+   */
+  readonly direction: FlowDirection;
+}
+
+export type JoinInlineTextPayload = TargetPayload & Partial<JoinInlineTextOptions>;
+
+export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlineText", (state, services, payload) => {
+  const direction = payload.direction ?? FlowDirection.Backward;
+
+  const targets = selectTargets(state, services, payload.target);
+
+  const toJoin = new LiftingPathMap<{ readonly inlineText: NodeNavigator }>();
+
+  for (const target of targets) {
+    // Skip any interactor (or throw error) if the interactor is a selection (for now)
+    if (target.isSelection) {
+      const { navigators } = target;
+      const startInlineTextNav = navigateToAncestorMatchingPredicate(
+        navigators[0].toNodeNavigator(),
+        NodeUtils.isInlineText
+      );
+      const endInlineTextNav = navigateToAncestorMatchingPredicate(
+        navigators[1].toNodeNavigator(),
+        NodeUtils.isInlineText
+      );
+      if (!startInlineTextNav || !endInlineTextNav) {
+        break;
+      }
+
+      new Range(startInlineTextNav.path, endInlineTextNav.path).walk(
+        state.document,
+        (n) => {
+          // Skip the start block if we are going backwards, or the end block if
+          // we are going forwards
+          if (direction === FlowDirection.Backward && n.path.equalTo(startInlineTextNav.path)) {
+            // Skip
+          } else if (direction === FlowDirection.Forward && n.path.equalTo(endInlineTextNav.path)) {
+            // Skip
+          } else {
+            toJoin.add(n.path, { inlineText: n.clone() });
+          }
+        },
+        NodeUtils.isInlineText,
+        NodeUtils.isInlineText
+      );
+    } else {
+      const { navigator } = target;
+      const inlineTextNav = navigateToAncestorMatchingPredicate(navigator.toNodeNavigator(), NodeUtils.isInlineText);
+      if (inlineTextNav) {
+        toJoin.add(inlineTextNav.path, { inlineText: inlineTextNav });
+      }
+    }
+  }
+
+  for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
+    const sourceNav = elements[0].inlineText;
+    const destinationNav = getNavigatorToSiblingIfMatchingPredicate(sourceNav, direction, NodeUtils.isInlineText);
+    if (!destinationNav) {
+      continue;
+    }
+    const destinationInlineText = destinationNav.tip.node as InlineText;
+    const sourceInlineText = sourceNav.tip.node as InlineText;
+    const destinationInlineTextOriginalChildCount = destinationInlineText.children.length;
+    const sourceInlineTextOriginalChildCount = sourceInlineText.children.length;
+
+    moveInlineTextChildren(sourceNav, destinationNav, direction);
+
+    adjustInteractorPositionsAfterMoveChildren(
+      state,
+      services,
+      sourceNav,
+      destinationNav,
+      sourceInlineTextOriginalChildCount,
+      destinationInlineTextOriginalChildCount,
       direction
     );
 
@@ -128,7 +233,7 @@ function adjustInteractorPositionsAfterMoveChildren(
         // Technically not a move but I am being lazy here and this works
         const newCursorOrNoChangeReason = cursor.adjustDueToMove(
           destinationNode.path,
-          destinationNode.path,
+          destinationNode.path, // Note, see comment above
           sourceBlockOriginalChildCount
         );
 
@@ -155,6 +260,12 @@ function adjustInteractorPositionsAfterMoveChildren(
         const n = new CursorNavigator(state.document, services.layout);
         n.navigateTo(cursor);
         n.navigateToNextCursorPosition();
+        // This is a bit of a hack, but seems necessary since inline text cursor
+        // behavior is different and we end up with a BEFORE orientation which
+        // is wrong ONCE the source node is deleted
+        if (sourceNode.tip.node instanceof InlineText && sourceBlockOriginalChildCount === 0) {
+          n.navigateToPrecedingCursorPosition();
+        }
         cursor = castDraft(n.cursor);
       }
     } else {
@@ -173,49 +284,12 @@ function adjustInteractorPositionsAfterMoveChildren(
       }
     }
 
-    // Fix up on positions just in case things have changed
-    if (cursor.orientation === CursorOrientation.On) {
-      const n = new CursorNavigator(state.document, services.layout);
-      n.navigateTo(cursor);
-      if (n.navigateToNextCursorPosition()) {
-        n.navigateToPrecedingCursorPosition();
-      }
-      cursor = castDraft(n.cursor);
-    }
-
     InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
     services.interactors.notifyUpdated(interactor.id);
   }
 }
 
-function findBlock(navigator: ReadonlyCursorNavigator): NodeNavigator | undefined {
-  const navPrime = navigator.toNodeNavigator();
-  while (!NodeUtils.isBlock(navPrime.tip.node)) {
-    if (!navPrime.navigateToParent()) {
-      return undefined;
-    }
-  }
-  return navPrime;
-}
-
-function findAppropriateSiblingBlock(navigator: NodeNavigator, direction: FlowDirection): NodeNavigator | undefined {
-  const destinationNavigator = navigator.clone();
-  if (
-    !(direction === FlowDirection.Backward
-      ? destinationNavigator.navigateToPrecedingSibling()
-      : destinationNavigator.navigateToNextSibling())
-  ) {
-    return undefined;
-  }
-
-  const destinationBlock = destinationNavigator.tip.node;
-  if (!NodeUtils.isBlock(destinationBlock)) {
-    return undefined;
-  }
-  return destinationNavigator;
-}
-
-function moveChildren(
+function moveBlockChildren(
   sourceBlock: NodeNavigator,
   destinationBlock: NodeNavigator,
   services: EditorOperationServices,
@@ -236,6 +310,22 @@ function moveChildren(
       dest.children.unshift(child);
       services.tracking.notifyNodeMoved(child, dest);
     }
+  }
+  castDraft(source).children = [];
+}
+
+function moveInlineTextChildren(
+  sourceNav: NodeNavigator,
+  destinationNav: NodeNavigator,
+  direction: FlowDirection
+): void {
+  const source = sourceNav.tip.node as InlineText;
+  const dest = destinationNav.tip.node as InlineText;
+
+  if (direction === FlowDirection.Backward) {
+    castDraft(dest).children = [...dest.children, ...source.children];
+  } else {
+    castDraft(dest).children = [...source.children, ...dest.children];
   }
   castDraft(source).children = [];
 }

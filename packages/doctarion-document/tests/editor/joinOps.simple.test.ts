@@ -13,14 +13,8 @@ const testDoc1 = doc(
   paragraph(),
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
 );
-const testDoc2 = doc(
-  header(HeaderLevel.One, inlineText("H1")),
-  paragraph(inlineText("MM"), inlineText(""), inlineText("NN"), inlineText("AA"), inlineText("BB", { bold: true })),
-  paragraph(),
-  paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
-);
 
-describe("joinOps for a single interactor", () => {
+describe("joinBlocks for a single interactor", () => {
   describe("backwards", () => {
     it("basically works", () => {
       const editor = new Editor({ document: testDoc1 });
@@ -65,9 +59,9 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
     });
 
     it("merges compatible inline texts", () => {
-      let editor = new Editor({ document: testDoc2 });
+      let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward, mergeCompatibleInlineTextsIfPossible: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/2/0 |>
 SLICE:  HEADER ONE > TEXT {} > "NN"`);
@@ -82,7 +76,7 @@ HEADER ONE > TEXT {BOLD} > "BB"`);
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward, mergeCompatibleInlineTextsIfPossible: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "AA"`);
@@ -137,7 +131,7 @@ PARAGRAPH > TEXT {} > "DD"`);
     it("merges compatible inline texts", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward, mergeCompatibleInlineTextsIfPossible: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/2/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "NN"`);
@@ -152,12 +146,96 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: Before } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward, mergeCompatibleInlineTextsIfPossible: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0/0
 SLICE:  PARAGRAPH > TEXT {} > "AA"`);
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "AA"`);
+    });
+  });
+});
+
+describe("joinInlineText for a single interactor", () => {
+  describe("backwards", () => {
+    it("basically works", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/4/0", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/3/2 |>
+SLICE:  PARAGRAPH > TEXT {} > "AABB"`);
+    });
+
+    it("handles the first inline text of a block ok ok (no-op)", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/0/0 |>
+SLICE:  PARAGRAPH > TEXT {} > "MM"`);
+    });
+
+    it("handles empty inline texts", () => {
+      let editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/2/1", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/1/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "NN"`);
+
+      editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/1", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "MM"`);
+    });
+  });
+
+  describe("forwards", () => {
+    it("basically works", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/3/0", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Forward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/3/0 |>
+SLICE:  PARAGRAPH > TEXT {BOLD} > "AABB"`);
+    });
+
+    it("handles the first inline text of a block ok ok (no-op)", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/4/1", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Forward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/4/1 |>
+SLICE:  PARAGRAPH > TEXT {BOLD} > "BB"`);
+    });
+
+    it("handles empty inline texts", () => {
+      let editor = new Editor({ document: testDoc1 });
+      //       editor.execute(OPS.jump({ to: { path: "1/0/1", orientation: After } }));
+      //       editor.execute(OPS.joinInlineText({ direction: FlowDirection.Forward }));
+      //       expect(debugState(editor)).toEqual(`
+      // CURSOR: 1/0/1 |>
+      // SLICE:  PARAGRAPH > TEXT {} > "MM"`);
+      //       expect(debugCurrentBlock(editor)).toEqual(`
+      // PARAGRAPH > TEXT {} > "MM"
+      // PARAGRAPH > TEXT {} > "NN"
+      // PARAGRAPH > TEXT {} > "AA"
+      // PARAGRAPH > TEXT {BOLD} > "BB"`);
+
+      editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/1", orientation: After } }));
+      editor.execute(OPS.joinInlineText({ direction: FlowDirection.Forward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "MM"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > TEXT {} > "MM"
+PARAGRAPH > TEXT {} > "NN"
+PARAGRAPH > TEXT {} > "AA"
+PARAGRAPH > TEXT {BOLD} > "BB"`);
     });
   });
 });

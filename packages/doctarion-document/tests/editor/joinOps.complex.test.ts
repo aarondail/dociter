@@ -19,7 +19,7 @@ const testDoc1 = doc(
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
 );
 
-describe("joinOps for a multiple interactor", () => {
+describe("joinBlocks for multiple interactors", () => {
   describe("backwards", () => {
     it("basically works with one focused interactor", () => {
       const editor = new Editor({ document: testDoc1 });
@@ -142,5 +142,53 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
               PARAGRAPH > TEXT {} > \\"DD\\""
           `);
     });
+  });
+});
+
+describe("joinInlineText for multiple interactors", () => {
+  it("basically works", () => {
+    let editor = new Editor({ document: testDoc1 });
+    editor.execute(OPS.jump({ to: { path: "1/3/0", orientation: After } }));
+    editor.execute(OPS.addInteractor({ at: { path: "1/1", orientation: On }, status: InteractorStatus.Active }));
+    editor.execute(OPS.addInteractor({ at: { path: "1/2/0", orientation: After }, status: InteractorStatus.Active }));
+    // other interactor 1 (inactive)
+    editor.execute(OPS.addInteractor({ at: { path: "1/3/0", orientation: After }, status: InteractorStatus.Inactive }));
+    // other interactor 2 (inactive)
+    editor.execute(
+      OPS.addInteractor({
+        at: { path: "0/0/0", orientation: Before },
+        selectionAnchor: { path: "3/0/0", orientation: After },
+        status: InteractorStatus.Inactive,
+      })
+    );
+    editor.execute(OPS.joinInlineText({ target: TargetInteractors.AllActive, direction: FlowDirection.Backward }));
+    expect(debugState(editor)).toEqual(`
+CURSOR: 1/0/4 |>
+SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
+    expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
+      `"1.M (I) <| 0/0/0, 2.M 1/0/2 |>, 3.M (F) 1/0/4 |>, 4.M (I) 1/0/4 |>, 1.Sa (I) 3/0/0 |>"`
+    );
+
+    editor = new Editor({ document: testDoc1 });
+    editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
+    editor.execute(OPS.addInteractor({ at: { path: "1/0/0", orientation: After }, status: InteractorStatus.Active }));
+    editor.execute(OPS.addInteractor({ at: { path: "1/2/0", orientation: After }, status: InteractorStatus.Active }));
+    // other interactor 1 (inactive)
+    editor.execute(OPS.addInteractor({ at: { path: "1/3/0", orientation: After }, status: InteractorStatus.Inactive }));
+    // other interactor 2 (inactive)
+    editor.execute(
+      OPS.addInteractor({
+        at: { path: "0/0/0", orientation: Before },
+        selectionAnchor: { path: "3/0/0", orientation: After },
+        status: InteractorStatus.Inactive,
+      })
+    );
+    editor.execute(OPS.joinInlineText({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
+    expect(debugState(editor)).toEqual(`
+CURSOR: 1/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
+    expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
+      `"1.M (I) <| 0/0/0, 2.M 1/0/0 |>, 3.M (F) 1/0/1 |>, 4.M 1/0/2 |>, 5.M (I) 1/0/4 |>, 1.Sa (I) 3/0/0 |>"`
+    );
   });
 });

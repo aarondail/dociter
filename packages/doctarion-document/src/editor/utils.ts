@@ -1,7 +1,9 @@
 import { Draft } from "immer";
 
-import { Cursor, CursorNavigator } from "../cursor";
+import { NodeNavigator } from "../basic-traversal";
+import { CursorNavigator } from "../cursor";
 import { EditorState } from "../editor";
+import { Node } from "../models";
 
 import { Interactor, InteractorId } from "./interactor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
@@ -85,11 +87,42 @@ function getBothCursorNavigatorsForSelection(
   return { navigators: [nav1, nav2], isMainCursorFirst };
 }
 
+export function getNavigatorToSiblingIfMatchingPredicate(
+  navigator: NodeNavigator,
+  direction: FlowDirection,
+  predicate: (node: Node) => boolean
+): NodeNavigator | undefined {
+  const navPrime = navigator.clone();
+  if (
+    !(direction === FlowDirection.Backward ? navPrime.navigateToPrecedingSibling() : navPrime.navigateToNextSibling())
+  ) {
+    return undefined;
+  }
+
+  const candidate = navPrime.tip.node;
+  if (!predicate(candidate)) {
+    return undefined;
+  }
+  return navPrime;
+}
+
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
   if (a !== undefined) {
     return callback(a);
   }
   return undefined;
+}
+
+export function navigateToAncestorMatchingPredicate(
+  navigator: NodeNavigator,
+  predicate: (node: Node) => boolean
+): NodeNavigator | undefined {
+  while (!predicate(navigator.tip.node)) {
+    if (!navigator.navigateToParent()) {
+      return undefined;
+    }
+  }
+  return navigator;
 }
 
 export type SelectTargetsResult =

@@ -46,6 +46,11 @@ export const NodeUtils = {
     return node instanceof InlineEmoji;
   },
 
+  isInlineText(node: Node): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    return (node as any).kind === NodeKind.InlineText;
+  },
+
   isObject(node: Node): node is ObjectNode {
     return typeof node !== "string";
   },
