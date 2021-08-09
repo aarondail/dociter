@@ -370,8 +370,33 @@ PARAGRAPH > URL_LINK G.com > "GOOGLE"
 PARAGRAPH > EMOJI end`);
     });
 
-    //     xit("will join paragraphs", () => {});
-    //     xit("will paragraph into header and header into paragraph", () => {});
+    it("joins blocks with appropriate options", () => {
+      let editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
+      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/1 |>
+SLICE:  HEADER ONE > TEXT {} > "H1MM"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+HEADER ONE > TEXT {} > "H1MM"
+HEADER ONE > TEXT {} > ""
+HEADER ONE > TEXT {} > "NN"
+HEADER ONE > TEXT {} > "AA"
+HEADER ONE > TEXT {BOLD} > "BB"`);
+
+      editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
+      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/4/1 |>
+SLICE:  PARAGRAPH > TEXT {BOLD} > "BB"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > TEXT {} > "MM"
+PARAGRAPH > TEXT {} > ""
+PARAGRAPH > TEXT {} > "NN"
+PARAGRAPH > TEXT {} > "AA"
+PARAGRAPH > TEXT {BOLD} > "BB"`);
+    });
   });
 
   describe("forwards", () => {
@@ -755,7 +780,30 @@ PARAGRAPH > URL_LINK G.com > "GOOGLE"
 PARAGRAPH > EMOJI end`);
     });
 
-    //     xit("will join paragraphs", () => {});
-    //     xit("will paragraph into header and header into paragraph", () => {});
+    it("joins blocks with appropriate options", () => {
+      let editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
+      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "H1MM"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > TEXT {} > "H1MM"
+PARAGRAPH > TEXT {} > ""
+PARAGRAPH > TEXT {} > "NN"
+PARAGRAPH > TEXT {} > "AA"
+PARAGRAPH > TEXT {BOLD} > "BB"`);
+
+      editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
+      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: <| 2/0/0
+SLICE:  PARAGRAPH > TEXT {} > "CC"`);
+      expect(debugCurrentBlock(editor)).toEqual(`
+PARAGRAPH > TEXT {} > "CC"
+PARAGRAPH > URL_LINK g.com > "GOOGLE"
+PARAGRAPH > TEXT {} > "DD"`);
+    });
   });
 });

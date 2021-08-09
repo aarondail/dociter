@@ -40,7 +40,7 @@ describe("joinBlocks for multiple interactors", () => {
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.Focused, direction: FlowDirection.Backward }));
       expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
-        `"1.M <| 0/0/0, 2.M <| 0/1/0, 3.M 0/2, 4.M (F) 0/3/0 |>, 5.M 0/3/1 |>, 6.M 0/4/1 |>, 7.M 1, 7.Sa 2/1/4 |>"`
+        `"1.M <| 0/0/0, 2.M 0/0/1 |>, 3.M 0/2, 4.M (F) 0/3/0 |>, 5.M 0/3/1 |>, 6.M 0/4/1 |>, 7.M 1, 7.Sa 2/1/4 |>"`
       );
     });
 
@@ -64,7 +64,7 @@ describe("joinBlocks for multiple interactors", () => {
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Backward }));
       expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
-        `"1.M (I) <| 0/0/0, 2.M <| 0/1/0, 3.M (I) 0/2, 4.M (F) 0/3/0 |>, 5.M (I) 0/3/1 |>, 6.M (I) <| 1/0/0, 7.M 1/0/1 |>, 6.Sa (I) 1/1/4 |>"`
+        `"1.M (I) <| 0/0/0, 2.M 0/0/1 |>, 3.M (I) 0/2, 4.M (F) 0/3/0 |>, 5.M (I) 0/3/1 |>, 6.M (I) <| 1/0/0, 7.M 1/0/1 |>, 6.Sa (I) 1/1/4 |>"`
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
         "

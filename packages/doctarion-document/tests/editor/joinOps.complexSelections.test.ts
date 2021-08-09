@@ -67,8 +67,8 @@ describe("joinBlocks for selections and multiple interactors", () => {
         S.A. CURSOR: 1/7/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"DD\\"
         INTR. #3
-        MAIN CURSOR: <| 1/5/0
-        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"INTR. #3
+        MAIN CURSOR: 1/4/1 |>
+        SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"INTR. #3
         S.A. CURSOR: 1/8/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"EE\\"
         INTR. #4

@@ -1,4 +1,5 @@
 import * as immer from "immer";
+import { Draft } from "immer";
 import lodash from "lodash";
 
 import {
@@ -11,7 +12,8 @@ import {
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
-import { InteractorOrderingEntry } from "./interactor";
+import { Interactor, InteractorOrderingEntry } from "./interactor";
+import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
@@ -44,7 +46,11 @@ interface DeleteAtOptions {
    * cases, `allowAdjacentInlineTextDeletion`  takes precedence over this.
    */
   readonly allowMovementInBoundaryCases: boolean;
-  // FUTURE TODO readonly allowJoiningInSomeBoundaryCases?: boolean;
+  /**
+   * In cases where the cursor is at the edge of a block, deletion can be made
+   * to instead behave like a joining operation.
+   */
+  readonly allowJoiningBlocksInBoundaryCases: boolean;
   readonly direction: FlowDirection;
   readonly dontThrowOnSelectionInteractors: boolean;
 }
@@ -56,6 +62,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     allowAdjacentInlineEmojiDeletion: payload.allowAdjacentInlineEmojiDeletion ?? false,
     allowAdjacentInlineTextDeletion: payload.allowAdjacentInlineTextDeletion ?? false,
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
+    allowJoiningBlocksInBoundaryCases: payload.allowJoiningBlocksInBoundaryCases ?? false,
     direction: payload.direction ?? FlowDirection.Backward,
     dontThrowOnSelectionInteractors: payload.dontThrowOnSelectionInteractors ?? false,
   };
@@ -66,6 +73,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     readonly nodeToDelete: NodeNavigator;
     readonly originalPosition: ReadonlyCursorNavigator;
   }>();
+  const toJoin: Draft<Interactor>[] = [];
 
   for (const target of targets) {
     if (target.isSelection) {
@@ -85,6 +93,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       // the updating of an interactor
       interactor.mainCursor = castDraft(result.justMoveTo).cursor;
       services.interactors.notifyUpdated(interactor.id);
+    } else if (result?.joinInstead) {
+      toJoin.push(interactor);
     }
   }
 
@@ -106,6 +116,25 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
     adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, postDeleteCursor);
+  }
+
+  // Now process the joins if there were any This is probably not right, in the
+  // sense that the deletions and joins are processed separately...
+  for (const interactor of toJoin) {
+    // Make sure interactor still exists
+    if (state.interactors[interactor.id] == undefined) {
+      continue;
+    }
+
+    services.execute(
+      state,
+      joinBlocks({
+        target: { interactorId: interactor.id },
+        // Should this be its own option?
+        mergeCompatibleInlineTextsIfPossible: true,
+        direction: options.direction,
+      })
+    );
   }
 });
 
@@ -282,7 +311,11 @@ function determineCursorPositionAfterDeletion(
       n.navigateToParentUnchecked();
     }
     if (n.navigateToPrecedingSiblingUnchecked()) {
-      n.navigateToLastDescendantCursorPosition();
+      if (direction === FlowDirection.Forward && NodeUtils.isBlock(n.tip.node) && n.navigateToNextSiblingUnchecked()) {
+        n.navigateToFirstDescendantCursorPosition();
+      } else {
+        n.navigateToLastDescendantCursorPosition();
+      }
     } else {
       n.navigateToFirstDescendantCursorPosition();
     }
@@ -322,7 +355,9 @@ function determineCursorPositionAfterDeletion(
 function findNodeForDeletion(
   navigator: ReadonlyCursorNavigator,
   options: DeleteAtOptions
-): { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator } | undefined {
+):
+  | { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator; readonly joinInstead?: boolean }
+  | undefined {
   const isBack = options.direction === FlowDirection.Backward;
   const nodeToDelete = navigator.toNodeNavigator();
   const orientation = navigator.cursor.orientation;
@@ -393,8 +428,12 @@ function findNodeForDeletion(
       }
 
       // Joining logic should probably be added here in the future
+      if (options.allowJoiningBlocksInBoundaryCases) {
+        return { joinInstead: true };
+      }
 
-      // Reach possible movement logic outside of switch
+      // Fall through to movement logic (which sometimes but not always is
+      // applied) below...
     } else {
       if (parent.node.text.length === 1 && parent.node instanceof InlineText) {
         // In this case we are about to remove the last character in an

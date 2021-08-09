@@ -30,7 +30,7 @@ interface JoinBlocksOptions {
    */
   readonly direction: FlowDirection;
 
-  readonly mergeCompatibleInlineTextsIfPossible?: boolean;
+  readonly mergeCompatibleInlineTextsIfPossible: boolean;
 }
 
 export type JoinBlocksPayload = TargetPayload & Partial<JoinBlocksOptions>;
@@ -309,6 +309,12 @@ function adjustInteractorPositionsAfterMoveChildren(
 
       if (newCursorOrNoChangeReason instanceof Cursor) {
         cursor = castDraft(newCursorOrNoChangeReason);
+        const n = new CursorNavigator(state.document, services.layout);
+        n.navigateTo(cursor);
+        if (n.navigateToNextCursorPosition()) {
+          n.navigateToPrecedingCursorPosition();
+        }
+        cursor = n.cursor;
       } else {
         continue;
       }
