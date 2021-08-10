@@ -56,8 +56,12 @@ export class Interactor {
       return undefined;
     }
 
-    let fromPath = this.mainCursor.path;
-    if (this.mainCursor.orientation === CursorOrientation.After) {
+    const mainAfterSelect = this.mainCursor.compareTo(this.selectionAnchorCursor) === SimpleComparison.After;
+    let fromPath = mainAfterSelect ? this.selectionAnchorCursor.path : this.mainCursor.path;
+    if (
+      (mainAfterSelect ? this.selectionAnchorCursor.orientation : this.mainCursor.orientation) ===
+      CursorOrientation.After
+    ) {
       const n = new NodeNavigator(document);
       if (!n.navigateTo(fromPath) || !n.navigateForwardsByDfs()) {
         return undefined;
@@ -65,19 +69,16 @@ export class Interactor {
       fromPath = n.path;
     }
 
-    let toPath = this.selectionAnchorCursor.path;
-    if (this.mainCursor.orientation === CursorOrientation.Before) {
+    let toPath = mainAfterSelect ? this.mainCursor.path : this.selectionAnchorCursor.path;
+    if (
+      (mainAfterSelect ? this.mainCursor.orientation : this.selectionAnchorCursor.orientation) ===
+      CursorOrientation.Before
+    ) {
       const n = new NodeNavigator(document);
       if (!n.navigateTo(toPath) || !n.navigateBackwardsByDfs()) {
         return undefined;
       }
       toPath = n.path;
-    }
-
-    if (fromPath.compareToSimple(toPath) === SimpleComparison.After) {
-      const temp = fromPath;
-      fromPath = toPath;
-      toPath = temp;
     }
 
     return new Range(fromPath, toPath);

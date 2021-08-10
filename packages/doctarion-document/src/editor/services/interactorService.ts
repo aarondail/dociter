@@ -170,6 +170,10 @@ export class EditorInteractorService {
     }
   }
 
+  public notifyUpdatedForced(id: InteractorId): void {
+    this.updateInteractorOrderingFor(id);
+  }
+
   private commonInteractorCursorCollectionFunction(
     startingCursor: Cursor,
     behavior: CommonInteractorCursorCollectionFunctionBehavior

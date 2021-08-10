@@ -71,6 +71,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
   const toDelete = new LiftingPathMap<{
     readonly nodeToDelete: NodeNavigator;
     readonly originalPosition: ReadonlyCursorNavigator;
+    readonly wasSelection?: boolean;
   }>();
   const toJoin: Draft<Interactor>[] = [];
 
@@ -85,11 +86,16 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
           nav.navigateTo(chain.path);
           toDelete.add(chain.path, {
             nodeToDelete: nav,
-            originalPosition:
-              options.direction === FlowDirection.Backward ? target.navigators[0] : target.navigators[1],
+            originalPosition: target.navigators[1],
+            // This is a hack for now
+            wasSelection: true,
           });
         }
       }
+
+      // Clear selection
+      target.interactor.selectionAnchorCursor = undefined;
+      services.interactors.notifyUpdatedForced(target.interactor.id);
     } else {
       const { interactor, navigator } = target;
 
@@ -121,6 +127,11 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     deleteNode(nodeToDelete, services);
 
     const postDeleteCursor = determineCursorPositionAfterDeletion(originalPosition, options.direction);
+    if (toDeleteEntry.elements[0].wasSelection) {
+      // Well, this is a total hack
+      postDeleteCursor.navigateToPrecedingCursorPosition();
+      postDeleteCursor.navigateToPrecedingCursorPosition();
+    }
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
