@@ -15,7 +15,6 @@ import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 import { Interactor, InteractorOrderingEntry } from "./interactor";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
-import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { FlowDirection, selectTargets } from "./utils";
@@ -77,24 +76,34 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
   for (const target of targets) {
     if (target.isSelection) {
-      // Skip any interactor (or throw error) if the interactor is a selection (for now)
-      if (!payload.dontThrowOnSelectionInteractors) {
-        throw new EditorOperationError(EditorOperationErrorCode.SelectionNotAllowed);
-      }
-      continue;
-    }
-    const { interactor, navigator } = target;
+      const chainsToDelete = target.interactor.toRange(state.document)?.getChainsCoveringRange(state.document);
 
-    const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, options);
-    if (result?.nodeToDelete) {
-      toDelete.add(result.nodeToDelete.path, { nodeToDelete: result.nodeToDelete, originalPosition: navigator });
-    } else if (result?.justMoveTo) {
-      // Sometimes deletion doesn't actually trigger the removal of the node, just
-      // the updating of an interactor
-      interactor.mainCursor = castDraft(result.justMoveTo).cursor;
-      services.interactors.notifyUpdated(interactor.id);
-    } else if (result?.joinInstead) {
-      toJoin.push(interactor);
+      if (chainsToDelete) {
+        // TODO this is probably a very inefficient way to deal with text
+        for (const chain of chainsToDelete) {
+          const nav = new NodeNavigator(state.document);
+          nav.navigateTo(chain.path);
+          toDelete.add(chain.path, {
+            nodeToDelete: nav,
+            originalPosition:
+              options.direction === FlowDirection.Backward ? target.navigators[0] : target.navigators[1],
+          });
+        }
+      }
+    } else {
+      const { interactor, navigator } = target;
+
+      const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, options);
+      if (result?.nodeToDelete) {
+        toDelete.add(result.nodeToDelete.path, { nodeToDelete: result.nodeToDelete, originalPosition: navigator });
+      } else if (result?.justMoveTo) {
+        // Sometimes deletion doesn't actually trigger the removal of the node, just
+        // the updating of an interactor
+        interactor.mainCursor = castDraft(result.justMoveTo).cursor;
+        services.interactors.notifyUpdated(interactor.id);
+      } else if (result?.joinInstead) {
+        toJoin.push(interactor);
+      }
     }
   }
 
@@ -115,7 +124,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
-    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, postDeleteCursor);
+    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete.path, postDeleteCursor);
   }
 
   // Now process the joins if there were any This is probably not right, in the
@@ -138,38 +147,6 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
   }
 });
 
-export const deleteSelection = createCoreOperation("delete/selection", (state, services) => {
-  // TODO merge w/ deletaeAt
-  const interactor = state.interactors[Object.keys(state.interactors)[0]];
-  if (!interactor.isSelection) {
-    throw new EditorOperationError(EditorOperationErrorCode.SelectionRequired);
-  }
-
-  const range = interactor.toRange(state.document);
-  if (!range) {
-    return;
-  }
-
-  {
-    const elementsToDelete = range.getChainsCoveringRange(state.document);
-    elementsToDelete.reverse();
-    const nav = new NodeNavigator(state.document);
-    for (const chain of elementsToDelete) {
-      nav.navigateTo(chain.path);
-      deleteNode(nav, services);
-    }
-  }
-
-  // This navigator is positioned on the place we will leave the selection after the deletion
-  {
-    // const nav = new CursorNavigator(state.document) ;
-    // nav.navigateTo(range.from, CursorOrientation.Before);
-    // state.interactors[Object.keys(state.interactors)[0]].mainCursor = castDraft(nav.cursor);
-    // state.interactors[Object.keys(state.interactors)[0]].selectionAnchorCursor = undefined;
-    // state.interactors[Object.keys(state.interactors)[0]].visualLineMovementHorizontalAnchor = undefined;
-  }
-});
-
 export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
   "delete/primitive",
   (state, services, payload) => {
@@ -186,22 +163,22 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
 
     // Now, for all interactor cursors (main or selection) after this node,
     // update them to account for the deletion
-    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete, postDeleteCursor);
+    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete.path, postDeleteCursor);
   }
 );
 
 function adjustInteractorPositionsAfterNodeDeletion(
   services: EditorOperationServices,
-  nodeToDelete: NodeNavigator,
+  nodeToDelete: Path,
   postDeleteCursor: CursorNavigator
 ) {
   for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
-    new Cursor(nodeToDelete.path, CursorOrientation.Before)
+    new Cursor(nodeToDelete, CursorOrientation.Before)
   )) {
     const newCursorOrNoChangeReason = InteractorOrderingEntry.getCursor(
       interactor,
       cursorType
-    ).adjustDueToRelativeDeletionAt(nodeToDelete.path);
+    ).adjustDueToRelativeDeletionAt(nodeToDelete);
 
     if (newCursorOrNoChangeReason instanceof Cursor) {
       InteractorOrderingEntry.setCursor(interactor, cursorType, newCursorOrNoChangeReason);
