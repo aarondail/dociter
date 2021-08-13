@@ -1,7 +1,7 @@
 import { CursorOrientation } from "../../src/cursor";
 import { Editor, FlowDirection, OPS, TargetInteractors } from "../../src/editor";
-import { InteractorStatus } from "../../src/editor/interactor";
 import { HeaderLevel } from "../../src/models";
+import { InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, On, After } = CursorOrientation;

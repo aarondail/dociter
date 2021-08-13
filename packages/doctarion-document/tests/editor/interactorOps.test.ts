@@ -2,8 +2,8 @@
 import { Path } from "../../src/basic-traversal";
 import { Cursor, CursorOrientation } from "../../src/cursor";
 import { Editor, OPS } from "../../src/editor";
-import { InteractorStatus } from "../../src/editor/interactor";
 import { HeaderLevel } from "../../src/models";
+import { InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { debugInteractorOrdering: debug } = DebugEditorHelpers;

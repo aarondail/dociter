@@ -5,9 +5,9 @@ import lodash from "lodash";
 import { NodeNavigator, Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Document } from "../models";
+import { Interactor } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { Interactor } from "./interactor";
 import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";

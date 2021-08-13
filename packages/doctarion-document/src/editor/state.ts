@@ -1,6 +1,6 @@
 import { Document } from "../models";
+import { Interactor, InteractorId, InteractorOrderingEntry } from "../working-document";
 
-import { Interactor, InteractorId, InteractorOrderingEntry } from "./interactor";
 import { NodeId } from "./nodeId";
 
 export interface EditorState {

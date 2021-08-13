@@ -4,8 +4,8 @@ import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, CursorPosition } from "../cursor";
 import { EditorOperationServices, EditorState } from "../editor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
+import { Interactor, InteractorId } from "../working-document";
 
-import { Interactor, InteractorId } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { InteractorMovementPayload } from "./payloads";

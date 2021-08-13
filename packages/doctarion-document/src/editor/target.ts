@@ -1,4 +1,5 @@
-import { InteractorId, InteractorOrderingEntryCursorType, InteractorStatus } from "./interactor";
+import { InteractorId, InteractorOrderingEntryCursorType, InteractorStatus } from "../working-document";
+
 import { EditorState } from "./state";
 
 // -----------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 import * as immer from "immer";
 
 import { CursorNavigator, CursorPosition } from "../cursor";
+import { Interactor, InteractorId, InteractorStatus } from "../working-document";
 
-import { Interactor, InteractorId, InteractorStatus } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 

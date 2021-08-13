@@ -6,9 +6,9 @@ import lodash from "lodash";
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
+import { InteractorOrderingEntry } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
-import { InteractorOrderingEntry } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";

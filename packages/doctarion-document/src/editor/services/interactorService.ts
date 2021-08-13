@@ -5,14 +5,14 @@ import { Draft, castDraft, original } from "immer";
 import { Path, PathComparison } from "../../basic-traversal";
 import { Cursor, CursorOrientation } from "../../cursor";
 import { SimpleComparison } from "../../miscUtils";
-import { EditorEvents } from "../events";
 import {
   Interactor,
   InteractorId,
   InteractorOrderingEntry,
   InteractorOrderingEntryCursorType,
   InteractorStatus,
-} from "../interactor";
+} from "../../working-document";
+import { EditorEvents } from "../events";
 import { EditorState } from "../state";
 
 enum CommonInteractorCursorCollectionFunctionBehavior {
