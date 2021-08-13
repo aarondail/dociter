@@ -1,18 +1,11 @@
 import * as immer from "immer";
-import { Draft } from "immer";
 import lodash from "lodash";
 
-import {
-  LiftingPathMap,
-  NodeNavigator,
-  Path,
-  PathAdjustmentDueToRelativeDeletionNoChangeReason,
-  PathString,
-} from "../basic-traversal";
+import { NodeNavigator, Path, PathAdjustmentDueToRelativeDeletionNoChangeReason, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
-import { Interactor, InteractorOrderingEntry } from "./interactor";
+import { InteractorOrderingEntry } from "./interactor";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
@@ -68,29 +61,27 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
   const targets = selectTargets(state, services, payload.target);
 
-  const toDelete = new LiftingPathMap<{
-    readonly nodeToDelete: NodeNavigator;
-    readonly originalPosition: ReadonlyCursorNavigator;
-    readonly wasSelection?: boolean;
-  }>();
-  const toJoin: Draft<Interactor>[] = [];
-
-  for (const target of targets) {
+  for (const target of lodash.reverse(targets)) {
     if (target.isSelection) {
       const chainsToDelete = target.interactor.toRange(state.document)?.getChainsCoveringRange(state.document);
 
-      if (chainsToDelete) {
-        // TODO this is probably a very inefficient way to deal with text
-        for (const chain of chainsToDelete) {
-          const nav = new NodeNavigator(state.document);
-          nav.navigateTo(chain.path);
-          toDelete.add(chain.path, {
-            nodeToDelete: nav,
-            originalPosition: target.navigators[1],
-            // This is a hack for now
-            wasSelection: true,
-          });
-        }
+      if (!chainsToDelete) {
+        continue;
+      }
+
+      // TODO this is probably a very inefficient way to deal with text
+      for (const chain of lodash.reverse(chainsToDelete)) {
+        const nav = new NodeNavigator(state.document);
+        nav.navigateTo(chain.path);
+        deleteNode(nav, services);
+
+        const cursorNav = new CursorNavigator(state.document, services.layout);
+        cursorNav.navigateTo(nav.path, target.isMainCursorFirst ? CursorOrientation.After : CursorOrientation.Before);
+        const postDeleteCursor = determineCursorPositionAfterSelectionDeletion(cursorNav);
+
+        // Now, for all interactor cursors (main or selection) after this node,
+        // update them to account for the deletion
+        adjustInteractorPositionsAfterNodeDeletion(services, nav.path, postDeleteCursor);
       }
 
       // Clear selection
@@ -101,60 +92,36 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
       const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, options);
       if (result?.nodeToDelete) {
-        toDelete.add(result.nodeToDelete.path, { nodeToDelete: result.nodeToDelete, originalPosition: navigator });
+        // This JUST deletes the node from the document
+        deleteNode(result.nodeToDelete, services);
+
+        const postDeleteCursor = determineCursorPositionAfterDeletion(navigator, options.direction);
+
+        // Now, for all interactor cursors (main or selection) after this node,
+        // update them to account for the deletion
+        adjustInteractorPositionsAfterNodeDeletion(services, result.nodeToDelete.path, postDeleteCursor);
       } else if (result?.justMoveTo) {
         // Sometimes deletion doesn't actually trigger the removal of the node, just
         // the updating of an interactor
         interactor.mainCursor = castDraft(result.justMoveTo).cursor;
         services.interactors.notifyUpdated(interactor.id);
       } else if (result?.joinInstead) {
-        toJoin.push(interactor);
+        // Make sure interactor still exists
+        if (state.interactors[interactor.id] == undefined) {
+          continue;
+        }
+
+        services.execute(
+          state,
+          joinBlocks({
+            target: { interactorId: interactor.id },
+            // Should this be its own option?
+            mergeCompatibleInlineTextsIfPossible: true,
+            direction: options.direction,
+          })
+        );
       }
     }
-  }
-
-  // So at this point, in `toDelete` we have all nodes that need to be deleted.
-  //
-  // Next we walk backwards through the nodes there and delete them.  Note in
-  // `toDelete` if there are two nodes that are in an ancestor/descendant
-  // relationship only the ancestor will come up in the traversal (the
-  // descendants will be part of the "liftedElements").
-
-  for (const toDeleteEntry of lodash.reverse(toDelete.getAllOrderedByPaths())) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const { nodeToDelete, originalPosition } = lodash.first(toDeleteEntry.elements)!;
-    // This JUST deletes the node from the document
-    deleteNode(nodeToDelete, services);
-
-    const postDeleteCursor = determineCursorPositionAfterDeletion(originalPosition, options.direction);
-    if (toDeleteEntry.elements[0].wasSelection) {
-      // Well, this is a total hack
-      postDeleteCursor.navigateToPrecedingCursorPosition();
-      postDeleteCursor.navigateToPrecedingCursorPosition();
-    }
-
-    // Now, for all interactor cursors (main or selection) after this node,
-    // update them to account for the deletion
-    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete.path, postDeleteCursor);
-  }
-
-  // Now process the joins if there were any This is probably not right, in the
-  // sense that the deletions and joins are processed separately...
-  for (const interactor of toJoin) {
-    // Make sure interactor still exists
-    if (state.interactors[interactor.id] == undefined) {
-      continue;
-    }
-
-    services.execute(
-      state,
-      joinBlocks({
-        target: { interactorId: interactor.id },
-        // Should this be its own option?
-        mergeCompatibleInlineTextsIfPossible: true,
-        direction: options.direction,
-      })
-    );
   }
 });
 
@@ -304,6 +271,38 @@ function determineCursorPositionAfterDeletion(
       } else {
         n.navigateToLastDescendantCursorPosition();
       }
+    } else {
+      n.navigateToFirstDescendantCursorPosition();
+    }
+  } else {
+    // Try one level higher as a fallback
+    const p = originalCursor.path.withoutTip();
+    if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
+      n.navigateToLastDescendantCursorPosition();
+    } else {
+      // OK try one more level higher again
+      const p2 = originalCursor.path.withoutTip().withoutTip();
+      if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
+        // Not sure this is really right...
+        n.navigateToLastDescendantCursorPosition();
+      } else {
+        // Not sure this is really right...
+        if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
+          throw new Error("Could not refresh navigator is not a valid cursor");
+        }
+      }
+    }
+  }
+  return n;
+}
+
+function determineCursorPositionAfterSelectionDeletion(originalAnchor: ReadonlyCursorNavigator): CursorNavigator {
+  const originalCursor = originalAnchor.cursor;
+
+  const n = originalAnchor.clone();
+  if (n.navigateToUnchecked(originalCursor)) {
+    if (n.navigateToPrecedingSiblingUnchecked()) {
+      n.navigateToLastDescendantCursorPosition();
     } else {
       n.navigateToFirstDescendantCursorPosition();
     }
