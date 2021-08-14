@@ -4,8 +4,8 @@ import lodash from "lodash";
 
 import { NodeNavigator, Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
+import { Interactor } from "../editor";
 import { Document } from "../models";
-import { Interactor } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";

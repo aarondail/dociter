@@ -5,8 +5,8 @@ import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
+import { InteractorOrderingEntry } from "../editor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
-import { InteractorOrderingEntry } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
 import { createCoreOperation } from "./operation";

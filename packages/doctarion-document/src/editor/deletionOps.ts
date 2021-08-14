@@ -3,8 +3,8 @@ import lodash from "lodash";
 
 import { NodeNavigator, Path, PathAdjustmentDueToRelativeDeletionNoChangeReason, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
+import { InteractorOrderingEntry } from "../editor";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
-import { InteractorOrderingEntry } from "../working-document";
 
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";

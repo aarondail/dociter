@@ -2,9 +2,8 @@ import { Draft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator } from "../cursor";
-import { EditorState } from "../editor";
+import { EditorState, Interactor, InteractorId } from "../editor";
 import { Node } from "../models";
-import { Interactor, InteractorId } from "../working-document";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";

@@ -2,6 +2,7 @@ export { EditorEvents } from "./events";
 export * from "./editor";
 export { createOperation, EditorOperation, EditorOperationCommand, EditorOperationRunFunction } from "./operation";
 export * from "./operationError";
+export * from "./interactor";
 export * from "./payloads";
 export * from "./services";
 export * from "./state";

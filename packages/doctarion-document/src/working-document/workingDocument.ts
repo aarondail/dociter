@@ -2,14 +2,12 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 import * as immer from "immer";
 import lodash from "lodash";
 
-import { Chain, NodeNavigator, Path } from "../basic-traversal";
+import { Chain, NodeNavigator } from "../basic-traversal";
 import { Document, Node, NodeUtils, ObjectNode } from "../models";
 
-import { Interactor, InteractorOrderingEntry } from "./interactor";
 import { NodeId } from "./nodeId";
 
 export class WorkingDocument {
-  private interactorOrdering: InteractorOrderingEntry[];
   /**
    * This should only be updated by the EditorNodeTrackingService.
    */
@@ -22,10 +20,8 @@ export class WorkingDocument {
      * instance at a time.
      */
     public readonly document: immer.Draft<Document>,
-    public readonly interactors: { readonly [id: string /* InteractorId */]: Interactor },
     private readonly idGenerator: FriendlyIdGenerator
   ) {
-    this.interactorOrdering = [];
     this.nodeParentMap = {};
 
     // Assign initial node ids

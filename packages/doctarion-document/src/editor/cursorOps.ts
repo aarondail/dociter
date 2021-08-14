@@ -2,9 +2,8 @@ import { Draft, castDraft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, CursorPosition } from "../cursor";
-import { EditorOperationServices, EditorState } from "../editor";
+import { EditorOperationServices, EditorState, Interactor, InteractorId } from "../editor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
-import { Interactor, InteractorId } from "../working-document";
 
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";

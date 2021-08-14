@@ -3,7 +3,15 @@
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
-import { Editor, EditorState } from "../src/editor";
+import {
+  Editor,
+  EditorState,
+  Interactor,
+  InteractorId,
+  InteractorOrderingEntry,
+  InteractorOrderingEntryCursorType,
+  InteractorStatus,
+} from "../src/editor";
 import {
   Block,
   Document,
@@ -17,13 +25,6 @@ import {
   Text,
   TextModifiers,
 } from "../src/models";
-import {
-  Interactor,
-  InteractorId,
-  InteractorOrderingEntry,
-  InteractorOrderingEntryCursorType,
-  InteractorStatus,
-} from "../src/working-document";
 
 export const doc = (...blocks: readonly Block[]): Document => new Document("title", ...blocks);
 export const header = (...args: any[]) => new HeaderBlock(...args);

@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Path } from "../../src/basic-traversal";
 import { Cursor, CursorOrientation } from "../../src/cursor";
-import { Editor, OPS } from "../../src/editor";
+import { Editor, InteractorStatus, OPS } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
-import { InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { debugInteractorOrdering: debug } = DebugEditorHelpers;

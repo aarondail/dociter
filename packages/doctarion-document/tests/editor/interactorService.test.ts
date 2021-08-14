@@ -2,9 +2,15 @@ import { Draft } from "immer";
 
 import { Path } from "../../src/basic-traversal";
 import { Cursor, CursorOrientation } from "../../src/cursor";
-import { Editor, EditorOperationServices, EditorState, OPS, createOperation } from "../../src/editor";
+import {
+  Editor,
+  EditorOperationServices,
+  EditorState,
+  InteractorOrderingEntryCursorType,
+  OPS,
+  createOperation,
+} from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
-import { InteractorOrderingEntryCursorType } from "../../src/working-document";
 import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(
