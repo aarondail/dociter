@@ -2,8 +2,8 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 import { Draft } from "immer";
 
 import { Node, ObjectNode } from "../../models";
+import { NodeId } from "../../working-document";
 import { EditorEvents } from "../events";
-import { NodeId } from "../nodeId";
 import { EditorState } from "../state";
 
 /**

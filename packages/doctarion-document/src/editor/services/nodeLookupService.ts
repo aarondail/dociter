@@ -2,8 +2,8 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../../basic-traversal";
 import { Node, NodeUtils } from "../../models";
+import { NodeId } from "../../working-document";
 import { EditorEvents } from "../events";
-import { NodeId } from "../nodeId";
 import { EditorState } from "../state";
 
 /**

@@ -1,7 +1,5 @@
 import { Document } from "../models";
-import { Interactor, InteractorId, InteractorOrderingEntry } from "../working-document";
-
-import { NodeId } from "./nodeId";
+import { Interactor, InteractorId, InteractorOrderingEntry, NodeId } from "../working-document";
 
 export interface EditorState {
   readonly document: Document;

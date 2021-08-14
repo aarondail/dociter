@@ -1,6 +1,5 @@
 export { EditorEvents } from "./events";
 export * from "./editor";
-export * from "./nodeId";
 export { createOperation, EditorOperation, EditorOperationCommand, EditorOperationRunFunction } from "./operation";
 export * from "./operationError";
 export * from "./payloads";
