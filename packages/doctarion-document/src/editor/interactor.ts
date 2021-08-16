@@ -1,10 +1,12 @@
-import { Draft, castDraft, immerable } from "immer";
+import { immerable } from "immer";
 
 import { NodeNavigator, Range } from "../basic-traversal";
 import { Cursor, CursorOrientation } from "../cursor";
-import { HorizontalAnchor } from "../layout-reporting";
+import { HorizontalVisualAnchor } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
 import { Document } from "../models";
+
+import { Anchor } from "./anchor";
 
 export type InteractorId = string;
 
@@ -18,49 +20,43 @@ export class Interactor {
 
   public constructor(
     public readonly id: InteractorId,
-    public readonly mainCursor: Cursor,
+    public readonly mainAnchor: Anchor,
     public readonly status: InteractorStatus = InteractorStatus.Active,
-    public readonly selectionAnchorCursor?: Cursor,
+    public readonly selectionAnchor?: Anchor,
     /**
      * When moving between lines visually, this value stores cursor's x value at
      * the start of the line movement, so we can intelligently move between lines
      * of different length and have the cursor try to go to the right spot.
      */
-    public readonly visualLineMovementHorizontalAnchor?: HorizontalAnchor
+    public readonly lineMovementHorizontalVisualAnchor?: HorizontalVisualAnchor
   ) {}
 
   public get isSelection(): boolean {
-    return this.selectionAnchorCursor !== undefined;
+    return this.selectionAnchor !== undefined;
   }
 
-  /**
-   * This returns either the mainCursor and selectionAnchorCursor, or the
-   * selectionAnchorCursor and mainCursor, depending on which one precedes the
-   * other. If the Interactor is not a selection `undefined` is returned.
-   */
   public getSelectionCursorsOrdered():
     | { readonly cursors: [Cursor, Cursor]; readonly isMainCursorFirst: boolean }
     | undefined {
-    if (!this.selectionAnchorCursor) {
+    if (!this.selectionAnchor) {
       return undefined;
     }
 
-    if (this.mainCursor.compareTo(this.selectionAnchorCursor) === SimpleComparison.After) {
-      return { cursors: [this.selectionAnchorCursor, this.mainCursor], isMainCursorFirst: false };
+    if (this.mainAnchor.compareTo(this.selectionAnchor) === SimpleComparison.After) {
+      return { cursors: [this.selectionAnchor, this.mainAnchor], isMainCursorFirst: false };
     }
-    return { cursors: [this.mainCursor, this.selectionAnchorCursor], isMainCursorFirst: true };
+    return { cursors: [this.mainAnchor, this.selectionAnchor], isMainCursorFirst: true };
   }
 
   public toRange(document: Document): Range | undefined {
-    if (!this.selectionAnchorCursor) {
+    if (!this.selectionAnchor) {
       return undefined;
     }
 
-    const mainAfterSelect = this.mainCursor.compareTo(this.selectionAnchorCursor) === SimpleComparison.After;
-    let fromPath = mainAfterSelect ? this.selectionAnchorCursor.path : this.mainCursor.path;
+    const mainAfterSelect = this.mainAnchor.compareTo(this.selectionAnchor) === SimpleComparison.After;
+    let fromPath = mainAfterSelect ? this.selectionAnchor.path : this.mainAnchor.path;
     if (
-      (mainAfterSelect ? this.selectionAnchorCursor.orientation : this.mainCursor.orientation) ===
-      CursorOrientation.After
+      (mainAfterSelect ? this.selectionAnchor.orientation : this.mainAnchor.orientation) === CursorOrientation.After
     ) {
       const n = new NodeNavigator(document);
       if (!n.navigateTo(fromPath) || !n.navigateForwardsByDfs()) {
@@ -69,10 +65,9 @@ export class Interactor {
       fromPath = n.path;
     }
 
-    let toPath = mainAfterSelect ? this.mainCursor.path : this.selectionAnchorCursor.path;
+    let toPath = mainAfterSelect ? this.mainAnchor.path : this.selectionAnchor.path;
     if (
-      (mainAfterSelect ? this.mainCursor.orientation : this.selectionAnchorCursor.orientation) ===
-      CursorOrientation.Before
+      (mainAfterSelect ? this.mainAnchor.orientation : this.selectionAnchor.orientation) === CursorOrientation.Before
     ) {
       const n = new NodeNavigator(document);
       if (!n.navigateTo(toPath) || !n.navigateBackwardsByDfs()) {
@@ -96,18 +91,17 @@ export interface InteractorOrderingEntry {
 }
 
 export const InteractorOrderingEntry = {
-  getCursor(interactor: Interactor, cursorType: InteractorOrderingEntryCursorType): Cursor {
-    return cursorType === InteractorOrderingEntryCursorType.Main
-      ? interactor.mainCursor
-      : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.selectionAnchorCursor!;
-  },
-
-  setCursor(interactor: Draft<Interactor>, cursorType: InteractorOrderingEntryCursorType, cursor: Cursor): void {
-    if (cursorType === InteractorOrderingEntryCursorType.Main) {
-      interactor.mainCursor = castDraft(cursor);
-    } else {
-      interactor.selectionAnchorCursor = castDraft(cursor);
-    }
-  },
+  // getCursor(interactor: Interactor, cursorType: InteractorOrderingEntryCursorType): Cursor {
+  //   return cursorType === InteractorOrderingEntryCursorType.Main
+  //     ? interactor.mainAnchor
+  //     : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  //       interactor.selectionAnchor!;
+  // },
+  // setCursor(interactor: Draft<Interactor>, cursorType: InteractorOrderingEntryCursorType, cursor: Cursor): void {
+  //   if (cursorType === InteractorOrderingEntryCursorType.Main) {
+  //     interactor.mainAnchor = castDraft(cursor);
+  //   } else {
+  //     interactor.selectionAnchor = castDraft(cursor);
+  //   }
+  // },
 };

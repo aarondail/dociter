@@ -79,8 +79,8 @@ export const updateInteractor = createCoreOperation<{
         "mainCursor is not a valid cursor"
       );
     }
-    interactor.mainCursor = castDraft(nav.cursor);
-    interactor.visualLineMovementHorizontalAnchor = undefined;
+    interactor.mainAnchor = castDraft(nav.cursor);
+    interactor.lineMovementHorizontalVisualAnchor = undefined;
   }
 
   if ("selectionAnchor" in updates) {
@@ -92,9 +92,9 @@ export const updateInteractor = createCoreOperation<{
           "selectionAnchorCursor is not a valid cursor"
         );
       }
-      interactor.selectionAnchorCursor = castDraft(nav.cursor);
+      interactor.selectionAnchor = castDraft(nav.cursor);
     } else {
-      interactor.selectionAnchorCursor = undefined;
+      interactor.selectionAnchor = undefined;
     }
   }
 

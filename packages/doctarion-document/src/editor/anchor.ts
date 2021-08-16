@@ -1,7 +1,11 @@
 import { immerable } from "immer";
 
-import { CursorOrientation } from "../cursor";
+import { Path, PathPart } from "../basic-traversal";
+import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
+import { NodeUtils } from "../models";
 import { NodeId } from "../working-document";
+
+import { EditorServices } from "./services";
 
 /**
  * An Anchor is very similar to a Cursor, but instead of being composed of a path and an orientation it
@@ -19,4 +23,35 @@ export class Anchor {
     public readonly orientation: CursorOrientation,
     public readonly graphemeIndex?: number
   ) {}
+
+  public toCursor(lookupService: EditorServices): Cursor | undefined {
+    const path = lookupService.lookup.getPathTo(this.nodeId);
+    if (!path) {
+      return undefined;
+    }
+    if (this.graphemeIndex !== undefined) {
+      return new Cursor(new Path([...path.parts, new PathPart(this.graphemeIndex)]), this.orientation);
+    }
+    return new Cursor(path, this.orientation);
+  }
+
+  public static fromCursorNavigator(cursorNavigator: CursorNavigator): Anchor | undefined {
+    const node = cursorNavigator.tip.node;
+    if (NodeUtils.isGrapheme(node)) {
+      const parent = cursorNavigator.parent?.node;
+      if (!parent) {
+        return undefined;
+      }
+      const parentId = NodeId.getId(parent);
+      if (!parentId) {
+        return undefined;
+      }
+      return new Anchor(parentId, cursorNavigator.cursor.orientation, cursorNavigator.tip.pathPart.index);
+    }
+    const nodeId = NodeId.getId(node);
+    if (!nodeId) {
+      return undefined;
+    }
+    return new Anchor(nodeId, cursorNavigator.cursor.orientation);
+  }
 }

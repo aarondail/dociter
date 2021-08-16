@@ -26,7 +26,7 @@ export function getCursorNavigatorAndValidate(
   const interactor = state.interactors[Object.keys(state.interactors)[0]]; //interactorId];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
-  } else if (!nav.navigateTo(interactor.mainCursor)) {
+  } else if (!nav.navigateTo(interactor.mainAnchor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
   }
   return nav;
@@ -40,7 +40,7 @@ export function getCursorNavigatorAndValidate(
  */
 function getMainCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
-  if (!nav.navigateTo(target.mainCursor)) {
+  if (!nav.navigateTo(target.mainAnchor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
       `Interactor ${target.id || ""} had an invalid mainCursor position.`

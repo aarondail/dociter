@@ -86,7 +86,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       }
 
       // Clear selection
-      target.interactor.selectionAnchorCursor = undefined;
+      target.interactor.selectionAnchor = undefined;
       services.interactors.notifyUpdatedForced(target.interactor.id);
     } else {
       const { interactor, navigator } = target;
@@ -104,7 +104,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       } else if (result?.justMoveTo) {
         // Sometimes deletion doesn't actually trigger the removal of the node, just
         // the updating of an interactor
-        interactor.mainCursor = castDraft(result.justMoveTo).cursor;
+        interactor.mainAnchor = castDraft(result.justMoveTo).cursor;
         services.interactors.notifyUpdated(interactor.id);
       } else if (result?.joinInstead) {
         // Make sure interactor still exists

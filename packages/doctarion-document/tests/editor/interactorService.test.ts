@@ -38,8 +38,8 @@ describe("interactorCursorsAtOrAfter", () => {
         ({ interactor, cursorType }) =>
           `${
             cursorType === InteractorOrderingEntryCursorType.Main
-              ? interactor.mainCursor.toString()
-              : interactor.selectionAnchorCursor?.toString() || ""
+              ? interactor.mainAnchor.toString()
+              : interactor.selectionAnchor?.toString() || ""
           }${cursorType === InteractorOrderingEntryCursorType.SelectionAnchor ? " (Sa)" : ""}`
       );
   };
@@ -197,8 +197,8 @@ describe("interactorCursorsDescendantsOf", () => {
         ({ interactor, cursorType }) =>
           `${
             cursorType === InteractorOrderingEntryCursorType.Main
-              ? interactor.mainCursor.toString()
-              : interactor.selectionAnchorCursor?.toString() || ""
+              ? interactor.mainAnchor.toString()
+              : interactor.selectionAnchor?.toString() || ""
           }${cursorType === InteractorOrderingEntryCursorType.SelectionAnchor ? " (Sa)" : ""}`
       );
   };
@@ -335,8 +335,8 @@ describe("interactorCursorsAtOrDescendantsOf", () => {
         ({ interactor, cursorType }) =>
           `${
             cursorType === InteractorOrderingEntryCursorType.Main
-              ? interactor.mainCursor.toString()
-              : interactor.selectionAnchorCursor?.toString() || ""
+              ? interactor.mainAnchor.toString()
+              : interactor.selectionAnchor?.toString() || ""
           }${cursorType === InteractorOrderingEntryCursorType.SelectionAnchor ? " (Sa)" : ""}`
       );
   };

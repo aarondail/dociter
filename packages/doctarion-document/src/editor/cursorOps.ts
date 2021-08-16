@@ -15,10 +15,10 @@ export const moveBack = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
-        const oldCursor = interactor.mainCursor;
-        interactor.mainCursor = castDraft(navigator.cursor);
-        interactor.visualLineMovementHorizontalAnchor = undefined;
-        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        const oldCursor = interactor.mainAnchor;
+        interactor.mainAnchor = castDraft(navigator.cursor);
+        interactor.lineMovementHorizontalVisualAnchor = undefined;
+        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
         return true;
       }
       return false;
@@ -31,10 +31,10 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
-        const oldCursor = interactor.mainCursor;
-        interactor.mainCursor = castDraft(navigator.cursor);
-        interactor.visualLineMovementHorizontalAnchor = undefined;
-        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        const oldCursor = interactor.mainAnchor;
+        interactor.mainAnchor = castDraft(navigator.cursor);
+        interactor.lineMovementHorizontalVisualAnchor = undefined;
+        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
         return true;
       }
       return false;
@@ -90,10 +90,10 @@ export const jump = createCoreOperation<{ to: CursorPosition } & InteractorMovem
     const cursor = CursorPosition.toCursor(payload.to);
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateTo(cursor)) {
-        const oldCursor = interactor.mainCursor;
-        interactor.mainCursor = castDraft(navigator.cursor);
-        interactor.visualLineMovementHorizontalAnchor = undefined;
-        interactor.selectionAnchorCursor = payload.select ? interactor.selectionAnchorCursor ?? oldCursor : undefined;
+        const oldCursor = interactor.mainAnchor;
+        interactor.mainAnchor = castDraft(navigator.cursor);
+        interactor.lineMovementHorizontalVisualAnchor = undefined;
+        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
         return true;
       } else {
         throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
@@ -144,7 +144,7 @@ function moveVisualUpOrDownHelper(
   const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
-    interactor.visualLineMovementHorizontalAnchor ??
+    interactor.lineMovementHorizontalVisualAnchor ??
     layout.getTargetHorizontalAnchor(
       startNavigator,
       navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
@@ -245,8 +245,8 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  interactor.mainCursor = castDraft(navigator.cursor);
-  interactor.selectionAnchorCursor = undefined;
-  interactor.visualLineMovementHorizontalAnchor = undefined;
+  interactor.mainAnchor = castDraft(navigator.cursor);
+  interactor.selectionAnchor = undefined;
+  interactor.lineMovementHorizontalVisualAnchor = undefined;
   return true;
 }
