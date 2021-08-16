@@ -5,7 +5,7 @@ import { CursorNavigator, CursorOrientation } from "../cursor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
 import { Anchor } from "./anchor";
-import { Interactor, InteractorId } from "./interactor";
+import { Interactor } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { InteractorMovementPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
@@ -18,11 +18,13 @@ export const moveBack = createCoreOperation<InteractorMovementPayload>(
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
         const oldAnchor = interactor.mainAnchor;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
-        interactor.lineMovementHorizontalVisualAnchor = undefined;
-        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
-        return true;
+        const newAnchor = Anchor.fromCursorNavigator(navigator);
+        if (newAnchor) {
+          interactor.mainAnchor = newAnchor;
+          interactor.lineMovementHorizontalVisualAnchor = undefined;
+          interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
+          return true;
+        }
       }
       return false;
     });
@@ -35,11 +37,13 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
         const oldAnchor = interactor.mainAnchor;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
-        interactor.lineMovementHorizontalVisualAnchor = undefined;
-        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
-        return true;
+        const newAnchor = Anchor.fromCursorNavigator(navigator);
+        if (newAnchor) {
+          interactor.mainAnchor = newAnchor;
+          interactor.lineMovementHorizontalVisualAnchor = undefined;
+          interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
+          return true;
+        }
       }
       return false;
     });
@@ -108,23 +112,18 @@ function forEachInteractorInMovementTargetPayloadDo(
   payload: InteractorMovementPayload,
   updateFn: (interactor: Draft<Interactor>, navigator: CursorNavigator) => boolean
 ): void {
-  const updates: InteractorId[] = [];
   for (const target of selectTargets(state, services, payload.target)) {
     if (target.isSelection) {
       const { interactor, navigators, isMainCursorFirst } = target;
       if (updateFn(interactor, isMainCursorFirst ? navigators[0] : navigators[1])) {
-        updates.push(interactor.id);
+        services.interactors.notifyUpdated(interactor.id);
       }
     } else {
       const { interactor, navigator } = target;
       if (updateFn(interactor, navigator)) {
-        updates.push(interactor.id);
+        services.interactors.notifyUpdated(interactor.id);
       }
     }
-  }
-
-  if (updates.length > 0) {
-    services.interactors.notifyUpdated(updates);
   }
 }
 
@@ -245,9 +244,12 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
-  interactor.selectionAnchor = undefined;
-  interactor.lineMovementHorizontalVisualAnchor = undefined;
-  return true;
+  const newAnchor = Anchor.fromCursorNavigator(navigator);
+  if (newAnchor) {
+    interactor.mainAnchor = newAnchor;
+    interactor.selectionAnchor = undefined;
+    interactor.lineMovementHorizontalVisualAnchor = undefined;
+    return true;
+  }
+  return false;
 }
