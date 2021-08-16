@@ -31,7 +31,7 @@ describe("joinBlocks for multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "2", orientation: After },
-          selectionAnchor: {
+          selectTo: {
             path: "3/1/4",
             orientation: After,
           },
@@ -54,7 +54,7 @@ describe("joinBlocks for multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "2", orientation: After },
-          selectionAnchor: {
+          selectTo: {
             path: "3/1/4",
             orientation: After,
           },
@@ -111,7 +111,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       editor.execute(
         OPS.addInteractor({
           at: { path: "2", orientation: After },
-          selectionAnchor: {
+          selectTo: {
             path: "3/1/4",
             orientation: After,
           },
@@ -156,7 +156,7 @@ describe("joinInlineText for multiple interactors", () => {
     editor.execute(
       OPS.addInteractor({
         at: { path: "0/0/0", orientation: Before },
-        selectionAnchor: { path: "3/0/0", orientation: After },
+        selectTo: { path: "3/0/0", orientation: After },
         status: InteractorStatus.Inactive,
       })
     );
@@ -178,7 +178,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
     editor.execute(
       OPS.addInteractor({
         at: { path: "0/0/0", orientation: Before },
-        selectionAnchor: { path: "3/0/0", orientation: After },
+        selectTo: { path: "3/0/0", orientation: After },
         status: InteractorStatus.Inactive,
       })
     );

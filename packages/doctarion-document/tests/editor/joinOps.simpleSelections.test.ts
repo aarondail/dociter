@@ -22,7 +22,7 @@ describe("joinBlocks for a single selection interactor", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "1/2/0", orientation: Before },
-          selectionAnchor: { path: "3/0/0", orientation: After },
+          selectTo: { path: "3/0/0", orientation: After },
           focused: true,
         })
       );
@@ -60,7 +60,7 @@ PARAGRAPH > TEXT {} > "DD"`);
       editor.execute(
         OPS.addInteractor({
           at: { path: "1/2/0", orientation: Before },
-          selectionAnchor: { path: "3/0/0", orientation: After },
+          selectTo: { path: "3/0/0", orientation: After },
           focused: true,
         })
       );

@@ -1,17 +1,16 @@
 import { Draft, castDraft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
-import { CursorNavigator, CursorOrientation, CursorPosition } from "../cursor";
+import { CursorNavigator, CursorOrientation } from "../cursor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
 import { Anchor } from "./anchor";
 import { Interactor, InteractorId } from "./interactor";
 import { createCoreOperation } from "./operation";
-import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { InteractorMovementPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
-import { selectTargets } from "./utils";
+import { InteractorInputPosition, convertInteractorInputPositionToAnchor, selectTargets } from "./utils";
 
 export const moveBack = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveBack",
@@ -89,21 +88,16 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
 //   }
 // }
 
-export const jump = createCoreOperation<{ to: CursorPosition } & InteractorMovementPayload>(
-  "cursor/jumpTo",
+export const jump = createCoreOperation<{ to: InteractorInputPosition } & InteractorMovementPayload>(
+  "cursor/jump",
   (state, services, payload): void => {
-    const cursor = CursorPosition.toCursor(payload.to);
-    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-      if (navigator.navigateTo(cursor)) {
-        const oldCursor = interactor.mainAnchor;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
-        interactor.lineMovementHorizontalVisualAnchor = undefined;
-        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
-        return true;
-      } else {
-        throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "path is invalid");
-      }
+    const anchor = convertInteractorInputPositionToAnchor(state, services, payload.to);
+    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor) => {
+      const oldCursor = interactor.mainAnchor;
+      interactor.mainAnchor = anchor;
+      interactor.lineMovementHorizontalVisualAnchor = undefined;
+      interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
+      return true;
     });
   }
 );

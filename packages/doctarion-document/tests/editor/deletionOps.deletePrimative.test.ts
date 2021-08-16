@@ -52,7 +52,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
     editor.execute(
       OPS.addInteractor({
         at: { path: "0/1", orientation: On },
-        selectionAnchor: { path: "2/0/0", orientation: Before },
+        selectTo: { path: "2/0/0", orientation: Before },
       })
     );
     editor.execute(OPS.deletePrimitive({ path: "0" }));

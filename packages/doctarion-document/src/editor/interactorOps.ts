@@ -1,50 +1,27 @@
-import * as immer from "immer";
-
-import { CursorNavigator, CursorPosition } from "../cursor";
-
-import { Anchor } from "./anchor";
 import { Interactor, InteractorId, InteractorStatus } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-
-const castDraft = immer.castDraft;
+import { InteractorInputPosition, convertInteractorInputPositionToAnchor } from "./utils";
 
 export const addInteractor = createCoreOperation<
   {
-    at: CursorPosition;
-    selectionAnchor?: CursorPosition;
+    at: InteractorInputPosition;
+    selectTo?: InteractorInputPosition;
     status?: InteractorStatus;
     focused?: boolean;
+    name?: string;
   },
   InteractorId | undefined
->("interactor/add", (state, services, { at, status, selectionAnchor, focused }): InteractorId | undefined => {
-  const mainCursor = CursorPosition.toCursor(at);
-  const nav = new CursorNavigator(state.document, services.layout);
-  if (!nav.navigateTo(mainCursor)) {
-    throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
-  }
-  const main = nav.clone();
+>("interactor/add", (state, services, { at, status, selectTo, focused, name }): InteractorId | undefined => {
+  const mainAnchor = convertInteractorInputPositionToAnchor(state, services, at);
 
-  let sa;
-  const selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
-  if (selectionAnchorCursor) {
-    if (!nav.navigateTo(selectionAnchorCursor)) {
-      throw new EditorOperationError(
-        EditorOperationErrorCode.InvalidCursorPosition,
-        "selectionAnchorCursor is not a valid cursor"
-      );
-    }
-    sa = nav;
+  let selectionAnchor;
+  if (selectTo) {
+    selectionAnchor = convertInteractorInputPositionToAnchor(state, services, selectTo);
   }
 
   const id = services.idGenerator.generateId("INTERACTOR");
-  const interactor = new Interactor(
-    id,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    Anchor.fromCursorNavigator(main)!,
-    status,
-    sa && Anchor.fromCursorNavigator(sa)
-  );
+  const interactor = new Interactor(id, mainAnchor, status, selectionAnchor, undefined, name);
   if (services.interactors.add(interactor)) {
     if (focused) {
       state.focusedInteractorId = id;
@@ -67,10 +44,11 @@ export const removeInteractor = createCoreOperation<{ id: InteractorId }>(
 
 export const updateInteractor = createCoreOperation<{
   id: InteractorId;
-  to?: CursorPosition;
-  selectionAnchor?: CursorPosition;
+  to?: InteractorInputPosition;
+  selectTo?: InteractorInputPosition;
   status?: InteractorStatus;
   focused?: boolean;
+  name?: string;
 }>("interactor/update", (state, services, payload): void => {
   const { id, ...updates } = payload;
   const interactor = state.interactors[id];
@@ -78,33 +56,21 @@ export const updateInteractor = createCoreOperation<{
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "index is invalid");
   }
 
-  const nav = new CursorNavigator(state.document, services.layout);
   if (updates.to) {
-    const mainCursor = CursorPosition.toCursor(updates.to);
-    if (!nav.navigateTo(mainCursor)) {
-      throw new EditorOperationError(
-        EditorOperationErrorCode.InvalidCursorPosition,
-        "mainCursor is not a valid cursor"
-      );
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(nav))!;
+    interactor.mainAnchor = convertInteractorInputPositionToAnchor(state, services, updates.to);
     interactor.lineMovementHorizontalVisualAnchor = undefined;
   }
 
-  if ("selectionAnchor" in updates) {
-    if (updates.selectionAnchor) {
-      const selectionAnchorCursor = CursorPosition.toCursor(updates.selectionAnchor);
-      if (!nav.navigateTo(selectionAnchorCursor)) {
-        throw new EditorOperationError(
-          EditorOperationErrorCode.InvalidCursorPosition,
-          "selectionAnchorCursor is not a valid cursor"
-        );
-      }
-      interactor.selectionAnchor = Anchor.fromCursorNavigator(nav);
+  if ("selectTo" in updates) {
+    if (updates.selectTo) {
+      interactor.selectionAnchor = convertInteractorInputPositionToAnchor(state, services, updates.selectTo);
     } else {
       interactor.selectionAnchor = undefined;
     }
+  }
+
+  if ("name" in updates) {
+    interactor.name = updates.name;
   }
 
   if (updates.status) {

@@ -1,18 +1,47 @@
 import { Draft } from "immer";
 
-import { NodeNavigator, Range } from "../basic-traversal";
-import { CursorNavigator, CursorOrientation } from "../cursor";
+import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
+import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorState, Interactor, InteractorId } from "../editor";
 import { SimpleComparison } from "../miscUtils";
 import { Document, Node } from "../models";
 
+import { Anchor } from "./anchor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
+export type InteractorInputPosition = Anchor | Cursor | { path: Path | PathString; orientation: CursorOrientation };
+
 export enum FlowDirection {
   Backward = "BACKWARD",
   Forward = "FORWARD",
+}
+
+export function convertInteractorInputPositionToAnchor(
+  state: EditorState,
+  services: EditorServices,
+  position: InteractorInputPosition
+): Anchor {
+  const nav = new CursorNavigator(state.document, services.layout);
+  if (position instanceof Anchor) {
+    const cursor = position.toCursor(services);
+    if (!cursor || !nav.navigateTo(cursor)) {
+      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid anchor");
+    }
+    return position;
+  } else {
+    const cursor =
+      position instanceof Cursor
+        ? position
+        : new Cursor(position.path instanceof Path ? position.path : Path.parse(position.path), position.orientation);
+
+    if (!cursor || !nav.navigateTo(cursor)) {
+      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid cursor position");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return Anchor.fromCursorNavigator(nav)!;
+  }
 }
 
 // TODO delete this?

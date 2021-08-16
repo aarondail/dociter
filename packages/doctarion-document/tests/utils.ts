@@ -1,9 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
+import lodash from "lodash";
+
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
-import { CursorNavigator, CursorOrientation } from "../src/cursor";
-import { Anchor, Editor, EditorServices, Interactor, InteractorAnchorType, InteractorId } from "../src/editor";
+import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
+import {
+  Anchor,
+  Editor,
+  EditorServices,
+  Interactor,
+  InteractorAnchorType,
+  InteractorId,
+  InteractorStatus,
+} from "../src/editor";
+import { SimpleComparison } from "../src/miscUtils";
 import {
   Block,
   Document,
@@ -133,7 +144,7 @@ export const DebugEditorHelpers = (() => {
     anchor: Anchor | undefined,
     testingNavigator: NodeNavigator,
     services: EditorServices
-  ): { cursorDebug: string; chain: Chain | undefined } => {
+  ): { cursorDebug: string; chain: Chain | undefined; cursor: Cursor | undefined } => {
     const cursor = anchor?.toCursor(services);
     if (cursor && testingNavigator.navigateTo(cursor.path)) {
       const cursorDebug =
@@ -143,11 +154,12 @@ export const DebugEditorHelpers = (() => {
           ? (debugPath(testingNavigator) || "(EMPTY STRING, AKA THE DOCUMENT)") + " |>"
           : debugPath(testingNavigator);
 
-      return { cursorDebug, chain: testingNavigator.chain };
+      return { cursorDebug, chain: testingNavigator.chain, cursor };
     } else {
       return {
         cursorDebug: `?${debugPath(testingNavigator) || "(EMPTY STRING, AKA THE DOCUMENT)"}?`,
         chain: undefined,
+        cursor: undefined,
       };
     }
   };
@@ -179,6 +191,41 @@ export const DebugEditorHelpers = (() => {
         //     : "";
         // return `${fakeId}.${cursorType === InteractorAnchorType.Main ? "M" : "Sa"} ${s}${c}`;
         return `${fakeId}.${"M"} ${c}`;
+      })
+      .join(", ");
+  };
+
+  const debugInteractorsTake2 = (editor: Editor) => {
+    const nav = new NodeNavigator(editor.document);
+
+    const interactors = lodash.sortBy(Object.values(editor.interactors), (i) => i.name);
+    return interactors
+      .map((i, index) => {
+        const a = i.getAnchor(InteractorAnchorType.Main);
+        const c = debugCursor(a, nav, editor.services);
+        const cursorDebug = c.cursorDebug;
+
+        let saCursorDebug;
+        let mainFirst = false;
+        if (i.isSelection) {
+          const sa = i.getAnchor(InteractorAnchorType.SelectionAnchor);
+          const saC = debugCursor(sa, nav, editor.services);
+          saCursorDebug = saC.cursorDebug;
+          mainFirst = !!(c.cursor && saC.cursor && c.cursor.compareTo(saC.cursor) !== SimpleComparison.After);
+        }
+
+        const f = editor.focusedInteractor === i;
+        const s =
+          f || i.status === InteractorStatus.Inactive
+            ? `(${f ? "F" : ""}${i.status === InteractorStatus.Inactive ? "I" : ""}) `
+            : "";
+        return `${i.name ?? `(no-name, #${index + 1})`} ${s}${
+          i.isSelection
+            ? mainFirst
+              ? `${cursorDebug} ◉◀◀◀ ${saCursorDebug || ""}`
+              : `${saCursorDebug || ""} ▶▶▶◉ ${cursorDebug || ""}`
+            : cursorDebug
+        }`;
       })
       .join(", ");
   };
@@ -294,7 +341,9 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
   return {
     debugSoloNode,
+    // TODO delete
     debugInteractorOrdering,
+    debugInteractorsTake2,
     debugEditorStateSimple,
     debugEditorStateLessSimple,
     debugCurrentBlock,

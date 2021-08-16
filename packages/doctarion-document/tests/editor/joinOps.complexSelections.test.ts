@@ -25,7 +25,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "1/2/0", orientation: Before },
-          selectionAnchor: { path: "3/2/0", orientation: After },
+          selectTo: { path: "3/2/0", orientation: After },
           focused: true,
         })
       );
@@ -33,7 +33,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "3/0/0", orientation: Before },
-          selectionAnchor: { path: "4/0/0", orientation: After },
+          selectTo: { path: "4/0/0", orientation: After },
         })
       );
       // other interactor 1 (inactive)
@@ -44,7 +44,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "0/0/0", orientation: Before },
-          selectionAnchor: { path: "3/0/0", orientation: After },
+          selectTo: { path: "3/0/0", orientation: After },
           status: InteractorStatus.Inactive,
         })
       );
@@ -87,7 +87,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "1/2/0", orientation: Before },
-          selectionAnchor: { path: "3/2/0", orientation: After },
+          selectTo: { path: "3/2/0", orientation: After },
           focused: true,
         })
       );
@@ -95,7 +95,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "3/0/0", orientation: Before },
-          selectionAnchor: { path: "4/0/0", orientation: After },
+          selectTo: { path: "4/0/0", orientation: After },
         })
       );
       // other interactor 1 (inactive)
@@ -106,7 +106,7 @@ describe("joinBlocks for selections and multiple interactors", () => {
       editor.execute(
         OPS.addInteractor({
           at: { path: "0/0/0", orientation: Before },
-          selectionAnchor: { path: "3/0/0", orientation: After },
+          selectTo: { path: "3/0/0", orientation: After },
           status: InteractorStatus.Inactive,
         })
       );
@@ -154,7 +154,7 @@ describe("joinInlineText for selections and multiple interactor", () => {
     editor.execute(
       OPS.addInteractor({
         at: { path: "0/0/0", orientation: Before },
-        selectionAnchor: { path: "3/0/0", orientation: After },
+        selectTo: { path: "3/0/0", orientation: After },
         status: InteractorStatus.Inactive,
       })
     );
@@ -177,7 +177,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMNNAABB"`);
     editor.execute(
       OPS.addInteractor({
         at: { path: "0/0/0", orientation: Before },
-        selectionAnchor: { path: "3/0/0", orientation: After },
+        selectTo: { path: "3/0/0", orientation: After },
         status: InteractorStatus.Inactive,
       })
     );

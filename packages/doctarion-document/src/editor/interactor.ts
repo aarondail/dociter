@@ -29,7 +29,11 @@ export class Interactor {
      * the start of the line movement, so we can intelligently move between lines
      * of different length and have the cursor try to go to the right spot.
      */
-    public readonly lineMovementHorizontalVisualAnchor?: HorizontalVisualAnchor
+    public readonly lineMovementHorizontalVisualAnchor?: HorizontalVisualAnchor,
+    /**
+     * Optional name to describe the interactor.
+     */
+    public readonly name?: string
   ) {}
 
   public getAnchor(type: InteractorAnchorType): Anchor | undefined {

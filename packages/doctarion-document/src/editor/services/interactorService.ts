@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import binarySearch from "binary-search";
 import { Draft, castDraft, original } from "immer";
 
 import { Path, PathComparison } from "../../basic-traversal";
@@ -44,37 +43,10 @@ export class EditorInteractorService {
       return false;
     }
     this.editorState.interactors[newInteractor.id] = castDraft(newInteractor);
-
-    // const newMainEntry = { id: newInteractor.id, cursorType: InteractorAnchorType.Main };
-    // const insertionPoint = binarySearch(this.editorState.interactorOrdering, newMainEntry, this.comparator);
-
-    // if (insertionPoint >= 0) {
-    //   // This means that there was an exact match with another existing main
-    //   // cursor... the only material thing that could be different is the
-    //   // selection anchor. We don't really want to add a duplicate. Its a little
-    //   // murky what is the best thing to do in the case of selections so we just
-    //   // deal w/ non selections here.
-    //   if (!newInteractor.isSelection) {
-    //     return false;
-    //   }
-    // }
-
-    // this.editorState.interactorOrdering.splice(
-    //   insertionPoint >= 0 ? insertionPoint : (insertionPoint + 1) * -1,
-    //   0,
-    //   newMainEntry
-    // );
-
-    // if (newInteractor.selectionAnchor) {
-    //   const newSelectionEntry = { id: newInteractor.id, cursorType: InteractorAnchorType.SelectionAnchor };
-    //   const insertionPoint = binarySearch(this.editorState.interactorOrdering, newSelectionEntry, this.comparator);
-    //   this.editorState.interactorOrdering.splice(
-    //     insertionPoint >= 0 ? insertionPoint : (insertionPoint + 1) * -1,
-    //     0,
-    //     newSelectionEntry
-    //   );
-    // }
-
+    const dedupeIds = this.dedupe();
+    if (dedupeIds) {
+      return !dedupeIds.includes(newInteractor.id);
+    }
     return true;
   }
 
@@ -289,47 +261,39 @@ export class EditorInteractorService {
       return;
     }
 
-    // // Dedupe
-    // let dupeIndices: number[] | undefined;
-    // let dupeIds: InteractorId[] | undefined;
-    // for (let i = 0; i < this.editorState.interactorOrdering.length - 1; i++) {
-    //   const a = this.editorState.interactorOrdering[i];
-    //   const b = this.editorState.interactorOrdering[i + 1];
-    //   // We don't care about deduping selections at this point since its unclear
-    //   // what the best behavior is
-    //   if (a.id === b.id || a.cursorType === InteractorAnchorType.SelectionAnchor) {
-    //     continue;
-    //   }
-    //   if (this.editorState.interactors[b.id].isSelection) {
-    //     continue;
-    //   }
-    //   if (this.comparator(a, b) === 0) {
-    //     // OK in this case the two interactors are materially the same. The only
-    //     // possible difference would be that the selection anchor is different
-    //     // but we have ruled that out actually by checking `isSelection` above
-    //     // here.
-    //     if (!dupeIndices) {
-    //       dupeIndices = [];
-    //       dupeIds = [];
-    //     }
-    //     dupeIndices.unshift(i + 1);
-    //     dupeIds!.push(b.id);
-    //   }
-    // }
+    const interactors = Object.values(this.editorState.interactors);
+    if (interactors.length < 2) {
+      return;
+    }
 
-    // if (dupeIndices) {
-    //   // Note this is in reverse order!
-    //   // Also note that because we ONLY dedupe interactors that are not
-    //   // selections we only ever have one entry to delete from this array
-    //   dupeIndices.forEach((index) => this.editorState!.interactorOrdering.splice(index, 1));
-    //   dupeIds?.forEach((id) => {
-    //     delete this.editorState!.interactors[id];
-    //     if (this.editorState!.focusedInteractorId === id) {
-    //       this.editorState!.focusedInteractorId = undefined;
-    //     }
-    //   });
-    // }
-    // return dupeIds;
+    // Try to remove any interactors that are exact matches for another
+    // interactor, but only consider NON-selections. Its unclear at this
+    // point what the best behavior for selections would be.
+    let dupeIds: InteractorId[] | undefined;
+    const seenKeys = new Set<string>();
+    for (const i of interactors) {
+      if (i.isSelection) {
+        continue;
+      }
+      const key = `${i.mainAnchor.nodeId}${i.mainAnchor.orientation}${i.mainAnchor.graphemeIndex || ""}${i.status}`;
+      if (seenKeys.has(key)) {
+        if (!dupeIds) {
+          dupeIds = [];
+        }
+        dupeIds.push(i.id);
+      }
+      seenKeys.add(key);
+    }
+
+    if (dupeIds) {
+      dupeIds?.forEach((id) => {
+        delete this.editorState!.interactors[id];
+        if (this.editorState!.focusedInteractorId === id) {
+          this.editorState!.focusedInteractorId = undefined;
+        }
+      });
+    }
+    return dupeIds;
   }
 
   // private findCursorComparator = (a: InteractorOrderingEntry, needle: Cursor) => {
