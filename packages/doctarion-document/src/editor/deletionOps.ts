@@ -1,9 +1,10 @@
 import * as immer from "immer";
-import lodash from "lodash";
+import lodash, { difference } from "lodash";
 
 import { NodeNavigator, Path, PathAdjustmentDueToRelativeDeletionNoChangeReason, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InteractorOrderingEntry } from "../editor";
+import { SimpleComparison } from "../miscUtils";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
 import { joinBlocks } from "./joinOps";
@@ -69,7 +70,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
         continue;
       }
 
-      // TODO this is probably a very inefficient way to deal with text
+      // TODO this is probably a very inefficient way to deal with text.. and everything
       for (const chain of lodash.reverse(chainsToDelete)) {
         const nav = new NodeNavigator(state.document);
         nav.navigateTo(chain.path);
@@ -90,7 +91,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     } else {
       const { interactor, navigator } = target;
 
-      const result = findNodeForDeletion(navigator as ReadonlyCursorNavigator, options);
+      const result = findNodeRelativeToCursorForDeletion(navigator as ReadonlyCursorNavigator, options);
       if (result?.nodeToDelete) {
         // This JUST deletes the node from the document
         deleteNode(result.nodeToDelete, services);
@@ -329,8 +330,8 @@ function determineCursorPositionAfterSelectionDeletion(originalAnchor: ReadonlyC
 }
 
 /**
- * This function identifies the proper node to delete based on the passed in navigator, which
- * comes from an interactor's `mainCursor`.
+ * This function identifies the proper node to delete based on the passed in
+ * navigator, which comes from an interactor's `mainCursor`.
  *
  * Depending on the passed in `DeleteAtOptions` instead of a deletion sometimes
  * movement can occur. In this case a CursorNavigator representing the new
@@ -339,7 +340,7 @@ function determineCursorPositionAfterSelectionDeletion(originalAnchor: ReadonlyC
  * Also undefined can be returned, indicating there is nothing to delete and the
  * interactor does not need to be moved.
  */
-function findNodeForDeletion(
+function findNodeRelativeToCursorForDeletion(
   navigator: ReadonlyCursorNavigator,
   options: DeleteAtOptions
 ):
@@ -395,7 +396,7 @@ function findNodeForDeletion(
         } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
           navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
         }
-        return findNodeForDeletion(navPrime, options);
+        return findNodeRelativeToCursorForDeletion(navPrime, options);
       }
 
       // In this case we are handling deleting backwards or forwards onto an emoji
@@ -411,7 +412,7 @@ function findNodeForDeletion(
         } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
           navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
         }
-        return findNodeForDeletion(navPrime, options);
+        return findNodeRelativeToCursorForDeletion(navPrime, options);
       }
 
       // Joining logic should probably be added here in the future
