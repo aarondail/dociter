@@ -1,9 +1,10 @@
 import { Draft } from "immer";
 
-import { NodeNavigator } from "../basic-traversal";
-import { CursorNavigator } from "../cursor";
+import { NodeNavigator, Range } from "../basic-traversal";
+import { CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorState, Interactor, InteractorId } from "../editor";
-import { Node } from "../models";
+import { SimpleComparison } from "../miscUtils";
+import { Document, Node } from "../models";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices, EditorServices } from "./services";
@@ -26,8 +27,11 @@ export function getCursorNavigatorAndValidate(
   const interactor = state.interactors[Object.keys(state.interactors)[0]]; //interactorId];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
-  } else if (!nav.navigateTo(interactor.mainAnchor)) {
-    throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
+  } else {
+    const cursor = interactor.mainAnchor.toCursor(services);
+    if (!cursor || !nav.navigateTo(cursor)) {
+      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
+    }
   }
   return nav;
 }
@@ -40,10 +44,11 @@ export function getCursorNavigatorAndValidate(
  */
 function getMainCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
   const nav = new CursorNavigator(state.document, services.layout);
-  if (!nav.navigateTo(target.mainAnchor)) {
+  const cursor = target.mainAnchor.toCursor(services);
+  if (!cursor || !nav.navigateTo(cursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
-      `Interactor ${target.id || ""} had an invalid mainCursor position.`
+      `Interactor ${target.id || ""} had an invalid mainAnchor position.`
     );
   }
   return nav;
@@ -60,26 +65,30 @@ function getBothCursorNavigatorsForSelection(
   state: EditorState,
   services: EditorServices
 ): { navigators: [CursorNavigator, CursorNavigator]; isMainCursorFirst: boolean } | undefined {
-  const result = target.getSelectionCursorsOrdered();
-  if (!result) {
+  const mainCursor = target.mainAnchor.toCursor(services);
+  const saCursor = target.selectionAnchor?.toCursor(services);
+
+  if (!mainCursor || !saCursor) {
     return;
   }
-  const { cursors, isMainCursorFirst } = result;
+
+  const isMainCursorFirst = mainCursor.compareTo(saCursor) !== SimpleComparison.After;
+
   const nav1 = new CursorNavigator(state.document, services.layout);
 
-  if (!nav1.navigateTo(cursors[0])) {
+  if (!nav1.navigateTo(mainCursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
-      `Interactor ${target.id || ""} had an invalid cursor position.`
+      `Interactor ${target.id || ""} had an invalid anchor.`
     );
   }
 
   const nav2 = new CursorNavigator(state.document, services.layout);
 
-  if (!nav2.navigateTo(cursors[1])) {
+  if (!nav2.navigateTo(saCursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
-      `Interactor ${target.id || ""} had an invalid cursor position.`
+      `Interactor ${target.id || ""} had an invalid anchor.`
     );
   }
 
@@ -103,6 +112,40 @@ export function getNavigatorToSiblingIfMatchingPredicate(
     return undefined;
   }
   return navPrime;
+}
+
+export function getRangeForSelection(
+  target: Interactor,
+  document: Document,
+  services: EditorServices
+): Range | undefined {
+  const mainCursor = target.mainAnchor.toCursor(services);
+  const saCursor = target.selectionAnchor?.toCursor(services);
+
+  if (!mainCursor || !saCursor) {
+    return;
+  }
+
+  const mainAfterSelect = mainCursor.compareTo(saCursor) === SimpleComparison.After;
+  let fromPath = mainAfterSelect ? saCursor.path : mainCursor.path;
+  if ((mainAfterSelect ? saCursor.orientation : mainCursor.orientation) === CursorOrientation.After) {
+    const n = new NodeNavigator(document);
+    if (!n.navigateTo(fromPath) || !n.navigateForwardsByDfs()) {
+      return undefined;
+    }
+    fromPath = n.path;
+  }
+
+  let toPath = mainAfterSelect ? mainCursor.path : saCursor.path;
+  if ((mainAfterSelect ? mainCursor.orientation : saCursor.orientation) === CursorOrientation.Before) {
+    const n = new NodeNavigator(document);
+    if (!n.navigateTo(toPath) || !n.navigateBackwardsByDfs()) {
+      return undefined;
+    }
+    toPath = n.path;
+  }
+
+  return new Range(fromPath, toPath);
 }
 
 export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {

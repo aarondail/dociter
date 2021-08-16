@@ -1,3 +1,4 @@
+export * from "./anchor";
 export { EditorEvents } from "./events";
 export * from "./editor";
 export { createOperation, EditorOperation, EditorOperationCommand, EditorOperationRunFunction } from "./operation";

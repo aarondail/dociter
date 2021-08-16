@@ -2,12 +2,15 @@ import { Draft, castDraft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, CursorPosition } from "../cursor";
-import { EditorOperationServices, EditorState, Interactor, InteractorId } from "../editor";
 import { NodeLayoutReporter, Side } from "../layout-reporting";
 
+import { Anchor } from "./anchor";
+import { Interactor, InteractorId } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { InteractorMovementPayload } from "./payloads";
+import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 import { selectTargets } from "./utils";
 
 export const moveBack = createCoreOperation<InteractorMovementPayload>(
@@ -15,10 +18,11 @@ export const moveBack = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
-        const oldCursor = interactor.mainAnchor;
-        interactor.mainAnchor = castDraft(navigator.cursor);
+        const oldAnchor = interactor.mainAnchor;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
         interactor.lineMovementHorizontalVisualAnchor = undefined;
-        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
+        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
         return true;
       }
       return false;
@@ -31,10 +35,11 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
-        const oldCursor = interactor.mainAnchor;
-        interactor.mainAnchor = castDraft(navigator.cursor);
+        const oldAnchor = interactor.mainAnchor;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
         interactor.lineMovementHorizontalVisualAnchor = undefined;
-        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
+        interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
         return true;
       }
       return false;
@@ -91,7 +96,8 @@ export const jump = createCoreOperation<{ to: CursorPosition } & InteractorMovem
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateTo(cursor)) {
         const oldCursor = interactor.mainAnchor;
-        interactor.mainAnchor = castDraft(navigator.cursor);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
         interactor.lineMovementHorizontalVisualAnchor = undefined;
         interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
         return true;
@@ -245,7 +251,8 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  interactor.mainAnchor = castDraft(navigator.cursor);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(navigator))!;
   interactor.selectionAnchor = undefined;
   interactor.lineMovementHorizontalVisualAnchor = undefined;
   return true;

@@ -1,6 +1,7 @@
-import { Interactor, InteractorId, InteractorOrderingEntry } from "../editor";
 import { Document } from "../models";
 import { NodeId } from "../working-document";
+
+import { Interactor, InteractorId } from "./interactor";
 
 export interface EditorState {
   readonly document: Document;
@@ -13,7 +14,7 @@ export interface EditorState {
   /**
    * This should only be updated by using the EditorInteractorService.
    */
-  readonly interactorOrdering: readonly InteractorOrderingEntry[];
+  // readonly interactorOrdering: readonly InteractorOrderingEntry[];
 
   /**
    * This should only be updated by the EditorNodeTrackingService.

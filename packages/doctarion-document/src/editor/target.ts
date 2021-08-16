@@ -1,4 +1,4 @@
-import { InteractorId, InteractorOrderingEntryCursorType, InteractorStatus } from "../editor";
+import { InteractorId, InteractorStatus } from "../editor";
 
 import { EditorState } from "./state";
 
@@ -40,22 +40,11 @@ export function getTargetedInteractorIds(
   } else if (typeof target === "string") {
     switch (target) {
       case TargetInteractors.All:
-        return state.interactorOrdering
-          .filter((e) => e.cursorType === InteractorOrderingEntryCursorType.Main)
-          .map((e) => e.id);
+        return Object.values(state.interactors).map((e) => e.id);
       case TargetInteractors.AllActive:
-        // eslint-disable-next-line no-case-declarations
-        const ids: InteractorId[] = [];
-        state.interactorOrdering
-          .filter((e) => e.cursorType === InteractorOrderingEntryCursorType.Main)
-          .map((e) => e.id)
-          .forEach((id) => {
-            const interactor = state.interactors[id];
-            if (interactor.status === InteractorStatus.Active) {
-              ids.push(id);
-            }
-          });
-        return ids;
+        return Object.values(state.interactors)
+          .filter((e) => e.status === InteractorStatus.Active)
+          .map((e) => e.id);
       case TargetInteractors.Focused:
         if (state.focusedInteractorId) {
           return [state.focusedInteractorId];
@@ -67,8 +56,12 @@ export function getTargetedInteractorIds(
     return [untypedIdentifier.interactorId];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorIds !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return state.interactorOrdering.filter((e) => untypedIdentifier.interactorIds.includes(e.id)).map((e) => e.id);
+    return (
+      Object.values(state.interactors)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        .filter((e) => untypedIdentifier.interactorIds.includes(e.id))
+        .map((e) => e.id)
+    );
   }
   return [];
 }

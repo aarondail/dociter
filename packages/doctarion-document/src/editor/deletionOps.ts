@@ -1,17 +1,16 @@
 import * as immer from "immer";
-import lodash, { difference } from "lodash";
+import lodash from "lodash";
 
-import { NodeNavigator, Path, PathAdjustmentDueToRelativeDeletionNoChangeReason, PathString } from "../basic-traversal";
+import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { InteractorOrderingEntry } from "../editor";
-import { SimpleComparison } from "../miscUtils";
 import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
 
+import { Anchor } from "./anchor";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
-import { FlowDirection, selectTargets } from "./utils";
+import { FlowDirection, getRangeForSelection, selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
 
@@ -64,7 +63,9 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
   for (const target of lodash.reverse(targets)) {
     if (target.isSelection) {
-      const chainsToDelete = target.interactor.toRange(state.document)?.getChainsCoveringRange(state.document);
+      const chainsToDelete = getRangeForSelection(target.interactor, state.document, services)?.getChainsCoveringRange(
+        state.document
+      );
 
       if (!chainsToDelete) {
         continue;
@@ -87,7 +88,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
       // Clear selection
       target.interactor.selectionAnchor = undefined;
-      services.interactors.notifyUpdatedForced(target.interactor.id);
+      // services.interactors.notifyUpdatedForced(target.interactor.id);
     } else {
       const { interactor, navigator } = target;
 
@@ -104,7 +105,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       } else if (result?.justMoveTo) {
         // Sometimes deletion doesn't actually trigger the removal of the node, just
         // the updating of an interactor
-        interactor.mainAnchor = castDraft(result.justMoveTo).cursor;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(result.justMoveTo))!;
         services.interactors.notifyUpdated(interactor.id);
       } else if (result?.joinInstead) {
         // Make sure interactor still exists
@@ -151,25 +153,24 @@ function adjustInteractorPositionsAfterNodeDeletion(
   nodeToDelete: Path,
   postDeleteCursor: CursorNavigator
 ) {
-  for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
-    new Cursor(nodeToDelete, CursorOrientation.Before)
-  )) {
-    const newCursorOrNoChangeReason = InteractorOrderingEntry.getCursor(
-      interactor,
-      cursorType
-    ).adjustDueToRelativeDeletionAt(nodeToDelete);
-
-    if (newCursorOrNoChangeReason instanceof Cursor) {
-      InteractorOrderingEntry.setCursor(interactor, cursorType, newCursorOrNoChangeReason);
-      services.interactors.notifyUpdated(interactor.id);
-    } else if (
-      newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor ||
-      newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
-    ) {
-      InteractorOrderingEntry.setCursor(interactor, cursorType, postDeleteCursor.cursor);
-      services.interactors.notifyUpdated(interactor.id);
-    }
-  }
+  // for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
+  //   new Cursor(nodeToDelete, CursorOrientation.Before)
+  // )) {
+  //   const newCursorOrNoChangeReason = InteractorOrderingEntry.getCursor(
+  //     interactor,
+  //     cursorType
+  //   ).adjustDueToRelativeDeletionAt(nodeToDelete);
+  //   if (newCursorOrNoChangeReason instanceof Cursor) {
+  //     InteractorOrderingEntry.setCursor(interactor, cursorType, newCursorOrNoChangeReason);
+  //     services.interactors.notifyUpdated(interactor.id);
+  //   } else if (
+  //     newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor ||
+  //     newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
+  //   ) {
+  //     InteractorOrderingEntry.setCursor(interactor, cursorType, postDeleteCursor.cursor);
+  //     services.interactors.notifyUpdated(interactor.id);
+  //   }
+  // }
 }
 
 function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServices): void {

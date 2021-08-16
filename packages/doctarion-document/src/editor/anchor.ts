@@ -24,8 +24,8 @@ export class Anchor {
     public readonly graphemeIndex?: number
   ) {}
 
-  public toCursor(lookupService: EditorServices): Cursor | undefined {
-    const path = lookupService.lookup.getPathTo(this.nodeId);
+  public toCursor(services: EditorServices): Cursor | undefined {
+    const path = services.lookup.getPathTo(this.nodeId);
     if (!path) {
       return undefined;
     }

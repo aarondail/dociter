@@ -1,8 +1,9 @@
 import * as immer from "immer";
 
 import { CursorNavigator, CursorPosition } from "../cursor";
-import { Interactor, InteractorId, InteractorStatus } from "../editor";
 
+import { Anchor } from "./anchor";
+import { Interactor, InteractorId, InteractorStatus } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 
@@ -17,14 +18,15 @@ export const addInteractor = createCoreOperation<
   },
   InteractorId | undefined
 >("interactor/add", (state, services, { at, status, selectionAnchor, focused }): InteractorId | undefined => {
-  let mainCursor = CursorPosition.toCursor(at);
+  const mainCursor = CursorPosition.toCursor(at);
   const nav = new CursorNavigator(state.document, services.layout);
   if (!nav.navigateTo(mainCursor)) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "mainCursor is not a valid cursor");
   }
-  mainCursor = nav.cursor;
+  const main = nav.clone();
 
-  let selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
+  let sa;
+  const selectionAnchorCursor = selectionAnchor && CursorPosition.toCursor(selectionAnchor);
   if (selectionAnchorCursor) {
     if (!nav.navigateTo(selectionAnchorCursor)) {
       throw new EditorOperationError(
@@ -32,11 +34,17 @@ export const addInteractor = createCoreOperation<
         "selectionAnchorCursor is not a valid cursor"
       );
     }
-    selectionAnchorCursor = nav.cursor;
+    sa = nav;
   }
 
   const id = services.idGenerator.generateId("INTERACTOR");
-  const interactor = new Interactor(id, mainCursor, status, selectionAnchorCursor);
+  const interactor = new Interactor(
+    id,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    Anchor.fromCursorNavigator(main)!,
+    status,
+    sa && Anchor.fromCursorNavigator(sa)
+  );
   if (services.interactors.add(interactor)) {
     if (focused) {
       state.focusedInteractorId = id;
@@ -79,7 +87,8 @@ export const updateInteractor = createCoreOperation<{
         "mainCursor is not a valid cursor"
       );
     }
-    interactor.mainAnchor = castDraft(nav.cursor);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(nav))!;
     interactor.lineMovementHorizontalVisualAnchor = undefined;
   }
 
@@ -92,7 +101,7 @@ export const updateInteractor = createCoreOperation<{
           "selectionAnchorCursor is not a valid cursor"
         );
       }
-      interactor.selectionAnchor = castDraft(nav.cursor);
+      interactor.selectionAnchor = Anchor.fromCursorNavigator(nav);
     } else {
       interactor.selectionAnchor = undefined;
     }

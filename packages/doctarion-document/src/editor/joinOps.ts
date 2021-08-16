@@ -233,96 +233,90 @@ function adjustInteractorPositionsAfterMoveChildren(
   destinationBlockOriginalChildCount: number,
   direction: FlowDirection
 ) {
-  const isBack = direction === FlowDirection.Backward;
-  // In the forward case only, we have to update interactors of the destination node since the
-  // source nodes get inserted in front of them.
-  // In the backward we need to update cursors ONLY if they are exactly on their destination node.
-  for (const { interactor, cursorType } of isBack
-    ? services.interactors.interactorCursorsAt(destinationNode.path)
-    : services.interactors.interactorCursorsAtOrDescendantsOf(destinationNode.path)) {
-    let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
-
-    if (isBack) {
-      const n = new CursorNavigator(state.document, services.layout);
-      n.navigateToUnchecked(cursor);
-      n.navigateToFirstDescendantCursorPosition();
-      cursor = castDraft(n.cursor);
-    } else {
-      if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
-        const n = new CursorNavigator(state.document, services.layout);
-        n.navigateToUnchecked(cursor);
-        n.navigateToLastDescendantCursorPosition();
-        cursor = castDraft(n.cursor);
-      } else {
-        // Technically not a move but I am being lazy here and this works
-        const newCursorOrNoChangeReason = cursor.adjustDueToMove(
-          destinationNode.path,
-          destinationNode.path, // Note, see comment above
-          sourceBlockOriginalChildCount
-        );
-
-        if (newCursorOrNoChangeReason instanceof Cursor) {
-          cursor = castDraft(newCursorOrNoChangeReason);
-        } else {
-          continue;
-        }
-      }
-    }
-    InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-    services.interactors.notifyUpdated(interactor.id);
-  }
-
-  // Now update interactors inside at or inside the source node
-  for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(sourceNode.path)) {
-    let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
-
-    if (
-      cursor.orientation === CursorOrientation.On &&
-      (cursor.path.equalTo(destinationNode.path) || cursor.path.equalTo(sourceNode.path))
-    ) {
-      if (!isBack) {
-        const n = new CursorNavigator(state.document, services.layout);
-        n.navigateTo(cursor);
-        n.navigateToNextCursorPosition();
-        // This is a bit of a hack, but seems necessary since inline text cursor
-        // behavior is different and we end up with a BEFORE orientation which
-        // is wrong ONCE the source node is deleted
-        if (sourceNode.tip.node instanceof InlineText && sourceBlockOriginalChildCount === 0) {
-          n.navigateToPrecedingCursorPosition();
-        }
-        cursor = castDraft(n.cursor);
-      }
-      // } else if (!isBack && cursor.orientation === CursorOrientation.On) {
-      //   const n = new CursorNavigator(state.document, services.layout);
-      //   n.navigateTo(cursor);
-      //   n.navigateToNextCursorPosition();
-      //   n.navigateToPrecedingCursorPosition();
-      //   cursor = castDraft(n.cursor);
-    } else {
-      const newCursorOrNoChangeReason = cursor.adjustDueToMove(
-        sourceNode.path,
-        destinationNode.path,
-        // 0 because we in the forward case the source child nodes are inserted into the destination thus
-        // it is the destination interactors that need to be updated.
-        direction === FlowDirection.Backward ? destinationBlockOriginalChildCount : 0
-      );
-
-      if (newCursorOrNoChangeReason instanceof Cursor) {
-        cursor = castDraft(newCursorOrNoChangeReason);
-        const n = new CursorNavigator(state.document, services.layout);
-        n.navigateTo(cursor);
-        if (n.navigateToNextCursorPosition()) {
-          n.navigateToPrecedingCursorPosition();
-        }
-        cursor = n.cursor;
-      } else {
-        continue;
-      }
-    }
-
-    InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-    services.interactors.notifyUpdated(interactor.id);
-  }
+  // const isBack = direction === FlowDirection.Backward;
+  // // In the forward case only, we have to update interactors of the destination node since the
+  // // source nodes get inserted in front of them.
+  // // In the backward we need to update cursors ONLY if they are exactly on their destination node.
+  // for (const { interactor, cursorType } of isBack
+  //   ? services.interactors.interactorCursorsAt(destinationNode.path)
+  //   : services.interactors.interactorCursorsAtOrDescendantsOf(destinationNode.path)) {
+  //   let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
+  //   if (isBack) {
+  //     const n = new CursorNavigator(state.document, services.layout);
+  //     n.navigateToUnchecked(cursor);
+  //     n.navigateToFirstDescendantCursorPosition();
+  //     cursor = castDraft(n.cursor);
+  //   } else {
+  //     if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
+  //       const n = new CursorNavigator(state.document, services.layout);
+  //       n.navigateToUnchecked(cursor);
+  //       n.navigateToLastDescendantCursorPosition();
+  //       cursor = castDraft(n.cursor);
+  //     } else {
+  //       // Technically not a move but I am being lazy here and this works
+  //       const newCursorOrNoChangeReason = cursor.adjustDueToMove(
+  //         destinationNode.path,
+  //         destinationNode.path, // Note, see comment above
+  //         sourceBlockOriginalChildCount
+  //       );
+  //       if (newCursorOrNoChangeReason instanceof Cursor) {
+  //         cursor = castDraft(newCursorOrNoChangeReason);
+  //       } else {
+  //         continue;
+  //       }
+  //     }
+  //   }
+  //   InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
+  //   services.interactors.notifyUpdated(interactor.id);
+  // }
+  // // Now update interactors inside at or inside the source node
+  // for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(sourceNode.path)) {
+  //   let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
+  //   if (
+  //     cursor.orientation === CursorOrientation.On &&
+  //     (cursor.path.equalTo(destinationNode.path) || cursor.path.equalTo(sourceNode.path))
+  //   ) {
+  //     if (!isBack) {
+  //       const n = new CursorNavigator(state.document, services.layout);
+  //       n.navigateTo(cursor);
+  //       n.navigateToNextCursorPosition();
+  //       // This is a bit of a hack, but seems necessary since inline text cursor
+  //       // behavior is different and we end up with a BEFORE orientation which
+  //       // is wrong ONCE the source node is deleted
+  //       if (sourceNode.tip.node instanceof InlineText && sourceBlockOriginalChildCount === 0) {
+  //         n.navigateToPrecedingCursorPosition();
+  //       }
+  //       cursor = castDraft(n.cursor);
+  //     }
+  //     // } else if (!isBack && cursor.orientation === CursorOrientation.On) {
+  //     //   const n = new CursorNavigator(state.document, services.layout);
+  //     //   n.navigateTo(cursor);
+  //     //   n.navigateToNextCursorPosition();
+  //     //   n.navigateToPrecedingCursorPosition();
+  //     //   cursor = castDraft(n.cursor);
+  //   } else {
+  //     const newCursorOrNoChangeReason = cursor.adjustDueToMove(
+  //       sourceNode.path,
+  //       destinationNode.path,
+  //       // 0 because we in the forward case the source child nodes are inserted into the destination thus
+  //       // it is the destination interactors that need to be updated.
+  //       direction === FlowDirection.Backward ? destinationBlockOriginalChildCount : 0
+  //     );
+  //     if (newCursorOrNoChangeReason instanceof Cursor) {
+  //       cursor = castDraft(newCursorOrNoChangeReason);
+  //       const n = new CursorNavigator(state.document, services.layout);
+  //       n.navigateTo(cursor);
+  //       if (n.navigateToNextCursorPosition()) {
+  //         n.navigateToPrecedingCursorPosition();
+  //       }
+  //       cursor = n.cursor;
+  //     } else {
+  //       continue;
+  //     }
+  //   }
+  //   InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
+  //   services.interactors.notifyUpdated(interactor.id);
+  // }
 }
 
 function moveBlockChildren(
