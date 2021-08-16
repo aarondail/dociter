@@ -17,7 +17,8 @@ import { EditorState } from "../state";
  * this service never deals with them.
  */
 export class EditorNodeTrackingService {
-  private editorState: Draft<EditorState> | null;
+  // TODO change this back to private
+  public editorState: Draft<EditorState> | null;
 
   public constructor(private readonly idGenerator: FriendlyIdGenerator, private readonly editorEvents: EditorEvents) {
     this.editorState = null;

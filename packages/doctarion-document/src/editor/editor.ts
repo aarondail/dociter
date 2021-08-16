@@ -102,6 +102,10 @@ export class Editor {
       }
     }
 
+    // TODO cheating here for now, so that node ids get setup correctly
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    this.operationServices.tracking.editorState = this.state as any;
+
     // Assign initial ids... note this must happen before the calls to update
     // because after that the objects in the state are no longer extensible (and
     // we can't assign ids to them). I think this is something immer does.

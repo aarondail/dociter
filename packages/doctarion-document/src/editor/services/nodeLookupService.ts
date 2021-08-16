@@ -1,3 +1,4 @@
+import { Draft } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../../basic-traversal";
@@ -5,6 +6,8 @@ import { Node, NodeUtils } from "../../models";
 import { NodeId } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorState } from "../state";
+
+// TODO delete
 
 /**
  * Lookup nodes, and the chain to nodes, by their id.
@@ -18,6 +21,7 @@ export class EditorNodeLookupService {
   // Note the editorState can _and will_ be updated by the Editor
   public constructor(initialEditorState: EditorState, private readonly editorEvents: EditorEvents) {
     this.editorState = initialEditorState;
+    this.editorEvents.operationWillRun.addListener(this.handleOperationWillRun);
     this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
   }
 
@@ -80,6 +84,10 @@ export class EditorNodeLookupService {
   }
 
   private handleOperationHasCompleted = (newState: EditorState) => {
+    this.editorState = newState;
+  };
+
+  private handleOperationWillRun = (newState: Draft<EditorState>) => {
     this.editorState = newState;
   };
 }
