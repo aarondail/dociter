@@ -45,24 +45,24 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
   it("handles multiple cursors", () => {
     const editor = new Editor({ document: testDoc1 });
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α," }));
+    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
 
     // Jump to "GOOGLE" text of the url link
     editor.execute(OPS.jump({ to: { path: "3/1/0", orientation: Before } }));
     editor.execute(OPS.addInteractor({ at: { path: "3/1/1", orientation: After }, name: "β" }));
     editor.execute(OPS.addInteractor({ at: { path: "3/1/2", orientation: After }, name: "γ" }));
 
-    expect(debugInteractors(editor)).toEqual(`α, (F) <| 3/1/0, β 3/1/1 |>, γ 3/1/2 |>`);
+    expect(debugInteractors(editor)).toEqual(`α (F) <| 3/1/0, β 3/1/1 |>, γ 3/1/2 |>`);
     editor.execute(OPS.moveForward({ target: TargetInteractors.All }));
-    expect(debugInteractors(editor)).toEqual(`α, (F) 3/1/0 |>, β 3/1/2 |>, γ 3/1/3 |>`);
+    expect(debugInteractors(editor)).toEqual(`α (F) 3/1/0 |>, β 3/1/2 |>, γ 3/1/3 |>`);
     editor.execute(OPS.moveForward({ target: TargetInteractors.AllActive }));
-    expect(debugInteractors(editor)).toEqual(`α, (F) 3/1/1 |>, β 3/1/3 |>, γ 3/1/4 |>`);
+    expect(debugInteractors(editor)).toEqual(`α (F) 3/1/1 |>, β 3/1/3 |>, γ 3/1/4 |>`);
     // Should dedupe
     editor.execute(OPS.moveForward({ target: TargetInteractors.Focused }));
     editor.execute(OPS.moveForward({ target: TargetInteractors.Focused }));
-    expect(debugInteractors(editor)).toEqual(`α, (F) 3/1/3 |>, γ 3/1/4 |>`);
+    expect(debugInteractors(editor)).toEqual(`α (F) 3/1/3 |>, γ 3/1/4 |>`);
     editor.execute(OPS.moveForward({ target: TargetInteractors.Focused }));
-    expect(debugInteractors(editor)).toEqual(`α, (F) 3/1/4 |>`);
+    expect(debugInteractors(editor)).toEqual(`α (F) 3/1/4 |>`);
   });
 });
 
