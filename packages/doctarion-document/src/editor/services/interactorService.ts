@@ -1,25 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Draft, castDraft, original } from "immer";
+import { Draft, castDraft } from "immer";
 
-import { Path, PathComparison } from "../../basic-traversal";
-import { Cursor, CursorOrientation } from "../../cursor";
-import { SimpleComparison } from "../../miscUtils";
 import { EditorEvents } from "../events";
-import {
-  Interactor,
-  InteractorId,
-  InteractorOrderingEntry,
-  InteractorAnchorType,
-  InteractorStatus,
-} from "../interactor";
+import { Interactor, InteractorId } from "../interactor";
 import { EditorState } from "../state";
-
-enum CommonInteractorCursorCollectionFunctionBehavior {
-  At,
-  AtOrAfter,
-  AtOrDescendants,
-  Descendants,
-}
 
 /**
  * This manages all interactors.

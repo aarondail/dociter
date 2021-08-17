@@ -3,9 +3,12 @@ import lodash from "lodash";
 
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { Document, InlineEmoji, InlineText, NodeUtils } from "../models";
+import { InlineEmoji, InlineText, NodeUtils } from "../models";
+import { NodeId } from "../working-document";
 
 import { Anchor } from "./anchor";
+import { InteractorAnchorType } from "./interactor";
+import { InteractorAnchorDeletionHelper } from "./interactorAnchorDeletionHelper";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
@@ -63,6 +66,9 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
   for (const target of lodash.reverse(targets)) {
     if (target.isSelection) {
+      // ------------------
+      // SELECTION DELETION
+      // ------------------
       const chainsToDelete = getRangeForSelection(target.interactor, state.document, services)?.getChainsCoveringRange(
         state.document
       );
@@ -72,44 +78,51 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       }
 
       // TODO this is probably a very inefficient way to deal with text.. and everything
+      const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+      const nav = new NodeNavigator(state.document);
       for (const chain of lodash.reverse(chainsToDelete)) {
-        const nav = new NodeNavigator(state.document);
         nav.navigateTo(chain.path);
-        deleteNode(nav, services);
+        deleteNode(nav, services, deletionHelper);
+      }
 
-        const cursorNav = new CursorNavigator(state.document, services.layout);
-        cursorNav.navigateTo(nav.path, target.isMainCursorFirst ? CursorOrientation.After : CursorOrientation.Before);
-        const postDeleteCursor = determineCursorPositionAfterSelectionDeletion(cursorNav);
-
-        // Now, for all interactor cursors (main or selection) after this node,
-        // update them to account for the deletion
-        adjustInteractorPositionsAfterNodeDeletion(services, nav.path, postDeleteCursor);
+      if (deletionHelper.hasAnchors()) {
+        const cursorNav = target.isMainCursorFirst ? target.navigators[0].clone() : target.navigators[1].clone();
+        const postDeleteAnchor = determineAnchorForAfterDeletion(cursorNav, FlowDirection.Forward, true);
+        setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, deletionHelper);
       }
 
       // Clear selection
       target.interactor.selectionAnchor = undefined;
-      // services.interactors.notifyUpdatedForced(target.interactor.id);
+      services.interactors.notifyUpdated(target.interactor.id);
     } else {
       const { interactor, navigator } = target;
 
       const result = findNodeRelativeToCursorForDeletion(navigator as ReadonlyCursorNavigator, options);
       if (result?.nodeToDelete) {
-        // This JUST deletes the node from the document
-        deleteNode(result.nodeToDelete, services);
+        // ------------------------
+        // INDIVIDUAL NODE DELETION
+        // ------------------------
+        const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+        deleteNode(result.nodeToDelete, services, deletionHelper);
 
-        const postDeleteCursor = determineCursorPositionAfterDeletion(navigator, options.direction);
-
-        // Now, for all interactor cursors (main or selection) after this node,
-        // update them to account for the deletion
-        adjustInteractorPositionsAfterNodeDeletion(services, result.nodeToDelete.path, postDeleteCursor);
+        if (deletionHelper.hasAnchors()) {
+          const postDeleteAnchor = determineAnchorForAfterDeletion(navigator, options.direction);
+          setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, deletionHelper);
+        }
       } else if (result?.justMoveTo) {
-        // Sometimes deletion doesn't actually trigger the removal of the node, just
-        // the updating of an interactor
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        interactor.mainAnchor = castDraft(Anchor.fromCursorNavigator(result.justMoveTo))!;
-        services.interactors.notifyUpdated(interactor.id);
+        // -------------------------------------------
+        // JUST MOVE THE ANCHOR (DONT DELETE ANYTHING)
+        // -------------------------------------------
+        const newAnchor = Anchor.fromCursorNavigator(result.justMoveTo);
+        if (newAnchor) {
+          interactor.mainAnchor = newAnchor;
+          // Should this clear selection?
+          services.interactors.notifyUpdated(interactor.id);
+        }
       } else if (result?.joinInstead) {
-        // Make sure interactor still exists
+        // ----------------------
+        // JOIN INSTEAD OF DELETE
+        // ----------------------
         if (state.interactors[interactor.id] == undefined) {
           continue;
         }
@@ -137,73 +150,83 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
     if (!nodeToDelete.navigateTo(payload.path) || !originalCursorPosition.navigateTo(payload.path)) {
       return;
     }
-
-    deleteNode(nodeToDelete, services);
-
-    const postDeleteCursor = determineCursorPositionAfterDeletion(originalCursorPosition, FlowDirection.Backward);
-
-    // Now, for all interactor cursors (main or selection) after this node,
-    // update them to account for the deletion
-    adjustInteractorPositionsAfterNodeDeletion(services, nodeToDelete.path, postDeleteCursor);
+    const anchorMarker = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+    deleteNode(nodeToDelete, services, anchorMarker);
+    if (anchorMarker.hasAnchors()) {
+      const postDeleteAnchor = determineAnchorForAfterDeletion(originalCursorPosition, FlowDirection.Backward);
+      setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, anchorMarker);
+    }
   }
 );
 
-function adjustInteractorPositionsAfterNodeDeletion(
+/**
+ * This either returns:
+ * 1. Nothing if there was no deletion
+ * 2. A set of all nodes deleted EXCLUDING graphemes (so just object ids)
+ * 3. In the case where JUST a grapheme is deleted, an object with the
+ *    containing (ObjectNode) id and the grapheme index.
+ */
+function deleteNode(
+  nodeNavigator: NodeNavigator,
   services: EditorOperationServices,
-  nodeToDelete: Path,
-  postDeleteCursor: CursorNavigator
+  deletionHelper: InteractorAnchorDeletionHelper
 ) {
-  // for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrAfter(
-  //   new Cursor(nodeToDelete, CursorOrientation.Before)
-  // )) {
-  //   const newCursorOrNoChangeReason = InteractorOrderingEntry.getCursor(
-  //     interactor,
-  //     cursorType
-  //   ).adjustDueToRelativeDeletionAt(nodeToDelete);
-  //   if (newCursorOrNoChangeReason instanceof Cursor) {
-  //     InteractorOrderingEntry.setCursor(interactor, cursorType, newCursorOrNoChangeReason);
-  //     services.interactors.notifyUpdated(interactor.id);
-  //   } else if (
-  //     newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseAncestor ||
-  //     newCursorOrNoChangeReason === PathAdjustmentDueToRelativeDeletionNoChangeReason.NoChangeBecauseEqual
-  //   ) {
-  //     InteractorOrderingEntry.setCursor(interactor, cursorType, postDeleteCursor.cursor);
-  //     services.interactors.notifyUpdated(interactor.id);
-  //   }
-  // }
-}
-
-function deleteNode(nodeNavigator: NodeNavigator, services: EditorOperationServices): void {
   const node = nodeNavigator.tip.node;
   const parent = nodeNavigator.parent;
   const pathPart = nodeNavigator.tip.pathPart;
+  const kidIndex = pathPart?.index;
+  const kids = parent && NodeUtils.getChildren(parent.node);
 
-  if (!parent || !pathPart) {
-    if (node instanceof Document) {
-      nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
-        skipGraphemes: true,
-      });
-      castDraft(node).children = [];
-    }
-    return;
-  }
-
-  const kids = NodeUtils.getChildren(parent.node);
-  const kidIndex = pathPart.index;
-
-  if (!kids) {
-    return;
+  // This shouldn't be possible
+  if (parent && (!kids || kidIndex === undefined)) {
+    return undefined;
   }
 
   // Unregister all child nodes and the node itself
   if (!NodeUtils.isGrapheme(node)) {
-    nodeNavigator.traverseDescendants((node) => services.tracking.unregister(node), {
-      skipGraphemes: true,
-    });
-    services.tracking.unregister(node);
+    nodeNavigator.traverseDescendants(
+      (n) => {
+        services.tracking.unregister(n);
+        deletionHelper.markAnchorsOnNode(NodeId.getId(n) || "");
+      },
+      { skipGraphemes: true }
+    );
+    if (parent && kids) {
+      services.tracking.unregister(node);
+      deletionHelper.markAnchorsOnNode(NodeId.getId(node) || "");
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      castDraft(kids).splice(kidIndex!, 1);
+    } else {
+      // This is the Document node case
+      castDraft(node).children = [];
+    }
+  } else {
+    // This is the grapheme case, note that at this point we always expect kids
+    // to be defined
+    if (parent && kids) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      castDraft(kids).splice(kidIndex!, 1);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      deletionHelper.markAnchorsRelativeToGrapheme(NodeId.getId(parent.node) || "", kidIndex!);
+    }
   }
+  return undefined;
+}
 
-  castDraft(kids).splice(kidIndex, 1);
+function determineAnchorForAfterDeletion(
+  originalPositionAndNode: ReadonlyCursorNavigator,
+  direction: FlowDirection,
+  forwardAgain?: boolean
+): Anchor {
+  const c = determineCursorPositionAfterDeletion(originalPositionAndNode, direction);
+  if (forwardAgain) {
+    c.navigateToNextCursorPosition();
+  }
+  const a = Anchor.fromCursorNavigator(c);
+  if (!a) {
+    throw new Error("Unexpectedly could not convert cursor position into anchor");
+  }
+  return a;
 }
 
 function determineCursorPositionAfterDeletion(
@@ -221,7 +244,7 @@ function determineCursorPositionAfterDeletion(
   if (n.navigateToUnchecked(originalCursor)) {
     if (NodeUtils.isGrapheme(originalNode)) {
       if (n.parent?.node === originalParent) {
-        const currentIndex = n.tip.pathPart.index;
+        const currentIndex = n.tip.pathPart?.index;
         isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
 
         // This fixes a bug where we navigate but the only thing that changed is
@@ -241,7 +264,7 @@ function determineCursorPositionAfterDeletion(
       n.navigateToParentUnchecked();
     } else if (originalNode instanceof InlineEmoji) {
       if (n.parent?.node === originalPositionAndNode.parent?.node) {
-        const currentIndex = n.tip.pathPart.index;
+        const currentIndex = n.tip.pathPart?.index;
         // JIC this node is an InlineUrlText or something do this
         n.navigateToFirstDescendantCursorPosition();
         // Then move the previous position... this actually works properly no
@@ -273,38 +296,6 @@ function determineCursorPositionAfterDeletion(
       } else {
         n.navigateToLastDescendantCursorPosition();
       }
-    } else {
-      n.navigateToFirstDescendantCursorPosition();
-    }
-  } else {
-    // Try one level higher as a fallback
-    const p = originalCursor.path.withoutTip();
-    if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
-      n.navigateToLastDescendantCursorPosition();
-    } else {
-      // OK try one more level higher again
-      const p2 = originalCursor.path.withoutTip().withoutTip();
-      if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
-        // Not sure this is really right...
-        n.navigateToLastDescendantCursorPosition();
-      } else {
-        // Not sure this is really right...
-        if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
-          throw new Error("Could not refresh navigator is not a valid cursor");
-        }
-      }
-    }
-  }
-  return n;
-}
-
-function determineCursorPositionAfterSelectionDeletion(originalAnchor: ReadonlyCursorNavigator): CursorNavigator {
-  const originalCursor = originalAnchor.cursor;
-
-  const n = originalAnchor.clone();
-  if (n.navigateToUnchecked(originalCursor)) {
-    if (n.navigateToPrecedingSiblingUnchecked()) {
-      n.navigateToLastDescendantCursorPosition();
     } else {
       n.navigateToFirstDescendantCursorPosition();
     }
@@ -363,7 +354,7 @@ function findNodeRelativeToCursorForDeletion(
       return undefined;
     }
 
-    let index = tip.pathPart.index;
+    let index = tip.pathPart?.index || 0;
     if (isBack) {
       if (orientation === CursorOrientation.Before) {
         index--;
@@ -462,4 +453,29 @@ function findNodeRelativeToCursorForDeletion(
     return { justMoveTo: navPrime };
   }
   return undefined;
+}
+
+function setMarkedInteractorAnchorsAfterNodeDeletion(
+  services: EditorOperationServices,
+  postDeleteAnchor: Anchor,
+  deletionHelper: InteractorAnchorDeletionHelper
+) {
+  for (const { interactor, anchorType, relativeGraphemeDeletionCount } of deletionHelper.getAnchors()) {
+    if (anchorType === InteractorAnchorType.Main) {
+      if (relativeGraphemeDeletionCount === undefined || interactor.mainAnchor.graphemeIndex === undefined) {
+        castDraft(interactor).mainAnchor = postDeleteAnchor;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        castDraft(interactor).mainAnchor.graphemeIndex! -= relativeGraphemeDeletionCount;
+      }
+    } else {
+      if (relativeGraphemeDeletionCount === undefined || interactor.selectionAnchor?.graphemeIndex === undefined) {
+        castDraft(interactor).selectionAnchor = postDeleteAnchor;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        castDraft(interactor).selectionAnchor!.graphemeIndex! -= relativeGraphemeDeletionCount;
+      }
+    }
+    services.interactors.notifyUpdated(interactor.id);
+  }
 }

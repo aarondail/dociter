@@ -44,24 +44,3 @@ export class Interactor {
     return this.selectionAnchor !== undefined;
   }
 }
-
-export interface InteractorOrderingEntry {
-  readonly id: InteractorId;
-  readonly cursorType: InteractorAnchorType;
-}
-
-export const InteractorOrderingEntry = {
-  // getCursor(interactor: Interactor, cursorType: InteractorOrderingEntryCursorType): Cursor {
-  //   return cursorType === InteractorOrderingEntryCursorType.Main
-  //     ? interactor.mainAnchor
-  //     : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  //       interactor.selectionAnchor!;
-  // },
-  // setCursor(interactor: Draft<Interactor>, cursorType: InteractorOrderingEntryCursorType, cursor: Cursor): void {
-  //   if (cursorType === InteractorOrderingEntryCursorType.Main) {
-  //     interactor.mainAnchor = castDraft(cursor);
-  //   } else {
-  //     interactor.selectionAnchor = castDraft(cursor);
-  //   }
-  // },
-};
