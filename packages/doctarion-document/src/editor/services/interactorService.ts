@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Draft, castDraft } from "immer";
+import { CursorNavigator } from "../../cursor";
+import { NodeLayoutReporter } from "../../layout-reporting";
+import { Anchor } from "../anchor";
 
 import { EditorEvents } from "../events";
-import { Interactor, InteractorId } from "../interactor";
+import { Interactor, InteractorAnchorType, InteractorId } from "../interactor";
 import { EditorState } from "../state";
+import { EditorNodeLookupService } from "./nodeLookupService";
+import { EditorServices } from "./services";
 
 /**
  * This manages all interactors.
@@ -107,6 +112,58 @@ export class EditorInteractorService {
   //     CommonInteractorCursorCollectionFunctionBehavior.Descendants
   //   );
   // }
+
+  public jiggleInteractors(services: EditorServices, all?: boolean): void {
+    if (!this.editorState) {
+      return;
+    }
+
+    const navHelper = new CursorNavigator(this.editorState.document, services.layout);
+
+    function updateAnchor(interactor: Draft<Interactor>, anchorType: InteractorAnchorType) {
+      const currentAnchor = interactor.getAnchor(anchorType);
+      if (!currentAnchor) {
+        return;
+      }
+      const currentCursor = currentAnchor.toCursor(services);
+      if (currentCursor && !navHelper.navigateTo(currentCursor)) {
+        return;
+      }
+      // if (navHelper.navigateToNextCursorPosition()) {
+      //   navHelper.navigateToPrecedingCursorPosition();
+      // }
+      const newAnchor = Anchor.fromCursorNavigator(navHelper);
+      if (newAnchor) {
+        if (anchorType === InteractorAnchorType.Main) {
+          interactor.mainAnchor = newAnchor;
+        } else {
+          interactor.selectionAnchor = newAnchor;
+        }
+      }
+    }
+
+    if (all) {
+      for (const interactor of Object.values(this.editorState.interactors)) {
+        if (!interactor) {
+          continue;
+        }
+        updateAnchor(interactor, InteractorAnchorType.Main);
+        interactor.selectionAnchor && updateAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+      }
+    } else {
+      if (!this.updatedInteractors) {
+        return;
+      }
+      for (const id of this.updatedInteractors) {
+        const interactor = this.editorState.interactors[id];
+        if (!interactor) {
+          continue;
+        }
+        updateAnchor(interactor, InteractorAnchorType.Main);
+        interactor.selectionAnchor && updateAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+      }
+    }
+  }
 
   public notifyUpdated(id: InteractorId | InteractorId[]): void {
     if (!this.editorState) {

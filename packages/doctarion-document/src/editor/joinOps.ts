@@ -9,7 +9,7 @@ import { Block, InlineText, Node, NodeUtils } from "../models";
 import { NodeId } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
-import { Interactor, InteractorAnchorType, InteractorId } from "./interactor";
+import { Interactor, InteractorAnchorType } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
@@ -91,6 +91,9 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     moveBlockChildren(sourceNav, destinationNav, services, direction);
 
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction }));
+
+    // This updates interactors so they are on their preferred cursor position
+    services.interactors.jiggleInteractors(services, true);
 
     if (payload.mergeCompatibleInlineTextsIfPossible) {
       mergeCompatibleInlineChildrenIfPossible(
@@ -200,8 +203,6 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
       castDraft(destinationInlineText).modifiers = sourceInlineText.modifiers;
     }
 
-    // TODO clean this up
-    // TODO maybe use a CursorNavigator and navigateTo to do some of this? Maybe cleaner or at least more... future proof?
     adjustAnchorPositionsAfterInlineTextMerge(
       state,
       services,
@@ -211,6 +212,8 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
       destinationInlineText,
       destinationInlineTextOriginalChildCount
     );
+
+    services.interactors.jiggleInteractors(services);
 
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction: payload.direction }));
 

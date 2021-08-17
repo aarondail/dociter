@@ -6,7 +6,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugEditorStateLessSimple = DebugEditorHelpers.debugEditorStateLessSimple;
-const debugInteractorOrdering = DebugEditorHelpers.debugInteractorOrdering;
+const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -19,7 +19,7 @@ const testDoc1 = doc(
 
 describe("joinBlocks for selections and multiple interactors", () => {
   describe("backwards", () => {
-    fit("works when the selections overlap", () => {
+    it("works when the selections overlap", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
       // selection 1
       editor.execute(
@@ -125,24 +125,32 @@ describe("joinBlocks for selections and multiple interactors", () => {
 
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
       expect(debugEditorStateLessSimple(editor)).toMatchInlineSnapshot(`
-        "INTR. #1
-        MAIN CURSOR: <| 0/0/0
-        SLICE:  HEADER ONE > TEXT {} > \\"H1\\"INTR. #1
-        S.A. CURSOR: 1/5/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"
-        INTR. #2
+        "
+        INTR. #1
         MAIN CURSOR: <| 1/2/0
-        SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"INTR. #2
+        SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"
+        INTR. #1
         S.A. CURSOR: 1/7/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"DD\\"
-        INTR. #3
-        MAIN CURSOR: <| 1/5/0
-        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"INTR. #3
+
+        INTR. #2
+        MAIN CURSOR: 1/4/1 |>
+        SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"
+        INTR. #2
         S.A. CURSOR: 1/8/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"EE\\"
-        INTR. #4
+
+        INTR. #3
         CURSOR: 1/9/1 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"FF\\"
+
+        INTR. #4
+        MAIN CURSOR: <| 0/0/0
+        SLICE:  HEADER ONE > TEXT {} > \\"H1\\"
+        INTR. #4
+        S.A. CURSOR: 1/5/0 |>
+        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"
+
         INTR. #5
         CURSOR: <| 2/0/0
         SLICE:  PARAGRAPH > TEXT {} > \\"GG\\""
@@ -172,8 +180,8 @@ MAIN CURSOR: 1/0/6 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAABB"
 S.A. CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAABB"`);
-    expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
-      `"1.M (I) <| 0/0/0, 2.Sa (F) 1/0/0 |>, 3.M (I) 1/0/4 |>, 2.M (F) 1/0/6 |>, 1.Sa (I) 3/0/0 |>"`
+    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+      `"(no-name, #1) (F) 1/0/0 |> ▶▶▶◉ 1/0/6 |>, (no-name, #2) (I) 1/0/4 |>, (no-name, #3) (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
 
     editor = new Editor({ document: testDoc1 });
@@ -195,8 +203,8 @@ MAIN CURSOR: 1/0/6 |>
 SLICE:  PARAGRAPH > TEXT {BOLD} > "MMNNAABB"
 S.A. CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {BOLD} > "MMNNAABB"`);
-    expect(debugInteractorOrdering(editor)).toMatchInlineSnapshot(
-      `"1.M (I) <| 0/0/0, 2.Sa (F) 1/0/0 |>, 3.M (I) 1/0/4 |>, 2.M (F) 1/0/6 |>, 1.Sa (I) 3/0/0 |>"`
+    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+      `"(no-name, #1) (F) 1/0/0 |> ▶▶▶◉ 1/0/6 |>, (no-name, #2) (I) 1/0/4 |>, (no-name, #3) (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
   });
 });
