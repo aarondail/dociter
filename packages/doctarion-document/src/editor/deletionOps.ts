@@ -141,7 +141,10 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
   }
 });
 
-export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
+/**
+ * Note that the direction in the payload is just used for cursor placement after the deletion.
+ */
+export const deletePrimitive = createCoreOperation<{ path: Path | PathString; direction?: FlowDirection }>(
   "delete/primitive",
   (state, services, payload) => {
     const nodeToDelete = new NodeNavigator(state.document);
@@ -153,7 +156,10 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString }>(
     const anchorMarker = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
     deleteNode(nodeToDelete, services, anchorMarker);
     if (anchorMarker.hasAnchors()) {
-      const postDeleteAnchor = determineAnchorForAfterDeletion(originalCursorPosition, FlowDirection.Backward);
+      const postDeleteAnchor = determineAnchorForAfterDeletion(
+        originalCursorPosition,
+        payload.direction || FlowDirection.Backward
+      );
       setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, anchorMarker);
     }
   }

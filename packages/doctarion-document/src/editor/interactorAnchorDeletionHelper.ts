@@ -7,7 +7,7 @@ export interface InteractorAnchorEntry {
   readonly anchorType: InteractorAnchorType;
 }
 
-class NodeIdToInteractorAnchorMap {
+export class NodeIdToInteractorAnchorMap {
   private dictionary: { [nodeId: string]: InteractorAnchorEntry[] };
 
   public constructor(interactors: Interactor[]) {

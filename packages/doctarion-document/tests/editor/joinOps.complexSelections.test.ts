@@ -19,7 +19,7 @@ const testDoc1 = doc(
 
 describe("joinBlocks for selections and multiple interactors", () => {
   describe("backwards", () => {
-    it("works when the selections overlap", () => {
+    fit("works when the selections overlap", () => {
       const editor = new Editor({ document: testDoc1, omitDefaultInteractor: true });
       // selection 1
       editor.execute(
@@ -55,24 +55,32 @@ describe("joinBlocks for selections and multiple interactors", () => {
 
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Backward }));
       expect(debugEditorStateLessSimple(editor)).toMatchInlineSnapshot(`
-        "INTR. #1
-        MAIN CURSOR: <| 0/0/0
-        SLICE:  HEADER ONE > TEXT {} > \\"H1\\"INTR. #1
-        S.A. CURSOR: 1/5/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"
-        INTR. #2
+        "
+        INTR. #1
         MAIN CURSOR: <| 1/2/0
-        SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"INTR. #2
+        SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"
+        INTR. #1
         S.A. CURSOR: 1/7/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"DD\\"
-        INTR. #3
+
+        INTR. #2
         MAIN CURSOR: 1/4/1 |>
-        SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"INTR. #3
+        SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"
+        INTR. #2
         S.A. CURSOR: 1/8/0 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"EE\\"
-        INTR. #4
+
+        INTR. #3
         CURSOR: 1/9/1 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"FF\\"
+
+        INTR. #4
+        MAIN CURSOR: <| 0/0/0
+        SLICE:  HEADER ONE > TEXT {} > \\"H1\\"
+        INTR. #4
+        S.A. CURSOR: 1/5/0 |>
+        SLICE:  PARAGRAPH > TEXT {} > \\"CC\\"
+
         INTR. #5
         CURSOR: <| 2/0/0
         SLICE:  PARAGRAPH > TEXT {} > \\"GG\\""

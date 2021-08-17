@@ -295,11 +295,12 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
     return debugEditorStateForInteractor(editor, editor.focusedInteractor);
   };
 
+  // TODO make this better (interactor labels)
   const debugEditorStateLessSimple = (editor: Editor) => {
     return Object.values(editor.interactors)
       .map((i, index) => {
         // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-        return debugEditorStateForInteractor(editor, editor.interactors[i.id], "INTR. #" + (index + 1));
+        return debugEditorStateForInteractor(editor, editor.interactors[i.id], "\nINTR. #" + (index + 1));
       })
       .join("\n");
   };

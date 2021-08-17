@@ -4,9 +4,12 @@ import { Draft } from "immer";
 import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
+import { CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
+import { NodeId } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
+import { Interactor, InteractorAnchorType, InteractorId } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
@@ -87,17 +90,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
     moveBlockChildren(sourceNav, destinationNav, services, direction);
 
-    adjustInteractorPositionsAfterMoveChildren(
-      state,
-      services,
-      sourceNav,
-      destinationNav,
-      sourceBlockOriginalChildCount,
-      destinationBlockOriginalChildCount,
-      direction
-    );
-
-    services.execute(state, deletePrimitive({ path: sourceNav.path }));
+    services.execute(state, deletePrimitive({ path: sourceNav.path, direction }));
 
     if (payload.mergeCompatibleInlineTextsIfPossible) {
       mergeCompatibleInlineChildrenIfPossible(
@@ -136,11 +129,11 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
     if (target.isSelection) {
       const { navigators } = target;
       const startInlineTextNav = navigateToAncestorMatchingPredicate(
-        navigators[0].toNodeNavigator(),
+        navigators[target.isMainCursorFirst ? 0 : 1].toNodeNavigator(),
         NodeUtils.isInlineText
       );
       const endInlineTextNav = navigateToAncestorMatchingPredicate(
-        navigators[1].toNodeNavigator(),
+        navigators[target.isMainCursorFirst ? 1 : 0].toNodeNavigator(),
         NodeUtils.isInlineText
       );
       if (!startInlineTextNav || !endInlineTextNav) {
@@ -172,6 +165,7 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
     }
   }
 
+  // TODO can make this better?
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
     services.execute(state, joinInlineTextPrimitive({ path: elements[0].inlineText.path, direction }));
   }
@@ -206,115 +200,104 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
       castDraft(destinationInlineText).modifiers = sourceInlineText.modifiers;
     }
 
-    adjustInteractorPositionsAfterMoveChildren(
+    // TODO clean this up
+    // TODO maybe use a CursorNavigator and navigateTo to do some of this? Maybe cleaner or at least more... future proof?
+    adjustAnchorPositionsAfterInlineTextMerge(
       state,
       services,
-      sourceNav,
-      destinationNav,
+      payload.direction,
+      sourceInlineText,
       sourceInlineTextOriginalChildCount,
-      destinationInlineTextOriginalChildCount,
-      payload.direction
+      destinationInlineText,
+      destinationInlineTextOriginalChildCount
     );
 
-    services.execute(state, deletePrimitive({ path: sourceNav.path }));
+    services.execute(state, deletePrimitive({ path: sourceNav.path, direction: payload.direction }));
 
     return;
   }
 );
 
-function adjustInteractorPositionsAfterMoveChildren(
-  state: immer.Draft<EditorState>,
+function adjustAnchorPositionsAfterInlineTextMerge(
+  state: Draft<EditorState>,
   services: EditorOperationServices,
-  sourceNode: NodeNavigator,
-  destinationNode: NodeNavigator,
-  sourceBlockOriginalChildCount: number,
-  destinationBlockOriginalChildCount: number,
-  direction: FlowDirection
+  direction: FlowDirection,
+  source: InlineText,
+  sourceOriginalChildCount: number,
+  destination: InlineText,
+  destinationOriginalChildCount: number
 ) {
-  // const isBack = direction === FlowDirection.Backward;
-  // // In the forward case only, we have to update interactors of the destination node since the
-  // // source nodes get inserted in front of them.
-  // // In the backward we need to update cursors ONLY if they are exactly on their destination node.
-  // for (const { interactor, cursorType } of isBack
-  //   ? services.interactors.interactorCursorsAt(destinationNode.path)
-  //   : services.interactors.interactorCursorsAtOrDescendantsOf(destinationNode.path)) {
-  //   let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
-  //   if (isBack) {
-  //     const n = new CursorNavigator(state.document, services.layout);
-  //     n.navigateToUnchecked(cursor);
-  //     n.navigateToFirstDescendantCursorPosition();
-  //     cursor = castDraft(n.cursor);
-  //   } else {
-  //     if (cursor.orientation === CursorOrientation.On && cursor.path.equalTo(destinationNode.path)) {
-  //       const n = new CursorNavigator(state.document, services.layout);
-  //       n.navigateToUnchecked(cursor);
-  //       n.navigateToLastDescendantCursorPosition();
-  //       cursor = castDraft(n.cursor);
-  //     } else {
-  //       // Technically not a move but I am being lazy here and this works
-  //       const newCursorOrNoChangeReason = cursor.adjustDueToMove(
-  //         destinationNode.path,
-  //         destinationNode.path, // Note, see comment above
-  //         sourceBlockOriginalChildCount
-  //       );
-  //       if (newCursorOrNoChangeReason instanceof Cursor) {
-  //         cursor = castDraft(newCursorOrNoChangeReason);
-  //       } else {
-  //         continue;
-  //       }
-  //     }
-  //   }
-  //   InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-  //   services.interactors.notifyUpdated(interactor.id);
-  // }
-  // // Now update interactors inside at or inside the source node
-  // for (const { interactor, cursorType } of services.interactors.interactorCursorsAtOrDescendantsOf(sourceNode.path)) {
-  //   let cursor = InteractorOrderingEntry.getCursor(interactor, cursorType);
-  //   if (
-  //     cursor.orientation === CursorOrientation.On &&
-  //     (cursor.path.equalTo(destinationNode.path) || cursor.path.equalTo(sourceNode.path))
-  //   ) {
-  //     if (!isBack) {
-  //       const n = new CursorNavigator(state.document, services.layout);
-  //       n.navigateTo(cursor);
-  //       n.navigateToNextCursorPosition();
-  //       // This is a bit of a hack, but seems necessary since inline text cursor
-  //       // behavior is different and we end up with a BEFORE orientation which
-  //       // is wrong ONCE the source node is deleted
-  //       if (sourceNode.tip.node instanceof InlineText && sourceBlockOriginalChildCount === 0) {
-  //         n.navigateToPrecedingCursorPosition();
-  //       }
-  //       cursor = castDraft(n.cursor);
-  //     }
-  //     // } else if (!isBack && cursor.orientation === CursorOrientation.On) {
-  //     //   const n = new CursorNavigator(state.document, services.layout);
-  //     //   n.navigateTo(cursor);
-  //     //   n.navigateToNextCursorPosition();
-  //     //   n.navigateToPrecedingCursorPosition();
-  //     //   cursor = castDraft(n.cursor);
-  //   } else {
-  //     const newCursorOrNoChangeReason = cursor.adjustDueToMove(
-  //       sourceNode.path,
-  //       destinationNode.path,
-  //       // 0 because we in the forward case the source child nodes are inserted into the destination thus
-  //       // it is the destination interactors that need to be updated.
-  //       direction === FlowDirection.Backward ? destinationBlockOriginalChildCount : 0
-  //     );
-  //     if (newCursorOrNoChangeReason instanceof Cursor) {
-  //       cursor = castDraft(newCursorOrNoChangeReason);
-  //       const n = new CursorNavigator(state.document, services.layout);
-  //       n.navigateTo(cursor);
-  //       if (n.navigateToNextCursorPosition()) {
-  //         n.navigateToPrecedingCursorPosition();
-  //       }
-  //       cursor = n.cursor;
-  //     } else {
-  //       continue;
-  //     }
-  //   }
-  //   InteractorOrderingEntry.setCursor(interactor, cursorType, cursor);
-  //   services.interactors.notifyUpdated(interactor.id);
-  // }
+  const destinationId = NodeId.getId(destination);
+  const sourceId = NodeId.getId(source);
+
+  if (!destinationId || !sourceId) {
+    return;
+  }
+
+  function caseBackwardsDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
+    const a = castDraft(interactor.getAnchor(anchorType));
+    if (a && a.nodeId === destinationId && destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
+      a.graphemeIndex = 0;
+      a.orientation = CursorOrientation.Before;
+      services.interactors.notifyUpdated(interactor.id);
+    }
+  }
+
+  function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
+    const a = castDraft(interactor.getAnchor(anchorType));
+    if (a && a.nodeId === destinationId) {
+      if (a.graphemeIndex !== undefined) {
+        a.graphemeIndex = sourceOriginalChildCount + a.graphemeIndex;
+      }
+      services.interactors.notifyUpdated(interactor.id);
+    }
+  }
+
+  function caseBackwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
+    const a = castDraft(interactor.getAnchor(anchorType));
+    if (a && a.nodeId === sourceId) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      a.nodeId = destinationId!;
+      if (a.graphemeIndex !== undefined) {
+        a.graphemeIndex = destinationOriginalChildCount + a.graphemeIndex;
+      } else if (destinationOriginalChildCount > 0) {
+        a.graphemeIndex = destinationOriginalChildCount - 1;
+        // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
+        a.orientation = CursorOrientation.After;
+      }
+      services.interactors.notifyUpdated(interactor.id);
+    }
+  }
+
+  function caseForwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
+    const a = castDraft(interactor.getAnchor(anchorType));
+    if (a && a.nodeId === sourceId) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      a.nodeId = destinationId!;
+      services.interactors.notifyUpdated(interactor.id);
+
+      if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
+        a.graphemeIndex = destinationOriginalChildCount - 1;
+        a.orientation = CursorOrientation.After;
+      }
+    }
+  }
+
+  if (direction === FlowDirection.Backward) {
+    for (const i of Object.values(state.interactors)) {
+      caseBackwardsDestination(i, InteractorAnchorType.Main);
+      i.selectionAnchor && caseBackwardsDestination(i, InteractorAnchorType.SelectionAnchor);
+      caseBackwardSource(i, InteractorAnchorType.Main);
+      i.selectionAnchor && caseBackwardSource(i, InteractorAnchorType.SelectionAnchor);
+    }
+  } else {
+    for (const i of Object.values(state.interactors)) {
+      caseForwardDestination(i, InteractorAnchorType.Main);
+      i.selectionAnchor && caseForwardDestination(i, InteractorAnchorType.SelectionAnchor);
+      caseForwardSource(i, InteractorAnchorType.Main);
+      i.selectionAnchor && caseForwardSource(i, InteractorAnchorType.SelectionAnchor);
+    }
+  }
 }
 
 function moveBlockChildren(
