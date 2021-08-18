@@ -84,15 +84,29 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     if (!destinationNav) {
       continue;
     }
+    const sourceBlock = sourceNav.tip.node as Block;
     const destinationBlock = destinationNav.tip.node as Block;
     const destinationBlockOriginalChildCount = destinationBlock.children.length;
     const sourceBlockOriginalChildCount = (sourceNav.tip.node as Block).children.length;
 
     moveBlockChildren(sourceNav, destinationNav, services, direction);
 
+    adjustAnchorPositionsAfterBlockMerge(
+      state,
+      services,
+      direction,
+      sourceBlock,
+      sourceBlockOriginalChildCount,
+      destinationBlock,
+      destinationBlockOriginalChildCount
+    );
+
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction }));
 
     // This updates interactors so they are on their preferred cursor position
+    // The true means we will update all interactor anchors... we don't strictly
+    // need to do this but its easier to code than figuring out the boundary
+    // cases (interactors on the first/last child of the joined blocks).
     services.interactors.jiggleInteractors(services, true);
 
     if (payload.mergeCompatibleInlineTextsIfPossible) {
@@ -213,13 +227,47 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
       destinationInlineTextOriginalChildCount
     );
 
-    services.interactors.jiggleInteractors(services);
-
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction: payload.direction }));
 
-    return;
+    // This could be redundant with what deletePrimitive is doing...
+    services.interactors.jiggleInteractors(services);
   }
 );
+
+function adjustAnchorPositionsAfterBlockMerge(
+  state: Draft<EditorState>,
+  services: EditorOperationServices,
+  direction: FlowDirection,
+  source: Block,
+  sourceOriginalChildCount: number,
+  destination: Block,
+  destinationOriginalChildCount: number
+) {
+  const destinationId = NodeId.getId(destination);
+  const sourceId = NodeId.getId(source);
+
+  if (!destinationId || !sourceId) {
+    return;
+  }
+
+  function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
+    const a = castDraft(interactor.getAnchor(anchorType));
+    if (a && a.nodeId === destinationId && destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
+      a.orientation = CursorOrientation.After;
+      // This will get fixed by the jiggling
+      services.interactors.notifyUpdated(interactor.id);
+    }
+  }
+
+  if (direction === FlowDirection.Backward) {
+    // Nothing to do
+  } else {
+    for (const i of Object.values(state.interactors)) {
+      caseForwardDestination(i, InteractorAnchorType.Main);
+      i.selectionAnchor && caseForwardDestination(i, InteractorAnchorType.SelectionAnchor);
+    }
+  }
+}
 
 function adjustAnchorPositionsAfterInlineTextMerge(
   state: Draft<EditorState>,
@@ -280,8 +328,8 @@ function adjustAnchorPositionsAfterInlineTextMerge(
       services.interactors.notifyUpdated(interactor.id);
 
       if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
-        a.graphemeIndex = destinationOriginalChildCount - 1;
-        a.orientation = CursorOrientation.After;
+        a.graphemeIndex = 0; // destinationOriginalChildCount - 1;
+        a.orientation = CursorOrientation.Before;
       }
     }
   }

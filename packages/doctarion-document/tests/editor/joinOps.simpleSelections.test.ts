@@ -1,5 +1,5 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, FlowDirection, OPS } from "../../src/editor";
+import { Editor, FlowDirection, InteractorStatus, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
@@ -7,6 +7,7 @@ const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 const debugBlockSimple = DebugEditorHelpers.debugBlockSimple;
+const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -158,5 +159,27 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       PARAGRAPH > URL_LINK g.com > \\"GOOGLE\\"
       PARAGRAPH > TEXT {} > \\"DD\\""
     `);
+  });
+
+  it("when merging blocks forward, an anchor on a empty block is moved appropriately", () => {
+    const editor = new Editor({ document: testDoc1 });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
+    editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
+
+    editor.execute(
+      OPS.addInteractor({
+        at: { path: "2", orientation: After },
+        selectTo: {
+          path: "3/1/4",
+          orientation: After,
+        },
+        status: InteractorStatus.Inactive,
+        name: "β",
+      })
+    );
+
+    editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
+    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(`"α (F) 1/2/0 |>, β (I) 1/4/1 |> ◉◀◀◀ 2/1/4 |>"`);
   });
 });

@@ -107,7 +107,7 @@ PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
     });
 
-    xit("works with multiple interactors being targeted", () => {
+    it("works with multiple interactors being targeted", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
       editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
@@ -130,7 +130,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
       expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
-        `"1.M (I) <| 0/0/0, 2.M <| 1/0/0, 3.M (I) 1/1, 4.M (F) 1/2/0 |>, 5.M (I) 1/2/1 |>, 6.M (I) 1/4/1 |>, 7.M 2/0/1 |>, 6.Sa (I) 2/1/4 |>"`
+        `"α (F) 1/2/0 |>, β (I) <| 0/0/0, γ <| 1/0/0, δ (I) 1/1, ε (I) 1/2/1 |>, ζ 2/0/1 |>, η (I) 1/4/1 |> ◉◀◀◀ 2/1/4 |>"`
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
         "
@@ -155,7 +155,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
 });
 
 describe("joinInlineText for multiple interactors", () => {
-  xit("basically works", () => {
+  it("basically works", () => {
     let editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
     editor.execute(OPS.jump({ to: { path: "1/3/0", orientation: After } }));
@@ -187,6 +187,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
     );
 
     editor = new Editor({ document: testDoc1 });
+    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
     editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
     editor.execute(
       OPS.addInteractor({ at: { path: "1/0/0", orientation: After }, name: "β", status: InteractorStatus.Active })
@@ -212,7 +213,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
 CURSOR: 1/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
     expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
-      `"1.M (I) <| 0/0/0, 2.M 1/0/0 |>, 3.M (F) 1/0/1 |>, 4.M 1/0/2 |>, 5.M (I) 1/0/4 |>, 1.Sa (I) 3/0/0 |>"`
+      `"α (F) 1/0/1 |>, β 1/0/0 |>, γ 1/0/2 |>, δ (I) 1/0/4 |>, ε (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
   });
 });

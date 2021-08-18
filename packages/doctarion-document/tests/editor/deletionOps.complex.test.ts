@@ -22,12 +22,15 @@ describe("deleteAt with multiple interactors", () => {
       editor.execute(OPS.addInteractor({ at: { path: "1/2/0", orientation: After } }));
       editor.execute(OPS.addInteractor({ at: { path: "3/1/0", orientation: After } }));
       editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "H"
+
 INTR. #2
 CURSOR: <| 1/2/0
 SLICE:  PARAGRAPH > TEXT {} > "N"
+
 INTR. #3
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
@@ -41,24 +44,30 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
       );
       // 1) deletes final character in InlineText, then InlineText itself 2) deletes prior empty inline text, 3) no-op
       // Note 2 only works because of the passed option
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: 0
 SLICE:  HEADER ONE
+
 INTR. #2
 CURSOR: <| 1/1/0
 SLICE:  PARAGRAPH > TEXT {} > "N"
+
 INTR. #3
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
 
       editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
       // 1) first header is deleted, cursor now on MM, 2) deletes character from prior InlineText, 3) no-op
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: <| 0/0/0
 SLICE:  PARAGRAPH > TEXT {} > "M"
+
 INTR. #2
 CURSOR: <| 0/1/0
 SLICE:  PARAGRAPH > TEXT {} > "N"
+
 INTR. #3
 CURSOR: <| 2/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
@@ -70,23 +79,28 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "OOGLE"`);
       editor.execute(OPS.addInteractor({ at: { path: "3/1/3", orientation: After } }));
       editor.execute(OPS.addInteractor({ at: { path: "3/1/5", orientation: After } }));
       editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: 3/1/0 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"
+
 INTR. #2
 CURSOR: 3/1/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"
+
 INTR. #3
 CURSOR: 3/1/2 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOL"`);
 
       editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: 3/1
 SLICE:  PARAGRAPH > URL_LINK g.com > ""`);
 
       editor.execute(OPS.deleteAt({ target: TargetInteractors.All, direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`INTR. #1
+      expect(debugState(editor)).toEqual(`
+INTR. #1
 CURSOR: 3/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "CC"`);
       //       expect(debugBlockAtInteractor(editor, editor.interactorOrdering[0].id)).toEqual(`

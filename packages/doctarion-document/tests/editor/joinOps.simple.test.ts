@@ -229,8 +229,8 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: After } }));
       editor.execute(OPS.joinInlineText({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
-CURSOR: 1/1/1 |>
-SLICE:  PARAGRAPH > TEXT {} > "NN"`);
+CURSOR: 1/0/1 |>
+SLICE:  PARAGRAPH > TEXT {} > "MM"`);
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "MM"
 PARAGRAPH > TEXT {} > "NN"

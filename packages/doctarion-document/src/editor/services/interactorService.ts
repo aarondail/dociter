@@ -125,13 +125,17 @@ export class EditorInteractorService {
       if (!currentAnchor) {
         return;
       }
+      // console.log("updateAnchor", currentAnchor.nodeId, currentAnchor.graphemeIndex);
       const currentCursor = currentAnchor.toCursor(services);
+      // console.log("current cursor", currentCursor!.toString());
       if (currentCursor && !navHelper.navigateTo(currentCursor)) {
         return;
       }
-      // if (navHelper.navigateToNextCursorPosition()) {
-      //   navHelper.navigateToPrecedingCursorPosition();
-      // }
+      // console.log("nav hlepr", navHelper.cursor.toString());
+      if (navHelper.navigateToNextCursorPosition()) {
+        navHelper.navigateToPrecedingCursorPosition();
+      }
+      // console.log("nav hlepr2", navHelper.cursor.toString());
       const newAnchor = Anchor.fromCursorNavigator(navHelper);
       if (newAnchor) {
         if (anchorType === InteractorAnchorType.Main) {
