@@ -9,7 +9,7 @@ const { Inactive, Active } = InteractorStatus;
 
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
-const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
+const debugInteractors = DebugEditorHelpers.debugInteractors;
 const debugBlockSimple = DebugEditorHelpers.debugBlockSimple;
 
 const testDoc1 = doc(
@@ -41,7 +41,7 @@ describe("joinBlocks for multiple interactors", () => {
         })
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.Focused, direction: FlowDirection.Backward }));
-      expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+      expect(debugInteractors(editor)).toMatchInlineSnapshot(
         `"α (F) 0/3/0 |>, β <| 0/0/0, γ 0/0/1 |>, δ 0/2, ε 0/3/1 |>, ζ 0/4/1 |>, η 1 ◉◀◀◀ 2/1/4 |>"`
       );
     });
@@ -68,7 +68,7 @@ describe("joinBlocks for multiple interactors", () => {
         })
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Backward }));
-      expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+      expect(debugInteractors(editor)).toMatchInlineSnapshot(
         `"α (F) 0/3/0 |>, β (I) <| 0/0/0, γ 0/0/1 |>, δ (I) 0/2, ε (I) 0/3/1 |>, ζ 1/0/1 |>, η (I) 0/5/1 |> ◉◀◀◀ 1/1/4 |>"`
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
@@ -129,7 +129,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
         })
       );
       editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
-      expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+      expect(debugInteractors(editor)).toMatchInlineSnapshot(
         `"α (F) 1/2/0 |>, β (I) <| 0/0/0, γ <| 1/0/0, δ (I) 1/1, ε (I) 1/2/1 |>, ζ 2/0/1 |>, η (I) 1/4/1 |> ◉◀◀◀ 2/1/4 |>"`
       );
       expect(debugBlockSimple(editor.document, "0")).toMatchInlineSnapshot(`
@@ -182,7 +182,7 @@ describe("joinInlineText for multiple interactors", () => {
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/4 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
-    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+    expect(debugInteractors(editor)).toMatchInlineSnapshot(
       `"α (F) 1/0/4 |>, β 1/0/1 |>, γ 1/0/2 |>, δ (I) 1/0/4 |>, ε (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
 
@@ -212,7 +212,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAA"`);
-    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+    expect(debugInteractors(editor)).toMatchInlineSnapshot(
       `"α (F) 1/0/1 |>, β 1/0/0 |>, γ 1/0/2 |>, δ (I) 1/0/4 |>, ε (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
   });

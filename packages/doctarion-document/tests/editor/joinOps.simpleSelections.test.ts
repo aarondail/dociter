@@ -7,7 +7,7 @@ const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
 const debugBlockSimple = DebugEditorHelpers.debugBlockSimple;
-const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
+const debugInteractors = DebugEditorHelpers.debugInteractors;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -180,6 +180,6 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
     );
 
     editor.execute(OPS.joinBlocks({ target: TargetInteractors.AllActive, direction: FlowDirection.Forward }));
-    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(`"α (F) 1/2/0 |>, β (I) 1/4/1 |> ◉◀◀◀ 2/1/4 |>"`);
+    expect(debugInteractors(editor)).toMatchInlineSnapshot(`"α (F) 1/2/0 |>, β (I) 1/4/1 |> ◉◀◀◀ 2/1/4 |>"`);
   });
 });

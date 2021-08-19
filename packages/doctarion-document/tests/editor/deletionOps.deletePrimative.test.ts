@@ -6,7 +6,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 const { Before, On, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugCurrentBlock = DebugEditorHelpers.debugCurrentBlock;
-const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
+const debugInteractors = DebugEditorHelpers.debugInteractors;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -56,7 +56,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
       })
     );
     editor.execute(OPS.deletePrimitive({ path: "0" }));
-    expect(debugInteractorsTake2(editor)).toEqual("(no-name, #1) (F) 0, (no-name, #2) 0 ◉◀◀◀ <| 1/0/0");
+    expect(debugInteractors(editor)).toEqual("(no-name, #1) (F) 0, (no-name, #2) 0 ◉◀◀◀ <| 1/0/0");
   });
 
   it("deleting document works correctly", () => {

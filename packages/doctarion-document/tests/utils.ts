@@ -164,38 +164,7 @@ export const DebugEditorHelpers = (() => {
     }
   };
 
-  const debugInteractorOrdering = (editor: Editor) => {
-    const nav = new NodeNavigator(editor.document);
-
-    const realIdToFakeIdMap = new Map<string, number>();
-    return Object.values(editor.interactors)
-      .map((iPrime) => {
-        const id = iPrime.id;
-        let fakeId: number;
-        if (realIdToFakeIdMap.has(id)) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          fakeId = realIdToFakeIdMap.get(id)!;
-        } else {
-          fakeId = realIdToFakeIdMap.size + 1;
-          realIdToFakeIdMap.set(id, fakeId);
-        }
-        const interactor = editor.interactors[id];
-
-        // TODO fix this up
-        const a = interactor.getAnchor(InteractorAnchorType.Main);
-        const c = debugCursor(a, nav, editor.services).cursorDebug;
-        // const f = editor.focusedInteractor === interactor;
-        // const s =
-        //   f || interactor.status === InteractorStatus.Inactive
-        //     ? `(${f ? "F" : ""}${interactor.status === InteractorStatus.Inactive ? "I" : ""}) `
-        //     : "";
-        // return `${fakeId}.${cursorType === InteractorAnchorType.Main ? "M" : "Sa"} ${s}${c}`;
-        return `${fakeId}.${"M"} ${c}`;
-      })
-      .join(", ");
-  };
-
-  const debugInteractorsTake2 = (editor: Editor) => {
+  const debugInteractors = (editor: Editor) => {
     const nav = new NodeNavigator(editor.document);
 
     const interactors = lodash.sortBy(Object.values(editor.interactors), (i) => i.name);
@@ -341,14 +310,11 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
   };
 
   return {
+    debugInteractors,
     debugSoloNode,
-    // TODO delete
-    debugInteractorOrdering,
-    debugInteractorsTake2,
     debugEditorStateSimple,
     debugEditorStateLessSimple,
     debugCurrentBlock,
-    debugBlockAtInteractor,
     debugBlockSimple,
   };
 })();

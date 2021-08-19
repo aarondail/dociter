@@ -6,7 +6,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
 const debugEditorStateLessSimple = DebugEditorHelpers.debugEditorStateLessSimple;
-const debugInteractorsTake2 = DebugEditorHelpers.debugInteractorsTake2;
+const debugInteractors = DebugEditorHelpers.debugInteractors;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -180,7 +180,7 @@ MAIN CURSOR: 1/0/6 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAABB"
 S.A. CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMNNAABB"`);
-    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+    expect(debugInteractors(editor)).toMatchInlineSnapshot(
       `"(no-name, #1) (F) 1/0/0 |> ▶▶▶◉ 1/0/6 |>, (no-name, #2) (I) 1/0/4 |>, (no-name, #3) (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
 
@@ -203,7 +203,7 @@ MAIN CURSOR: 1/0/6 |>
 SLICE:  PARAGRAPH > TEXT {BOLD} > "MMNNAABB"
 S.A. CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {BOLD} > "MMNNAABB"`);
-    expect(debugInteractorsTake2(editor)).toMatchInlineSnapshot(
+    expect(debugInteractors(editor)).toMatchInlineSnapshot(
       `"(no-name, #1) (F) 1/0/0 |> ▶▶▶◉ 1/0/6 |>, (no-name, #2) (I) 1/0/4 |>, (no-name, #3) (I) <| 0/0/0 ◉◀◀◀ 3/0/0 |>"`
     );
   });

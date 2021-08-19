@@ -5,7 +5,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 
 const { Before, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
-const debugInteractors = DebugEditorHelpers.debugInteractorsTake2;
+const debugInteractors = DebugEditorHelpers.debugInteractors;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),

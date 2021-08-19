@@ -41,6 +41,8 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
 
   const targets = selectTargets(state, services, payload.target);
 
+  // Not really sure we need to do this... vs. just iterating through the
+  // targets and processing them immediately
   const toJoin = new LiftingPathMap<{ readonly block: NodeNavigator }>();
 
   for (const target of targets) {

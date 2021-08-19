@@ -5,7 +5,7 @@ import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph }
 
 const { After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateLessSimple;
-const debugBlockAtInteractor = DebugEditorHelpers.debugBlockAtInteractor;
+const debugBlockSimple = DebugEditorHelpers.debugBlockSimple;
 
 const testDoc1 = doc(
   header(HeaderLevel.One, inlineText("H1")),
@@ -103,9 +103,9 @@ SLICE:  PARAGRAPH > URL_LINK g.com > ""`);
 INTR. #1
 CURSOR: 3/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "CC"`);
-      //       expect(debugBlockAtInteractor(editor, editor.interactorOrdering[0].id)).toEqual(`
-      // PARAGRAPH > TEXT {} > "CC"
-      // PARAGRAPH > TEXT {} > "DD"`);
+      expect(debugBlockSimple(editor.document, "3")).toEqual(`
+PARAGRAPH > TEXT {} > "CC"
+PARAGRAPH > TEXT {} > "DD"`);
     });
 
     // it("overlapping targetted interactors are all updated and deduped", () => {});

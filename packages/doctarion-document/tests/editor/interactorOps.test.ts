@@ -5,7 +5,7 @@ import { Editor, InteractorStatus, OPS } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
-const { debugInteractorsTake2: debug } = DebugEditorHelpers;
+const { debugInteractors: debug } = DebugEditorHelpers;
 
 const cursorBefore = (path: string) => new Cursor(Path.parse(path), CursorOrientation.Before);
 const cursorAfter = (path: string) => new Cursor(Path.parse(path), CursorOrientation.After);
