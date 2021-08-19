@@ -184,7 +184,6 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
     }
   }
 
-  // TODO can make this better?
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
     services.execute(state, joinInlineTextPrimitive({ path: elements[0].inlineText.path, direction }));
   }

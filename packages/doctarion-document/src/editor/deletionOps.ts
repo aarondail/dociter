@@ -77,7 +77,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
         continue;
       }
 
-      // TODO this is probably a very inefficient way to deal with text.. and everything
+      // This is probably a very inefficient way to deal with text.. and everything
       const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
       const nav = new NodeNavigator(state.document);
       for (const chain of lodash.reverse(chainsToDelete)) {

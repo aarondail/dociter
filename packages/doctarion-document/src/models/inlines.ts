@@ -77,7 +77,7 @@ export class InlineUrlLink extends TextContainingNode {
   }
 }
 
-// TODO some text modifiers (e.g. size, background color?)
+// Do we need text modifiers (e.g. size, background color)?
 export class InlineEmoji extends ObjectNode {
   public readonly children: undefined;
   public readonly emojiId: string;

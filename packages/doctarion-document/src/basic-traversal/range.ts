@@ -1,5 +1,4 @@
 import { immerable } from "immer";
-import { filter } from "iter-tools";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
 import { Document, Node, NodeUtils } from "../models";
