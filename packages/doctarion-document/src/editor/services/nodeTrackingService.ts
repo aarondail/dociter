@@ -2,7 +2,7 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 import { Draft } from "immer";
 
 import { Node, ObjectNode } from "../../models";
-import { NodeId } from "../../working-document";
+import { NodeAssociatedData } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorState } from "../state";
 
@@ -27,10 +27,10 @@ export class EditorNodeTrackingService {
   }
 
   public notifyNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const id = NodeId.getId(node);
+    const id = NodeAssociatedData.getId(node);
     if (id && this.editorState) {
       if (newParent instanceof ObjectNode) {
-        this.editorState.nodeParentMap[id] = NodeId.getId(newParent);
+        this.editorState.nodeParentMap[id] = NodeAssociatedData.getId(newParent);
       } else {
         this.editorState.nodeParentMap[id] = newParent;
       }
@@ -44,9 +44,9 @@ export class EditorNodeTrackingService {
   public register(node: Node, parent: Node | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    NodeId.assignId(node, nodeId);
+    NodeAssociatedData.assignId(node, nodeId);
 
-    const parentId = parent && NodeId.getId(parent);
+    const parentId = parent && NodeAssociatedData.getId(parent);
     if (parentId && this.editorState) {
       this.editorState.nodeParentMap[nodeId] = parentId;
     }
@@ -59,7 +59,7 @@ export class EditorNodeTrackingService {
    * is just moved to a new parent, the `notifyNodeMoved` method should be called.
    */
   public unregister(node: Node): void {
-    const id = NodeId.getId(node);
+    const id = NodeAssociatedData.getId(node);
     if (id && this.editorState) {
       delete this.editorState.nodeParentMap[id];
     }

@@ -1,5 +1,5 @@
 import { Document } from "../models";
-import { NodeId } from "../working-document";
+import { NodeAssociatedData } from "../working-document";
 
 import { Interactor, InteractorId } from "./interactor";
 

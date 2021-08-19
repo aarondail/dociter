@@ -4,7 +4,7 @@ import lodash from "lodash";
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
-import { NodeId } from "../working-document";
+import { NodeAssociatedData } from "../working-document";
 
 import { Anchor } from "./anchor";
 import { InteractorAnchorType } from "./interactor";
@@ -193,13 +193,13 @@ function deleteNode(
     nodeNavigator.traverseDescendants(
       (n) => {
         services.tracking.unregister(n);
-        deletionHelper.markAnchorsOnNode(NodeId.getId(n) || "");
+        deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(n) || "");
       },
       { skipGraphemes: true }
     );
     if (parent && kids) {
       services.tracking.unregister(node);
-      deletionHelper.markAnchorsOnNode(NodeId.getId(node) || "");
+      deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(node) || "");
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       castDraft(kids).splice(kidIndex!, 1);
     } else {
@@ -213,7 +213,7 @@ function deleteNode(
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       castDraft(kids).splice(kidIndex!, 1);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      deletionHelper.markAnchorsRelativeToGrapheme(NodeId.getId(parent.node) || "", kidIndex!);
+      deletionHelper.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent.node) || "", kidIndex!);
     }
   }
   return undefined;

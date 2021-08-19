@@ -1,1 +1,1 @@
-export * from "./nodeId";
+export * from "./nodeAssociatedData";

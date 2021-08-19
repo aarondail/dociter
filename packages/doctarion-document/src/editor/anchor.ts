@@ -3,7 +3,7 @@ import { immerable } from "immer";
 import { Path, PathPart } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { NodeUtils } from "../models";
-import { NodeId } from "../working-document";
+import { NodeAssociatedData } from "../working-document";
 
 import { EditorServices } from "./services";
 
@@ -42,13 +42,13 @@ export class Anchor {
       if (!parent) {
         return undefined;
       }
-      const parentId = NodeId.getId(parent);
+      const parentId = NodeAssociatedData.getId(parent);
       if (!parentId) {
         return undefined;
       }
       return new Anchor(parentId, cursorNavigator.cursor.orientation, cursorNavigator.tip.pathPart.index);
     }
-    const nodeId = NodeId.getId(node);
+    const nodeId = NodeAssociatedData.getId(node);
     if (!nodeId) {
       return undefined;
     }

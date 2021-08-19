@@ -3,7 +3,7 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../../basic-traversal";
 import { Node, NodeUtils } from "../../models";
-import { NodeId } from "../../working-document";
+import { NodeAssociatedData } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorState } from "../state";
 
@@ -31,7 +31,7 @@ export class EditorNodeLookupService {
     if (idChain.length === 0) {
       return undefined;
     }
-    if (idChain[0] !== NodeId.getId(this.editorState.document)) {
+    if (idChain[0] !== NodeAssociatedData.getId(this.editorState.document)) {
       return undefined;
     }
     // Now walk the chain and find the matching nodes
@@ -40,7 +40,7 @@ export class EditorNodeLookupService {
       if (!children) {
         return undefined;
       }
-      const index = children.findIndex((n: Node) => NodeId.getId(n) === id);
+      const index = children.findIndex((n: Node) => NodeAssociatedData.getId(n) === id);
       if (index === -1) {
         return undefined;
       }

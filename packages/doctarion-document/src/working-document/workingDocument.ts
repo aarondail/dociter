@@ -5,14 +5,13 @@ import lodash from "lodash";
 import { Chain, NodeNavigator } from "../basic-traversal";
 import { Document, Node, NodeUtils, ObjectNode } from "../models";
 
-import { NodeId } from "./nodeId";
+import { Anchor } from "./anchor";
+import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
 export class WorkingDocument {
-  /**
-   * This should only be updated by the EditorNodeTrackingService.
-   */
+  private anchors: { [id: string /* AnchorId */]: Anchor | undefined };
   // This big long object may be a poor fit for immer... not sure what to do about it though
-  private nodeParentMap: { [id: string /* NodeId */]: NodeId | undefined };
+  private objectNodes: { [id: string /* NodeId */]: ObjectNode | undefined };
 
   public constructor(
     /**
@@ -22,7 +21,8 @@ export class WorkingDocument {
     public readonly document: immer.Draft<Document>,
     private readonly idGenerator: FriendlyIdGenerator
   ) {
-    this.nodeParentMap = {};
+    this.anchors = {};
+    this.objectNodes = {};
 
     // Assign initial node ids
     const n = new NodeNavigator(this.document);
@@ -46,7 +46,7 @@ export class WorkingDocument {
     if (idChain.length === 0) {
       return undefined;
     }
-    if (idChain[0] !== NodeId.getId(this.document)) {
+    if (idChain[0] !== NodeAssociatedData.getId(this.document)) {
       return undefined;
     }
     // Now walk the chain and find the matching nodes
@@ -55,7 +55,7 @@ export class WorkingDocument {
       if (!children) {
         return undefined;
       }
-      const index = children.findIndex((n: Node) => NodeId.getId(n) === id);
+      const index = children.findIndex((n: Node) => NodeAssociatedData.getId(n) === id);
       if (index === -1) {
         return undefined;
       }
@@ -86,9 +86,9 @@ export class WorkingDocument {
   private processNodeCreated(node: Node, parent: Node | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    NodeId.assignId(node, nodeId);
+    NodeAssociatedData.assignId(node, nodeId);
 
-    const parentId = parent && NodeId.getId(parent);
+    const parentId = parent && NodeAssociatedData.getId(parent);
     if (parentId) {
       this.nodeParentMap[nodeId] = parentId;
     }
@@ -101,17 +101,17 @@ export class WorkingDocument {
    * is just moved to a new parent, the `notifyNodeMoved` method should be called.
    */
   private processNodeDeleted(node: Node): void {
-    const id = NodeId.getId(node);
+    const id = NodeAssociatedData.getId(node);
     if (id) {
       delete this.nodeParentMap[id];
     }
   }
 
   private processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const id = NodeId.getId(node);
+    const id = NodeAssociatedData.getId(node);
     if (id) {
       if (newParent instanceof ObjectNode) {
-        this.nodeParentMap[id] = NodeId.getId(newParent);
+        this.nodeParentMap[id] = NodeAssociatedData.getId(newParent);
       } else {
         this.nodeParentMap[id] = newParent;
       }
