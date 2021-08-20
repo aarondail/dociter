@@ -1,6 +1,6 @@
 import { immerable } from "immer";
 
-import { NodeAssociatedData } from "./nodeAssociatedData";
+import { NodeId } from "./nodeAssociatedData";
 
 export type AnchorId = string;
 

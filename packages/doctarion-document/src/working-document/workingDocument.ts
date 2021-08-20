@@ -1,17 +1,16 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import * as immer from "immer";
-import lodash from "lodash";
 
 import { Chain, NodeNavigator } from "../basic-traversal";
 import { Document, Node, NodeUtils, ObjectNode } from "../models";
 
-import { Anchor } from "./anchor";
+import { Anchor, AnchorId, AnchorOrientation } from "./anchor";
 import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
 export class WorkingDocument {
-  private anchors: { [id: string /* AnchorId */]: Anchor | undefined };
+  private anchors: { [id: string /* AnchorId */]: immer.Draft<Anchor> | undefined };
   // This big long object may be a poor fit for immer... not sure what to do about it though
-  private objectNodes: { [id: string /* NodeId */]: ObjectNode | undefined };
+  private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
 
   public constructor(
     /**
@@ -27,10 +26,56 @@ export class WorkingDocument {
     // Assign initial node ids
     const n = new NodeNavigator(this.document);
     n.navigateToStartOfDfs();
-    this.processNodeCreated(n.tip.node, undefined);
-    n.traverseDescendants((node, parent) => this.processNodeCreated(node, parent), {
+    this.processNodeCreated(this.document, undefined);
+    n.traverseDescendants((node, parent) => this.processNodeCreated(node as immer.Draft<ObjectNode>, parent), {
       skipGraphemes: true,
     });
+  }
+
+  public createAnchor(
+    node: NodeId | ObjectNode,
+    orientation: AnchorOrientation,
+    graphemeIndex?: number,
+    name?: string
+  ): Anchor | undefined {
+    const anchorId = this.idGenerator.generateId("ANCHOR");
+    const nodeId = typeof node === "string" ? node : NodeAssociatedData.getId(node);
+    if (!nodeId) {
+      return undefined;
+    }
+    const resolvedNode = this.objectNodes[nodeId];
+    if (!resolvedNode) {
+      return undefined;
+    }
+    const anchor = new Anchor(anchorId, nodeId, orientation, graphemeIndex, name);
+    NodeAssociatedData.addAnchorToNode(resolvedNode, anchorId);
+    this.anchors[anchorId] = anchor;
+    return anchor;
+  }
+
+  public deleteAnchor(anchor: Anchor | AnchorId): void {
+    const id = typeof anchor === "string" ? anchor : anchor.id;
+    const resolvedAnchor = this.anchors[id];
+    if (!resolvedAnchor) {
+      return;
+    }
+    const oldNode = this.objectNodes[resolvedAnchor.nodeId];
+    if (oldNode) {
+      NodeAssociatedData.removeAnchorFromNode(oldNode, resolvedAnchor.id);
+    }
+    delete this.anchors[id];
+  }
+
+  public getAnchor(anchorId: AnchorId): Anchor | undefined {
+    return this.anchors[anchorId];
+  }
+
+  public getId(node: Node): NodeId | undefined {
+    return NodeAssociatedData.getId(node);
+  }
+
+  public getNode(nodeId: NodeId): ObjectNode | undefined {
+    return this.objectNodes[nodeId];
   }
 
   public lookupChainTo(nodeId: NodeId): Chain | undefined {
@@ -38,7 +83,11 @@ export class WorkingDocument {
     let currentId: string | undefined = nodeId;
     while (currentId) {
       idChain.push(currentId);
-      currentId = this.nodeParentMap[currentId];
+      const node = this.objectNodes[currentId];
+      if (!node) {
+        break;
+      }
+      currentId = NodeAssociatedData.getParentId(node);
     }
     idChain.reverse();
 
@@ -64,57 +113,69 @@ export class WorkingDocument {
     return nav.chain;
   }
 
-  /**
-   * This is not a constant time (or equivalent) operation, but it should be
-   * pretty fast.
-   */
   public lookupNode(nodeId: NodeId): Node | undefined {
-    const chain = this.lookupChainTo(nodeId);
-    if (chain) {
-      const lastLink = lodash.last(chain.links);
-      if (lastLink) {
-        return lastLink.node;
-      }
+    return this.objectNodes[nodeId];
+  }
+
+  public updateAnchor(
+    id: AnchorId,
+    updates: {
+      readonly node?: NodeId | ObjectNode;
+      readonly orientation?: AnchorOrientation;
+      readonly graphemeIndex?: number;
     }
-    return undefined;
+  ): void {
+    const anchor = this.anchors[id];
+    if (!anchor) {
+      return;
+    }
+
+    if (updates.node) {
+      const nodeId = typeof updates.node === "string" ? updates.node : NodeAssociatedData.getId(updates.node);
+      if (!nodeId) {
+        return undefined;
+      }
+      const newNode = this.objectNodes[nodeId];
+      if (!newNode) {
+        return undefined;
+      }
+      const oldNode = this.objectNodes[anchor.nodeId];
+      if (oldNode) {
+        NodeAssociatedData.removeAnchorFromNode(oldNode, anchor.id);
+      }
+      NodeAssociatedData.addAnchorToNode(newNode, anchor.id);
+    }
+    if (updates.orientation !== undefined) {
+      anchor.orientation = updates.orientation;
+    }
+    if (updates.graphemeIndex !== undefined) {
+      anchor.graphemeIndex = updates.graphemeIndex;
+    }
   }
 
   /**
    * When a new node is added to the document, this method must be called (the
    * exception being graphemes). This method assigns the node its id.
    */
-  private processNodeCreated(node: Node, parent: Node | undefined): NodeId | undefined {
+  private processNodeCreated(node: immer.Draft<ObjectNode>, parent: Node | NodeId | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
+    const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
     NodeAssociatedData.assignId(node, nodeId);
-
-    const parentId = parent && NodeAssociatedData.getId(parent);
-    if (parentId) {
-      this.nodeParentMap[nodeId] = parentId;
-    }
-
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
+    this.objectNodes[nodeId] = node;
     return nodeId;
   }
 
-  /**
-   * When a node is removed from the document this must be called. If the node
-   * is just moved to a new parent, the `notifyNodeMoved` method should be called.
-   */
-  private processNodeDeleted(node: Node): void {
-    const id = NodeAssociatedData.getId(node);
+  private processNodeDeleted(node: NodeId | ObjectNode): void {
+    const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
     if (id) {
-      delete this.nodeParentMap[id];
+      delete this.objectNodes[id];
     }
   }
 
   private processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const id = NodeAssociatedData.getId(node);
-    if (id) {
-      if (newParent instanceof ObjectNode) {
-        this.nodeParentMap[id] = NodeAssociatedData.getId(newParent);
-      } else {
-        this.nodeParentMap[id] = newParent;
-      }
-    }
+    const parentId = typeof newParent === "string" ? newParent : NodeAssociatedData.getId(newParent);
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
   }
 }
