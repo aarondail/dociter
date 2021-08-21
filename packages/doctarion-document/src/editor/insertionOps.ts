@@ -3,8 +3,8 @@ import * as immer from "immer";
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
 import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
-import { Anchor } from "./anchor";
 
+import { Anchor } from "./anchor";
 import { deleteAt } from "./deletionOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
@@ -51,15 +51,15 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
     } else if (NodeUtils.isInlineContainer(node)) {
       const newInline = new InlineText(graphemes);
       castDraft(node.children).push(castDraft(newInline));
-      services.tracking.register(newInline, node);
+      state.document2.processNodeCreated(newInline, node);
       nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       state.interactors[Object.keys(state.interactors)[0]].mainAnchor = castDraft(Anchor.fromCursorNavigator(nav))!;
     } else if (node instanceof Document) {
       const newInline = new InlineText(graphemes);
       const newParagraph = new ParagraphBlock(newInline);
-      services.tracking.register(newParagraph, node);
-      services.tracking.register(newInline, newParagraph);
+      state.document2.processNodeCreated(newParagraph, node);
+      state.document2.processNodeCreated(newInline, newParagraph);
       castDraft(node.children).push(castDraft(newParagraph));
       nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -74,7 +74,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
       if (NodeUtils.isInlineContainer(parent.node)) {
         const newInline = new InlineText(graphemes);
         castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
-        services.tracking.register(newInline, node);
+        state.document2.processNodeCreated(newInline, node);
         // refreshNavigator(nav);
         const oldNav = nav;
         nav = new CursorNavigator(state.document2.document, services.layout);
@@ -93,7 +93,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
       if (NodeUtils.isInlineContainer(parent.node)) {
         const newInline = new InlineText(graphemes);
         castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
-        services.tracking.register(newInline, node);
+        state.document2.processNodeCreated(newInline, node);
         nav.navigateToNextSiblingLastDescendantCursorPosition();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         state.interactors[Object.keys(state.interactors)[0]].mainAnchor = castDraft(Anchor.fromCursorNavigator(nav))!;
@@ -144,9 +144,9 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
       if (shouldSplitText) {
         // Split the inline text node
         const [leftInlineText, rightInlineText] = parent.node.split(index);
-        services.tracking.unregister(parent.node);
-        services.tracking.register(leftInlineText, grandParent.node);
-        services.tracking.register(rightInlineText, grandParent.node);
+        state.document2.processNodeDeleted(parent.node);
+        state.document2.processNodeCreated(leftInlineText, grandParent.node);
+        state.document2.processNodeCreated(rightInlineText, grandParent.node);
 
         castDraft(grandParent.node.children).splice(
           parent.pathPart.index,
@@ -171,7 +171,7 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
       destinationNavigator = startingNav.toNodeNavigator();
     } else if (startingNav.tip.node instanceof Document) {
       const p = new ParagraphBlock();
-      services.tracking.register(p, state.document2.document);
+      state.document2.processNodeCreated(p, state.document2.document);
       castDraft(state.document2.document.children).push(castDraft(p));
       destinationInsertIndex = 0;
       destinationBlock = p;
@@ -207,7 +207,7 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
     // And insert url link
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     castDraft(destinationBlock.children).splice(destinationInsertIndex, 0, castDraft(payload));
-    services.tracking.register(payload, destinationBlock);
+    state.document2.processNodeCreated(payload, destinationBlock);
 
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);

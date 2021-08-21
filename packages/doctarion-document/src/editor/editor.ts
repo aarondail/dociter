@@ -5,7 +5,7 @@ import { Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Interactor } from "../editor";
 import { Document } from "../models";
-import { WorkingDocument } from "../working-document";
+import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";
@@ -13,12 +13,9 @@ import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./oper
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import {
   EditorInteractorService,
-  EditorNodeLookupService,
-  EditorNodeTrackingService,
   EditorOperationServices,
   EditorProvidableServices,
   EditorProvidedServices,
-  EditorServices,
 } from "./services";
 import { EditorState } from "./state";
 
@@ -39,7 +36,6 @@ export interface EditorConfig {
 
 export class Editor {
   public readonly events: EditorEvents;
-  public readonly services: EditorServices;
 
   private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
@@ -59,7 +55,7 @@ export class Editor {
 
     const workingDocument = new WorkingDocument(initialDocument as immer.Draft<Document>, idGenerator);
     this.state = {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       document2: workingDocument as any,
       // Clone because we are going to assign ids which technically is a
       // mutation
@@ -75,10 +71,6 @@ export class Editor {
     this.operationServices = {
       idGenerator,
       interactors: new EditorInteractorService(this.events),
-      lookup: new EditorNodeLookupService(this.state, this.events),
-      // Note the tracking service is supposed to be used only during
-      // operations, which is why it wants mutable state
-      tracking: new EditorNodeTrackingService(idGenerator, this.events),
       execute: this.executeRelatedOperation,
     };
 
@@ -88,8 +80,6 @@ export class Editor {
         ...provideServices(this.operationServices, this.events),
       };
     }
-
-    this.services = this.operationServices;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.operationRegistry = new Map();
@@ -133,6 +123,10 @@ export class Editor {
 
   public get interactors(): EditorState["interactors"] {
     return this.state.interactors;
+  }
+
+  public get workingDocument(): ReadonlyWorkingDocument {
+    return this.state.document2;
   }
 
   public execute<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {

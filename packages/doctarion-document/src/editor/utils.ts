@@ -5,10 +5,11 @@ import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorState, Interactor, InteractorId } from "../editor";
 import { SimpleComparison } from "../miscUtils";
 import { Document, Node } from "../models";
+import { WorkingDocument } from "../working-document";
 
 import { Anchor } from "./anchor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorOperationServices, EditorServices } from "./services";
+import { EditorOperationServices } from "./services";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
 export type InteractorInputPosition = Anchor | Cursor | { path: Path | PathString; orientation: CursorOrientation };
@@ -19,13 +20,13 @@ export enum FlowDirection {
 }
 
 export function convertInteractorInputPositionToAnchor(
-  state: EditorState,
-  services: EditorServices,
+  state: Draft<EditorState>,
+  services: EditorOperationServices,
   position: InteractorInputPosition
 ): Anchor {
   const nav = new CursorNavigator(state.document2.document, services.layout);
   if (position instanceof Anchor) {
-    const cursor = position.toCursor(services);
+    const cursor = position.toCursor(state.document2);
     if (!cursor || !nav.navigateTo(cursor)) {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid anchor");
     }
@@ -46,7 +47,7 @@ export function convertInteractorInputPositionToAnchor(
 
 // TODO delete this?
 export function getCursorNavigatorAndValidate(
-  state: EditorState,
+  state: Draft<EditorState>,
   services: EditorOperationServices,
   // TODO change back
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -57,7 +58,7 @@ export function getCursorNavigatorAndValidate(
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
   } else {
-    const cursor = interactor.mainAnchor.toCursor(services);
+    const cursor = interactor.mainAnchor.toCursor(state.document2);
     if (!cursor || !nav.navigateTo(cursor)) {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
     }
@@ -71,9 +72,13 @@ export function getCursorNavigatorAndValidate(
  *
  * Throws an error if the navigation fails.
  */
-function getMainCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
+function getMainCursorNavigatorFor(
+  target: Interactor,
+  state: Draft<EditorState>,
+  services: EditorOperationServices
+): CursorNavigator {
   const nav = new CursorNavigator(state.document2.document, services.layout);
-  const cursor = target.mainAnchor.toCursor(services);
+  const cursor = target.mainAnchor.toCursor(state.document2);
   if (!cursor || !nav.navigateTo(cursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
@@ -91,11 +96,11 @@ function getMainCursorNavigatorFor(target: Interactor, state: EditorState, servi
  */
 function getBothCursorNavigatorsForSelection(
   target: Interactor,
-  state: EditorState,
-  services: EditorServices
+  state: Draft<EditorState>,
+  services: EditorOperationServices
 ): { navigators: [CursorNavigator, CursorNavigator]; isMainCursorFirst: boolean } | undefined {
-  const mainCursor = target.mainAnchor.toCursor(services);
-  const saCursor = target.selectionAnchor?.toCursor(services);
+  const mainCursor = target.mainAnchor.toCursor(state.document2);
+  const saCursor = target.selectionAnchor?.toCursor(state.document2);
 
   if (!mainCursor || !saCursor) {
     return;
@@ -143,13 +148,9 @@ export function getNavigatorToSiblingIfMatchingPredicate(
   return navPrime;
 }
 
-export function getRangeForSelection(
-  target: Interactor,
-  document: Document,
-  services: EditorServices
-): Range | undefined {
-  const mainCursor = target.mainAnchor.toCursor(services);
-  const saCursor = target.selectionAnchor?.toCursor(services);
+export function getRangeForSelection(target: Interactor, workingDocument: Draft<WorkingDocument>): Range | undefined {
+  const mainCursor = target.mainAnchor.toCursor(workingDocument);
+  const saCursor = target.selectionAnchor?.toCursor(workingDocument);
 
   if (!mainCursor || !saCursor) {
     return;
@@ -158,7 +159,7 @@ export function getRangeForSelection(
   const mainAfterSelect = mainCursor.compareTo(saCursor) === SimpleComparison.After;
   let fromPath = mainAfterSelect ? saCursor.path : mainCursor.path;
   if ((mainAfterSelect ? saCursor.orientation : mainCursor.orientation) === CursorOrientation.After) {
-    const n = new NodeNavigator(document);
+    const n = new NodeNavigator(workingDocument.document);
     if (!n.navigateTo(fromPath) || !n.navigateForwardsByDfs()) {
       return undefined;
     }
@@ -167,7 +168,7 @@ export function getRangeForSelection(
 
   let toPath = mainAfterSelect ? mainCursor.path : saCursor.path;
   if ((mainAfterSelect ? mainCursor.orientation : saCursor.orientation) === CursorOrientation.Before) {
-    const n = new NodeNavigator(document);
+    const n = new NodeNavigator(workingDocument.document);
     if (!n.navigateTo(toPath) || !n.navigateBackwardsByDfs()) {
       return undefined;
     }

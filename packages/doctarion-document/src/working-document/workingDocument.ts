@@ -3,17 +3,29 @@ import * as immer from "immer";
 import { immerable } from "immer";
 import lodash from "lodash";
 
-import { Chain, NodeNavigator } from "../basic-traversal";
-import { Document, Node, NodeKind, NodeUtils, ObjectNode, Text } from "../models";
+import { Chain, NodeNavigator, Path } from "../basic-traversal";
+import { Document, Node, NodeUtils, ObjectNode, Text } from "../models";
 
 import { Anchor, AnchorId, AnchorOrientation } from "./anchor";
 import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
+export interface ReadonlyWorkingDocument {
+  readonly document: Document;
+
+  debug(): void;
+  getAnchor(anchorId: AnchorId): Anchor | undefined;
+  getId(node: Node): NodeId | undefined;
+  lookupChainTo(nodeId: NodeId): Chain | undefined;
+  lookupPathTo(nodeId: NodeId): Path | undefined;
+  lookupNode(nodeId: NodeId): Node | undefined;
+}
+
 export class WorkingDocument {
+  public document: Document;
+
   [immerable] = true;
 
-  private anchors: { [id: string /* AnchorId */]: immer.Draft<Anchor> | undefined };
-  public document: Document;
+  private anchors: { [id: string /* AnchorId */]: Anchor | undefined };
   // This big long object may be a poor fit for immer... not sure what to do about it though
   // private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
   private nodeParentIdMap: { [id: string /* NodeId */]: NodeId | undefined };
@@ -55,7 +67,7 @@ export class WorkingDocument {
   }
 
   // TODO cleanup
-  public debug() {
+  public debug(): void {
     const p = (s2: string, ind: number) => {
       let s = "";
       for (let i = 0; i < ind; i++) {
@@ -144,12 +156,20 @@ export class WorkingDocument {
     return chain.tipNode;
   }
 
+  public lookupPathTo(nodeId: NodeId): Path | undefined {
+    const chain = this.lookupChainTo(nodeId);
+    if (chain) {
+      return chain.path;
+    }
+    return undefined;
+  }
+
   // TODO this and other process methods should be private
   /**
    * When a new node is added to the document, this method must be called (the
    * exception being graphemes). This method assigns the node its id.
    */
-  public processNodeCreated(node: immer.Draft<ObjectNode>, parent: Node | NodeId | undefined): NodeId | undefined {
+  public processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
     const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
@@ -204,10 +224,10 @@ export class WorkingDocument {
       NodeAssociatedData.addAnchorToNode(newNode, anchor.id);
     }
     if (updates.orientation !== undefined) {
-      anchor.orientation = updates.orientation;
+      immer.castDraft(anchor).orientation = updates.orientation;
     }
     if (updates.graphemeIndex !== undefined) {
-      anchor.graphemeIndex = updates.graphemeIndex;
+      immer.castDraft(anchor).graphemeIndex = updates.graphemeIndex;
     }
   }
 }

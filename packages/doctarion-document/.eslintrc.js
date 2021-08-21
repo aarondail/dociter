@@ -59,7 +59,7 @@ module.exports = {
       },
     ],
     "@typescript-eslint/restrict-template-expressions": [
-      "warning",
+      "warn",
       { allowNumber: true, allowNullish: true, allowAny: true, allowBoolean: true },
     ],
   },

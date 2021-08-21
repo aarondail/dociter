@@ -1,12 +1,12 @@
 import { Draft, castDraft } from "immer";
 
 import { CursorNavigator } from "../../cursor";
+import { WorkingDocument } from "../../working-document";
 import { Anchor } from "../anchor";
 import { EditorEvents } from "../events";
 import { Interactor, InteractorAnchorType, InteractorId } from "../interactor";
 import { EditorState } from "../state";
-
-import { EditorServices } from "./services";
+import { EditorOperationServices } from "./services";
 
 /**
  * This manages all interactors.
@@ -49,7 +49,11 @@ export class EditorInteractorService {
     delete this.editorState.interactors[id];
   }
 
-  public jiggleInteractors(services: EditorServices, all?: boolean): void {
+  public jiggleInteractors(
+    services: EditorOperationServices,
+    workingDocument: Draft<WorkingDocument>,
+    all?: boolean
+  ): void {
     if (!this.editorState) {
       return;
     }
@@ -61,7 +65,7 @@ export class EditorInteractorService {
       if (!currentAnchor) {
         return;
       }
-      const currentCursor = currentAnchor.toCursor(services);
+      const currentCursor = currentAnchor.toCursor(workingDocument);
       if (currentCursor && !navHelper.navigateTo(currentCursor)) {
         return;
       }

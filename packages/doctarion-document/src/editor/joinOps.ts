@@ -6,7 +6,7 @@ import lodash from "lodash";
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
-import { NodeAssociatedData } from "../working-document";
+import { NodeAssociatedData, WorkingDocument } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
 import { Interactor, InteractorAnchorType } from "./interactor";
@@ -91,7 +91,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     const destinationBlockOriginalChildCount = destinationBlock.children.length;
     const sourceBlockOriginalChildCount = (sourceNav.tip.node as Block).children.length;
 
-    moveBlockChildren(sourceNav, destinationNav, services, direction);
+    moveBlockChildren(state.document2, sourceNav, destinationNav, direction);
 
     adjustAnchorPositionsAfterBlockMerge(
       state,
@@ -109,7 +109,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     // The true means we will update all interactor anchors... we don't strictly
     // need to do this but its easier to code than figuring out the boundary
     // cases (interactors on the first/last child of the joined blocks).
-    services.interactors.jiggleInteractors(services, true);
+    services.interactors.jiggleInteractors(services, state.document2, true);
 
     if (payload.mergeCompatibleInlineTextsIfPossible) {
       mergeCompatibleInlineChildrenIfPossible(
@@ -231,7 +231,7 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction: payload.direction }));
 
     // This could be redundant with what deletePrimitive is doing...
-    services.interactors.jiggleInteractors(services);
+    services.interactors.jiggleInteractors(services, state.document2);
   }
 );
 
@@ -353,9 +353,9 @@ function adjustAnchorPositionsAfterInlineTextMerge(
 }
 
 function moveBlockChildren(
+  workingDocument: Draft<WorkingDocument>,
   sourceBlock: NodeNavigator,
   destinationBlock: NodeNavigator,
-  services: EditorOperationServices,
   direction: FlowDirection
 ): void {
   // This is ok because we only use this in one place where we already know the
@@ -366,12 +366,12 @@ function moveBlockChildren(
   if (direction === FlowDirection.Backward) {
     for (const child of source.children) {
       dest.children.push(child);
-      services.tracking.notifyNodeMoved(child, dest);
+      workingDocument.processNodeMoved(child, dest);
     }
   } else {
     for (const child of lodash.reverse(source.children)) {
       dest.children.unshift(child);
-      services.tracking.notifyNodeMoved(child, dest);
+      workingDocument.processNodeMoved(child, dest);
     }
   }
   castDraft(source).children = [];

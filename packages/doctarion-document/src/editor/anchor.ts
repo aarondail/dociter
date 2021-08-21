@@ -3,9 +3,7 @@ import { immerable } from "immer";
 import { Path, PathPart } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { NodeUtils } from "../models";
-import { NodeAssociatedData, NodeId } from "../working-document";
-
-import { EditorServices } from "./services";
+import { NodeAssociatedData, NodeId, ReadonlyWorkingDocument } from "../working-document";
 
 /**
  * An Anchor is very similar to a Cursor, but instead of being composed of a path and an orientation it
@@ -24,8 +22,8 @@ export class Anchor {
     public readonly graphemeIndex?: number
   ) {}
 
-  public toCursor(services: EditorServices): Cursor | undefined {
-    const path = services.lookup.getPathTo(this.nodeId);
+  public toCursor(workingDocument: ReadonlyWorkingDocument): Cursor | undefined {
+    const path = workingDocument.lookupPathTo(this.nodeId);
     if (!path) {
       return undefined;
     }

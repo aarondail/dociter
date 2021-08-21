@@ -13,8 +13,6 @@ import { EditorOperationCommand } from "../operation";
 import { EditorState } from "../state";
 
 import { EditorInteractorService } from "./interactorService";
-import { EditorNodeLookupService } from "./nodeLookupService";
-import { EditorNodeTrackingService } from "./nodeTrackingService";
 
 /**
  * These are all the services available to `EditorOperation` functions.
@@ -31,16 +29,6 @@ export interface EditorOperationServices {
     command: EditorOperationCommand<unknown, ReturnType, string>
   ) => ReturnType;
 
-  readonly lookup: EditorNodeLookupService;
-  /**
-   * The node tracking service is responsible for assigning node ids, and
-   * looking up nodes by id.
-   *
-   * Note: graphemes don't get assigned unique ids and that for ids to be
-   * assigned, this service has to be called. It doesn't automagically assign
-   * ids to new nodes.
-   */
-  readonly tracking: EditorNodeTrackingService;
   /**
    * The layout service doesn't layout nodes, rather it reports layout
    * information related to nodes.
@@ -53,17 +41,9 @@ export interface EditorOperationServices {
 }
 
 /**
- * These are all the services available to Editor users (not operations).
- */
-export type EditorServices = Pick<EditorOperationServices, "lookup" | "layout">;
-
-/**
  * These are services that the Editor provides in all cases.
  */
-export type EditorProvidedServices = Pick<
-  EditorOperationServices,
-  "tracking" | "lookup" | "idGenerator" | "interactors" | "execute"
->;
+export type EditorProvidedServices = Pick<EditorOperationServices, "idGenerator" | "interactors" | "execute">;
 
 /**
  * These are services that have to be provided to the Editor.

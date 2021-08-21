@@ -4,7 +4,7 @@ import lodash from "lodash";
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
-import { NodeAssociatedData } from "../working-document";
+import { NodeAssociatedData, WorkingDocument } from "../working-document";
 
 import { Anchor } from "./anchor";
 import { InteractorAnchorType } from "./interactor";
@@ -69,11 +69,9 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       // ------------------
       // SELECTION DELETION
       // ------------------
-      const chainsToDelete = getRangeForSelection(
-        target.interactor,
-        state.document2.document,
-        services
-      )?.getChainsCoveringRange(state.document2.document);
+      const chainsToDelete = getRangeForSelection(target.interactor, state.document2)?.getChainsCoveringRange(
+        state.document2.document
+      );
 
       if (!chainsToDelete) {
         continue;
@@ -84,7 +82,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       const nav = new NodeNavigator(state.document2.document);
       for (const chain of lodash.reverse(chainsToDelete)) {
         nav.navigateTo(chain.path);
-        deleteNode(nav, services, deletionHelper);
+        deleteNode(state.document2, nav, deletionHelper);
       }
 
       if (deletionHelper.hasAnchors()) {
@@ -105,7 +103,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
         // INDIVIDUAL NODE DELETION
         // ------------------------
         const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
-        deleteNode(result.nodeToDelete, services, deletionHelper);
+        deleteNode(state.document2, result.nodeToDelete, deletionHelper);
 
         if (deletionHelper.hasAnchors()) {
           const postDeleteAnchor = determineAnchorForAfterDeletion(navigator, options.direction);
@@ -156,7 +154,7 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString; di
       return;
     }
     const anchorMarker = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
-    deleteNode(nodeToDelete, services, anchorMarker);
+    deleteNode(state.document2, nodeToDelete, anchorMarker);
     if (anchorMarker.hasAnchors()) {
       const postDeleteAnchor = determineAnchorForAfterDeletion(
         originalCursorPosition,
@@ -175,8 +173,8 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString; di
  *    containing (ObjectNode) id and the grapheme index.
  */
 function deleteNode(
+  workingDocument: immer.Draft<WorkingDocument>,
   nodeNavigator: NodeNavigator,
-  services: EditorOperationServices,
   deletionHelper: InteractorAnchorDeletionHelper
 ) {
   const node = nodeNavigator.tip.node;
@@ -194,13 +192,13 @@ function deleteNode(
   if (!NodeUtils.isGrapheme(node)) {
     nodeNavigator.traverseDescendants(
       (n) => {
-        services.tracking.unregister(n);
+        workingDocument.processNodeDeleted(n);
         deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(n) || "");
       },
       { skipGraphemes: true }
     );
     if (parent && kids) {
-      services.tracking.unregister(node);
+      workingDocument.processNodeDeleted(node);
       deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(node) || "");
       castDraft(kids).splice(kidIndex, 1);
     } else {

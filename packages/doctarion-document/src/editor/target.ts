@@ -1,3 +1,5 @@
+import { Draft } from "immer";
+
 import { InteractorId, InteractorStatus } from "../editor";
 
 import { EditorState } from "./state";
@@ -28,7 +30,7 @@ export type OperationTarget =
 export function getTargetedInteractorIds(
   // identifier: OperationInteractorTarget,
   target: OperationTarget,
-  state: EditorState
+  state: Draft<EditorState>
 ): readonly InteractorId[] {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   const untypedIdentifier = target as any;

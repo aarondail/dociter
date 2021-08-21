@@ -5,15 +5,7 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
-import {
-  Anchor,
-  Editor,
-  EditorServices,
-  Interactor,
-  InteractorAnchorType,
-  InteractorId,
-  InteractorStatus,
-} from "../src/editor";
+import { Anchor, Editor, Interactor, InteractorAnchorType, InteractorId, InteractorStatus } from "../src/editor";
 import { SimpleComparison } from "../src/miscUtils";
 import {
   Block,
@@ -28,6 +20,7 @@ import {
   Text,
   TextModifiers,
 } from "../src/models";
+import { ReadonlyWorkingDocument } from "../src/working-document";
 
 export const doc = (...blocks: readonly Block[]): Document => new Document("title", ...blocks);
 export const header = (...args: any[]) => new HeaderBlock(...args);
@@ -143,9 +136,9 @@ export const DebugEditorHelpers = (() => {
   const debugCursor = (
     anchor: Anchor | undefined,
     testingNavigator: NodeNavigator,
-    services: EditorServices
+    workingDocument: ReadonlyWorkingDocument
   ): { cursorDebug: string; chain: Chain | undefined; cursor: Cursor | undefined } => {
-    const cursor = anchor?.toCursor(services);
+    const cursor = anchor?.toCursor(workingDocument);
     if (cursor && testingNavigator.navigateTo(cursor.path)) {
       const cursorDebug =
         cursor.orientation === CursorOrientation.Before
@@ -171,14 +164,14 @@ export const DebugEditorHelpers = (() => {
     return interactors
       .map((i, index) => {
         const a = i.getAnchor(InteractorAnchorType.Main);
-        const c = debugCursor(a, nav, editor.services);
+        const c = debugCursor(a, nav, editor.workingDocument);
         const cursorDebug = c.cursorDebug;
 
         let saCursorDebug;
         let mainFirst = false;
         if (i.isSelection) {
           const sa = i.getAnchor(InteractorAnchorType.SelectionAnchor);
-          const saC = debugCursor(sa, nav, editor.services);
+          const saC = debugCursor(sa, nav, editor.workingDocument);
           saCursorDebug = saC.cursorDebug;
           mainFirst = !!(c.cursor && saC.cursor && c.cursor.compareTo(saC.cursor) !== SimpleComparison.After);
         }
@@ -202,11 +195,15 @@ export const DebugEditorHelpers = (() => {
   const debugEditorStateForInteractor = (editor: Editor, interactor: Interactor, description?: string) => {
     const nav = new NodeNavigator(editor.document);
     if (interactor.isSelection) {
-      const { cursorDebug: cursorDebug1, chain: chain1 } = debugCursor(interactor.mainAnchor, nav, editor.services);
+      const { cursorDebug: cursorDebug1, chain: chain1 } = debugCursor(
+        interactor.mainAnchor,
+        nav,
+        editor.workingDocument
+      );
       const { cursorDebug: cursorDebug2, chain: chain2 } = debugCursor(
         interactor.selectionAnchor,
         nav,
-        editor.services
+        editor.workingDocument
       );
       let s1 = "";
       if (chain1) {
@@ -240,7 +237,7 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
       return s1 + s2;
     } else {
-      const { cursorDebug, chain } = debugCursor(interactor.mainAnchor, nav, editor.services);
+      const { cursorDebug, chain } = debugCursor(interactor.mainAnchor, nav, editor.workingDocument);
       if (chain) {
         const elementString = debugElementChainSimple(chain);
         return `${description || ""}
@@ -279,11 +276,11 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
 
   const debugBlockAtInteractor = (editor: Editor, interactorId: InteractorId): string => {
     const i = editor.interactors[interactorId];
-    const mainCursor = i.mainAnchor.toCursor(editor.services);
+    const mainCursor = i.mainAnchor.toCursor(editor.workingDocument);
     if (!mainCursor) {
       throw Error("Could not convert main anchor into cursor");
     }
-    const selectionAnchorCursor = i.selectionAnchor?.toCursor(editor.services);
+    const selectionAnchorCursor = i.selectionAnchor?.toCursor(editor.workingDocument);
     if (selectionAnchorCursor) {
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       const path1 = "" + mainCursor.path?.parts[0].index;

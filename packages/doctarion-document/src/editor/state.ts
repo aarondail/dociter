@@ -1,11 +1,9 @@
-import { Draft } from "immer";
-
 import { WorkingDocument } from "../working-document";
 
 import { Interactor, InteractorId } from "./interactor";
 
 export interface EditorState {
-  readonly document2: Draft<WorkingDocument>;
+  readonly document2: WorkingDocument;
 
   readonly focusedInteractorId: InteractorId | undefined;
   /**
