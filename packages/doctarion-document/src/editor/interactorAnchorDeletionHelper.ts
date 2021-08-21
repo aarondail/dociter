@@ -1,4 +1,4 @@
-import { NodeAssociatedData } from "../working-document";
+import { NodeId } from "../working-document";
 
 import { Interactor, InteractorAnchorType } from "./interactor";
 

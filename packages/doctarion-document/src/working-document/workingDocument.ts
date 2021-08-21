@@ -1,32 +1,33 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import * as immer from "immer";
+import { immerable } from "immer";
+import lodash from "lodash";
 
 import { Chain, NodeNavigator } from "../basic-traversal";
-import { Document, Node, NodeUtils, ObjectNode } from "../models";
+import { Document, Node, NodeKind, NodeUtils, ObjectNode, Text } from "../models";
 
 import { Anchor, AnchorId, AnchorOrientation } from "./anchor";
 import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
 export class WorkingDocument {
-  private anchors: { [id: string /* AnchorId */]: immer.Draft<Anchor> | undefined };
-  // This big long object may be a poor fit for immer... not sure what to do about it though
-  private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
+  [immerable] = true;
 
-  public constructor(
-    /**
-     * This document is expected to be in-use by only one WorkingDocument
-     * instance at a time.
-     */
-    public readonly document: immer.Draft<Document>,
-    private readonly idGenerator: FriendlyIdGenerator
-  ) {
+  private anchors: { [id: string /* AnchorId */]: immer.Draft<Anchor> | undefined };
+  public document: Document;
+  // This big long object may be a poor fit for immer... not sure what to do about it though
+  // private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
+  private nodeParentIdMap: { [id: string /* NodeId */]: NodeId | undefined };
+
+  public constructor(document: Document, private readonly idGenerator: FriendlyIdGenerator) {
+    this.document = lodash.cloneDeep(document);
     this.anchors = {};
-    this.objectNodes = {};
+    this.nodeParentIdMap = {};
 
     // Assign initial node ids
     const n = new NodeNavigator(this.document);
     n.navigateToStartOfDfs();
-    this.processNodeCreated(this.document, undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.processNodeCreated(this.document as any, undefined);
     n.traverseDescendants((node, parent) => this.processNodeCreated(node as immer.Draft<ObjectNode>, parent), {
       skipGraphemes: true,
     });
@@ -43,7 +44,7 @@ export class WorkingDocument {
     if (!nodeId) {
       return undefined;
     }
-    const resolvedNode = this.objectNodes[nodeId];
+    const resolvedNode = this.lookupNode(nodeId);
     if (!resolvedNode) {
       return undefined;
     }
@@ -53,13 +54,43 @@ export class WorkingDocument {
     return anchor;
   }
 
+  // TODO cleanup
+  public debug() {
+    const p = (s2: string, ind: number) => {
+      let s = "";
+      for (let i = 0; i < ind; i++) {
+        s += " ";
+      }
+      s += s2;
+      s += "\n";
+      return s;
+    };
+
+    const debugPrime = (node: ObjectNode, ind: number) => {
+      let s = "";
+      s += p(`<${NodeAssociatedData.getId(node)} parent=${NodeAssociatedData.getParentId(node)}>`, ind);
+      if (NodeUtils.isTextContainer(node)) {
+        s += p('"' + Text.toString(node.children) + '"', ind + 2);
+      } else {
+        for (const k of NodeUtils.getChildren(node) || []) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          s += debugPrime(k as any, ind + 2);
+        }
+      }
+      s += p(`</${NodeAssociatedData.getId(node)}>`, ind);
+      return s;
+    };
+
+    console.log(debugPrime(this.document, 0));
+  }
+
   public deleteAnchor(anchor: Anchor | AnchorId): void {
     const id = typeof anchor === "string" ? anchor : anchor.id;
     const resolvedAnchor = this.anchors[id];
     if (!resolvedAnchor) {
       return;
     }
-    const oldNode = this.objectNodes[resolvedAnchor.nodeId];
+    const oldNode = this.lookupNode(resolvedAnchor.nodeId);
     if (oldNode) {
       NodeAssociatedData.removeAnchorFromNode(oldNode, resolvedAnchor.id);
     }
@@ -74,20 +105,12 @@ export class WorkingDocument {
     return NodeAssociatedData.getId(node);
   }
 
-  public getNode(nodeId: NodeId): ObjectNode | undefined {
-    return this.objectNodes[nodeId];
-  }
-
   public lookupChainTo(nodeId: NodeId): Chain | undefined {
     const idChain = [];
     let currentId: string | undefined = nodeId;
     while (currentId) {
       idChain.push(currentId);
-      const node = this.objectNodes[currentId];
-      if (!node) {
-        break;
-      }
-      currentId = NodeAssociatedData.getParentId(node);
+      currentId = this.nodeParentIdMap[currentId];
     }
     idChain.reverse();
 
@@ -114,7 +137,42 @@ export class WorkingDocument {
   }
 
   public lookupNode(nodeId: NodeId): Node | undefined {
-    return this.objectNodes[nodeId];
+    const chain = this.lookupChainTo(nodeId);
+    if (!chain) {
+      return undefined;
+    }
+    return chain.tipNode;
+  }
+
+  // TODO this and other process methods should be private
+  /**
+   * When a new node is added to the document, this method must be called (the
+   * exception being graphemes). This method assigns the node its id.
+   */
+  public processNodeCreated(node: immer.Draft<ObjectNode>, parent: Node | NodeId | undefined): NodeId | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
+    const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
+    NodeAssociatedData.assignId(node, nodeId);
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
+    this.nodeParentIdMap[nodeId] = parentId;
+    return nodeId;
+  }
+
+  public processNodeDeleted(node: NodeId | ObjectNode): void {
+    const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
+    if (id) {
+      delete this.nodeParentIdMap[id];
+    }
+  }
+
+  public processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
+    const nodeId = NodeAssociatedData.getId(node);
+    const parentId = typeof newParent === "string" ? newParent : NodeAssociatedData.getId(newParent);
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
+    if (nodeId) {
+      this.nodeParentIdMap[nodeId] = parentId;
+    }
   }
 
   public updateAnchor(
@@ -135,11 +193,11 @@ export class WorkingDocument {
       if (!nodeId) {
         return undefined;
       }
-      const newNode = this.objectNodes[nodeId];
+      const newNode = this.nodeParentIdMap[nodeId];
       if (!newNode) {
         return undefined;
       }
-      const oldNode = this.objectNodes[anchor.nodeId];
+      const oldNode = this.nodeParentIdMap[anchor.nodeId];
       if (oldNode) {
         NodeAssociatedData.removeAnchorFromNode(oldNode, anchor.id);
       }
@@ -151,31 +209,5 @@ export class WorkingDocument {
     if (updates.graphemeIndex !== undefined) {
       anchor.graphemeIndex = updates.graphemeIndex;
     }
-  }
-
-  /**
-   * When a new node is added to the document, this method must be called (the
-   * exception being graphemes). This method assigns the node its id.
-   */
-  private processNodeCreated(node: immer.Draft<ObjectNode>, parent: Node | NodeId | undefined): NodeId | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
-    NodeAssociatedData.assignId(node, nodeId);
-    parentId && NodeAssociatedData.assignParentId(node, parentId);
-    this.objectNodes[nodeId] = node;
-    return nodeId;
-  }
-
-  private processNodeDeleted(node: NodeId | ObjectNode): void {
-    const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
-    if (id) {
-      delete this.objectNodes[id];
-    }
-  }
-
-  private processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const parentId = typeof newParent === "string" ? newParent : NodeAssociatedData.getId(newParent);
-    parentId && NodeAssociatedData.assignParentId(node, parentId);
   }
 }

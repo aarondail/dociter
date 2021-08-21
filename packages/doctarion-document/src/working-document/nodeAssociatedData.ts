@@ -11,9 +11,22 @@ import { AnchorId } from "./anchor";
 
 export type NodeId = string;
 
-const nodeIdSymbol = Symbol("NodeId");
-const nodeParentIdSymbol = Symbol("NodeParentId");
-const nodeAnchorsSymbol = Symbol("NodeAnchor");
+const symbol = Symbol("WorkingDocumentNodeAssociatedData");
+
+interface NodeAssociatedData {
+  id?: NodeId;
+  parentId?: NodeId;
+  anchorIds?: AnchorId[];
+}
+
+const getData = (node: Node): NodeAssociatedData => {
+  let data = (node as any)[symbol];
+  if (!data) {
+    data = {};
+    (node as any)[symbol] = data;
+  }
+  return data;
+};
 
 export const NodeAssociatedData = {
   /**
@@ -23,7 +36,7 @@ export const NodeAssociatedData = {
     if (typeof node === "string") {
       throw new Error("Cannot assign a node id to graphemes.");
     }
-    (node as any)[nodeIdSymbol] = id;
+    getData(node).id = id;
   },
 
   /**
@@ -31,44 +44,43 @@ export const NodeAssociatedData = {
    * note that graphemes cannot have node ids.
    */
   getId(node: Node): NodeId | undefined {
-    return (node as any)[nodeIdSymbol];
+    return getData(node).id;
   },
 
   assignParentId(node: Node, id: NodeId): void {
     if (typeof node === "string") {
       throw new Error("Cannot assign a parent node id to graphemes.");
     }
-    (node as any)[nodeParentIdSymbol] = id;
+    getData(node).parentId = id;
   },
 
   getParentId(node: Node): NodeId | undefined {
-    return (node as any)[nodeParentIdSymbol];
+    return getData(node).parentId;
   },
 
   addAnchorToNode(node: Node, id: AnchorId): void {
     if (typeof node === "string") {
       throw new Error("Cannot assign an anchor to graphemes.");
     }
-    let array = (node as any)[nodeAnchorsSymbol] as any;
-    if (!array) {
-      array = [];
-      (node as any)[nodeAnchorsSymbol] = array;
+    const data = getData(node);
+    if (!data.anchorIds) {
+      data.anchorIds = [];
     }
-    array.push(id);
+    data.anchorIds.push(id);
   },
 
   getAnchorsAtNode(node: Node): readonly AnchorId[] | undefined {
     if (typeof node === "string") {
       throw new Error("Cannot get anchors on graphemes.");
     }
-    return (node as any)[nodeAnchorsSymbol] as any;
+    return getData(node).anchorIds;
   },
 
   removeAnchorFromNode(node: Node, id: AnchorId): void {
     if (typeof node === "string") {
       throw new Error("Cannot remove an anchor from graphemes.");
     }
-    const array = (node as any)[nodeAnchorsSymbol] as any;
+    const array = getData(node).anchorIds;
     if (!array) {
       return;
     }

@@ -3,7 +3,7 @@ import { immerable } from "immer";
 import { Path, PathPart } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { NodeUtils } from "../models";
-import { NodeAssociatedData } from "../working-document";
+import { NodeAssociatedData, NodeId } from "../working-document";
 
 import { EditorServices } from "./services";
 

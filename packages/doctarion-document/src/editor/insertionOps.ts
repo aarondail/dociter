@@ -77,7 +77,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
         services.tracking.register(newInline, node);
         // refreshNavigator(nav);
         const oldNav = nav;
-        nav = new CursorNavigator(state.document, services.layout);
+        nav = new CursorNavigator(state.document2.document, services.layout);
         nav.navigateToUnchecked(oldNav.cursor);
         nav.navigateToLastDescendantCursorPosition();
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -171,8 +171,8 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
       destinationNavigator = startingNav.toNodeNavigator();
     } else if (startingNav.tip.node instanceof Document) {
       const p = new ParagraphBlock();
-      services.tracking.register(p, state.document);
-      castDraft(state.document.children).push(castDraft(p));
+      services.tracking.register(p, state.document2.document);
+      castDraft(state.document2.document.children).push(castDraft(p));
       destinationInsertIndex = 0;
       destinationBlock = p;
       destinationNavigator = startingNav.toNodeNavigator();
@@ -211,7 +211,7 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
 
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);
-    const updatedCursorNav = new CursorNavigator(state.document, services.layout);
+    const updatedCursorNav = new CursorNavigator(state.document2.document, services.layout);
     updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorOrientation.Before);
     updatedCursorNav.navigateToLastDescendantCursorPosition();
 

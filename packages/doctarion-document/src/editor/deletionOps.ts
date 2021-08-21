@@ -69,9 +69,11 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       // ------------------
       // SELECTION DELETION
       // ------------------
-      const chainsToDelete = getRangeForSelection(target.interactor, state.document, services)?.getChainsCoveringRange(
-        state.document
-      );
+      const chainsToDelete = getRangeForSelection(
+        target.interactor,
+        state.document2.document,
+        services
+      )?.getChainsCoveringRange(state.document2.document);
 
       if (!chainsToDelete) {
         continue;
@@ -79,7 +81,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
       // This is probably a very inefficient way to deal with text.. and everything
       const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
-      const nav = new NodeNavigator(state.document);
+      const nav = new NodeNavigator(state.document2.document);
       for (const chain of lodash.reverse(chainsToDelete)) {
         nav.navigateTo(chain.path);
         deleteNode(nav, services, deletionHelper);
@@ -147,8 +149,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 export const deletePrimitive = createCoreOperation<{ path: Path | PathString; direction?: FlowDirection }>(
   "delete/primitive",
   (state, services, payload) => {
-    const nodeToDelete = new NodeNavigator(state.document);
-    const originalCursorPosition = new CursorNavigator(state.document, services.layout);
+    const nodeToDelete = new NodeNavigator(state.document2.document);
+    const originalCursorPosition = new CursorNavigator(state.document2.document, services.layout);
 
     if (!nodeToDelete.navigateTo(payload.path) || !originalCursorPosition.navigateTo(payload.path)) {
       return;
@@ -200,8 +202,7 @@ function deleteNode(
     if (parent && kids) {
       services.tracking.unregister(node);
       deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(node) || "");
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      castDraft(kids).splice(kidIndex!, 1);
+      castDraft(kids).splice(kidIndex, 1);
     } else {
       // This is the Document node case
       castDraft(node).children = [];
@@ -210,10 +211,8 @@ function deleteNode(
     // This is the grapheme case, note that at this point we always expect kids
     // to be defined
     if (parent && kids) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      castDraft(kids).splice(kidIndex!, 1);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      deletionHelper.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent.node) || "", kidIndex!);
+      castDraft(kids).splice(kidIndex, 1);
+      deletionHelper.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent.node) || "", kidIndex);
     }
   }
   return undefined;

@@ -6,7 +6,7 @@ import lodash from "lodash";
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
-import { NodeId } from "../working-document";
+import { NodeAssociatedData } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
 import { Interactor, InteractorAnchorType } from "./interactor";
@@ -56,7 +56,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
       }
 
       new Range(startBlock.path, endBlock.path).walk(
-        state.document,
+        state.document2.document,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
@@ -160,7 +160,7 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
       }
 
       new Range(startInlineTextNav.path, endInlineTextNav.path).walk(
-        state.document,
+        state.document2.document,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
@@ -192,7 +192,7 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
 export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathString; direction: FlowDirection }>(
   "join/inlineText/primitive",
   (state, services, payload) => {
-    const sourceNav = new NodeNavigator(state.document);
+    const sourceNav = new NodeNavigator(state.document2.document);
 
     if (!sourceNav.navigateTo(payload.path) || !(sourceNav.tip.node instanceof InlineText)) {
       return;
@@ -244,8 +244,8 @@ function adjustAnchorPositionsAfterBlockMerge(
   destination: Block,
   destinationOriginalChildCount: number
 ) {
-  const destinationId = NodeId.getId(destination);
-  const sourceId = NodeId.getId(source);
+  const destinationId = NodeAssociatedData.getId(destination);
+  const sourceId = NodeAssociatedData.getId(source);
 
   if (!destinationId || !sourceId) {
     return;
@@ -279,8 +279,8 @@ function adjustAnchorPositionsAfterInlineTextMerge(
   destination: InlineText,
   destinationOriginalChildCount: number
 ) {
-  const destinationId = NodeId.getId(destination);
-  const sourceId = NodeId.getId(source);
+  const destinationId = NodeAssociatedData.getId(destination);
+  const sourceId = NodeAssociatedData.getId(source);
 
   if (!destinationId || !sourceId) {
     return;
@@ -423,7 +423,7 @@ function mergeCompatibleInlineChildrenIfPossible(
     return;
   }
 
-  const inlineTextNav = new NodeNavigator(state.document);
+  const inlineTextNav = new NodeNavigator(state.document2.document);
   inlineTextNav.navigateTo(path);
   if (leftChild.children.length === 0 && rightChild.children.length > 0) {
     inlineTextNav.navigateToChild(leftChildIndex + 1);

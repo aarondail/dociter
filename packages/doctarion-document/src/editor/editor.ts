@@ -1,11 +1,11 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import * as immer from "immer";
-import lodash from "lodash";
 
-import { NodeNavigator, Path } from "../basic-traversal";
+import { Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Interactor } from "../editor";
 import { Document } from "../models";
+import { WorkingDocument } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";
@@ -57,13 +57,14 @@ export class Editor {
   }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
 
+    const workingDocument = new WorkingDocument(initialDocument as immer.Draft<Document>, idGenerator);
     this.state = {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      document2: workingDocument as any,
       // Clone because we are going to assign ids which technically is a
       // mutation
-      document: lodash.cloneDeep(initialDocument),
       interactors: {},
       focusedInteractorId: undefined,
-      nodeParentMap: {},
     };
     this.historyList = [];
     this.futureList = [];
@@ -101,25 +102,11 @@ export class Editor {
       }
     }
 
-    // TODO cheating here for now, so that node ids get setup correctly
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-    this.operationServices.tracking.editorState = this.state as any;
-
-    // Assign initial ids... note this must happen before the calls to update
-    // because after that the objects in the state are no longer extensible (and
-    // we can't assign ids to them). I think this is something immer does.
-    const n = new NodeNavigator(this.state.document);
-    n.navigateToStartOfDfs();
-    this.operationServices.tracking.register(n.tip.node, undefined);
-    n.traverseDescendants((node, parent) => this.operationServices.tracking.register(node, parent), {
-      skipGraphemes: true,
-    });
-
     // Create first interactor and focus it
     if (!omitDefaultInteractor) {
       let cursor = initialCursor;
       if (!cursor) {
-        const cn = new CursorNavigator(this.state.document, undefined);
+        const cn = new CursorNavigator(this.state.document2.document, undefined);
         cn.navigateTo(new Path([]), CursorOrientation.On);
         cn.navigateToNextCursorPosition();
         cn.navigateToPrecedingCursorPosition();
@@ -137,7 +124,7 @@ export class Editor {
   }
 
   public get document(): Document {
-    return this.state.document;
+    return this.state.document2.document;
   }
 
   public get history(): readonly EditorState[] {
@@ -171,8 +158,8 @@ export class Editor {
       this.futureList.splice(0, this.futureList.length);
     }
     this.eventEmitters.operationHasCompleted.emit(this.state);
-    if (newState.document !== oldState.document) {
-      this.eventEmitters.documentHasBeenUpdated.emit(this.state.document);
+    if (newState.document2.document !== oldState.document2.document) {
+      this.eventEmitters.documentHasBeenUpdated.emit(this.state.document2.document);
     }
 
     return result;

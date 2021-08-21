@@ -58,5 +58,9 @@ module.exports = {
         format: ["PascalCase"],
       },
     ],
+    "@typescript-eslint/restrict-template-expressions": [
+      "warning",
+      { allowNumber: true, allowNullish: true, allowAny: true, allowBoolean: true },
+    ],
   },
 };

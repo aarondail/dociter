@@ -1,24 +1,15 @@
-import { Document } from "../models";
-import { NodeAssociatedData } from "../working-document";
+import { Draft } from "immer";
+
+import { WorkingDocument } from "../working-document";
 
 import { Interactor, InteractorId } from "./interactor";
 
 export interface EditorState {
-  readonly document: Document;
+  readonly document2: Draft<WorkingDocument>;
 
   readonly focusedInteractorId: InteractorId | undefined;
   /**
    * This should only be updated by using the EditorInteractorService.
    */
   readonly interactors: { readonly [id: string /* InteractorId */]: Interactor };
-  /**
-   * This should only be updated by using the EditorInteractorService.
-   */
-  // readonly interactorOrdering: readonly InteractorOrderingEntry[];
-
-  /**
-   * This should only be updated by the EditorNodeTrackingService.
-   */
-  // This big long object may be a poor fit for immer... not sure what to do about it though
-  readonly nodeParentMap: { readonly [id: string /* NodeId */]: NodeId | undefined };
 }

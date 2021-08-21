@@ -2,7 +2,7 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 import { Draft } from "immer";
 
 import { Node, ObjectNode } from "../../models";
-import { NodeAssociatedData } from "../../working-document";
+import { NodeAssociatedData, NodeId } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorState } from "../state";
 
@@ -17,8 +17,7 @@ import { EditorState } from "../state";
  * this service never deals with them.
  */
 export class EditorNodeTrackingService {
-  // TODO change this back to private
-  public editorState: Draft<EditorState> | null;
+  private editorState: Draft<EditorState> | null;
 
   public constructor(private readonly idGenerator: FriendlyIdGenerator, private readonly editorEvents: EditorEvents) {
     this.editorState = null;
@@ -27,14 +26,7 @@ export class EditorNodeTrackingService {
   }
 
   public notifyNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const id = NodeAssociatedData.getId(node);
-    if (id && this.editorState) {
-      if (newParent instanceof ObjectNode) {
-        this.editorState.nodeParentMap[id] = NodeAssociatedData.getId(newParent);
-      } else {
-        this.editorState.nodeParentMap[id] = newParent;
-      }
-    }
+    this.editorState!.document2.processNodeMoved(node, newParent);
   }
 
   /**
@@ -42,16 +34,8 @@ export class EditorNodeTrackingService {
    * exception being graphemes). This method assigns the node its id.
    */
   public register(node: Node, parent: Node | undefined): NodeId | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    NodeAssociatedData.assignId(node, nodeId);
-
-    const parentId = parent && NodeAssociatedData.getId(parent);
-    if (parentId && this.editorState) {
-      this.editorState.nodeParentMap[nodeId] = parentId;
-    }
-
-    return nodeId;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.editorState!.document2.processNodeCreated(node as any, parent);
   }
 
   /**
@@ -59,10 +43,7 @@ export class EditorNodeTrackingService {
    * is just moved to a new parent, the `notifyNodeMoved` method should be called.
    */
   public unregister(node: Node): void {
-    const id = NodeAssociatedData.getId(node);
-    if (id && this.editorState) {
-      delete this.editorState.nodeParentMap[id];
-    }
+    this.editorState!.document2.processNodeDeleted(node);
   }
 
   private handleOperationHasCompleted = () => {

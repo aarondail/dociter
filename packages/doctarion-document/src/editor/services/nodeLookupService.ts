@@ -3,7 +3,7 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path } from "../../basic-traversal";
 import { Node, NodeUtils } from "../../models";
-import { NodeAssociatedData } from "../../working-document";
+import { NodeAssociatedData, NodeId } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorState } from "../state";
 
@@ -16,7 +16,7 @@ import { EditorState } from "../state";
  * this service never deals with them.
  */
 export class EditorNodeLookupService {
-  private editorState: EditorState;
+  public editorState: EditorState;
 
   // Note the editorState can _and will_ be updated by the Editor
   public constructor(initialEditorState: EditorState, private readonly editorEvents: EditorEvents) {
@@ -26,27 +26,7 @@ export class EditorNodeLookupService {
   }
 
   public getChainTo(nodeId: NodeId): Chain | undefined {
-    const idChain = this.getIdChain(nodeId);
-    const nav = new NodeNavigator(this.editorState.document);
-    if (idChain.length === 0) {
-      return undefined;
-    }
-    if (idChain[0] !== NodeAssociatedData.getId(this.editorState.document)) {
-      return undefined;
-    }
-    // Now walk the chain and find the matching nodes
-    for (const id of idChain.slice(1)) {
-      const children = NodeUtils.getChildren(nav.tip.node);
-      if (!children) {
-        return undefined;
-      }
-      const index = children.findIndex((n: Node) => NodeAssociatedData.getId(n) === id);
-      if (index === -1) {
-        return undefined;
-      }
-      nav.navigateToChild(index);
-    }
-    return nav.chain;
+    return this.editorState.document2.lookupChainTo(nodeId);
   }
 
   /**
@@ -54,14 +34,7 @@ export class EditorNodeLookupService {
    * pretty fast.
    */
   public getNode(nodeId: NodeId): Node | undefined {
-    const chain = this.getChainTo(nodeId);
-    if (chain) {
-      const lastLink = lodash.last(chain.links);
-      if (lastLink) {
-        return lastLink.node;
-      }
-    }
-    return undefined;
+    return this.editorState.document2.lookupNode(nodeId);
   }
 
   public getPathTo(nodeId: NodeId): Path | undefined {
@@ -70,17 +43,6 @@ export class EditorNodeLookupService {
       return chain.path;
     }
     return undefined;
-  }
-
-  private getIdChain(nodeId: string) {
-    const idChain = [];
-    let currentId: string | undefined = nodeId;
-    while (currentId) {
-      idChain.push(currentId);
-      currentId = this.editorState.nodeParentMap[currentId];
-    }
-    idChain.reverse();
-    return idChain;
   }
 
   private handleOperationHasCompleted = (newState: EditorState) => {

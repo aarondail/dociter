@@ -1,4 +1,4 @@
-import { Draft, castDraft } from "immer";
+import { Draft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";

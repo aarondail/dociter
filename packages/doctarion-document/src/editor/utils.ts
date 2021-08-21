@@ -23,7 +23,7 @@ export function convertInteractorInputPositionToAnchor(
   services: EditorServices,
   position: InteractorInputPosition
 ): Anchor {
-  const nav = new CursorNavigator(state.document, services.layout);
+  const nav = new CursorNavigator(state.document2.document, services.layout);
   if (position instanceof Anchor) {
     const cursor = position.toCursor(services);
     if (!cursor || !nav.navigateTo(cursor)) {
@@ -52,7 +52,7 @@ export function getCursorNavigatorAndValidate(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interactorId: number // InteractorId
 ): CursorNavigator {
-  const nav = new CursorNavigator(state.document, services.layout);
+  const nav = new CursorNavigator(state.document2.document, services.layout);
   const interactor = state.interactors[Object.keys(state.interactors)[0]]; //interactorId];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
@@ -72,7 +72,7 @@ export function getCursorNavigatorAndValidate(
  * Throws an error if the navigation fails.
  */
 function getMainCursorNavigatorFor(target: Interactor, state: EditorState, services: EditorServices): CursorNavigator {
-  const nav = new CursorNavigator(state.document, services.layout);
+  const nav = new CursorNavigator(state.document2.document, services.layout);
   const cursor = target.mainAnchor.toCursor(services);
   if (!cursor || !nav.navigateTo(cursor)) {
     throw new EditorOperationError(
@@ -103,7 +103,7 @@ function getBothCursorNavigatorsForSelection(
 
   const isMainCursorFirst = mainCursor.compareTo(saCursor) !== SimpleComparison.After;
 
-  const nav1 = new CursorNavigator(state.document, services.layout);
+  const nav1 = new CursorNavigator(state.document2.document, services.layout);
 
   if (!nav1.navigateTo(mainCursor)) {
     throw new EditorOperationError(
@@ -112,7 +112,7 @@ function getBothCursorNavigatorsForSelection(
     );
   }
 
-  const nav2 = new CursorNavigator(state.document, services.layout);
+  const nav2 = new CursorNavigator(state.document2.document, services.layout);
 
   if (!nav2.navigateTo(saCursor)) {
     throw new EditorOperationError(

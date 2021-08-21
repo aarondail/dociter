@@ -54,7 +54,7 @@ export class EditorInteractorService {
       return;
     }
 
-    const navHelper = new CursorNavigator(this.editorState.document, services.layout);
+    const navHelper = new CursorNavigator(this.editorState.document2.document, services.layout);
 
     function updateAnchor(interactor: Draft<Interactor>, anchorType: InteractorAnchorType) {
       const currentAnchor = interactor.getAnchor(anchorType);
