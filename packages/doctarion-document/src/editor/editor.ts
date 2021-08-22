@@ -11,12 +11,7 @@ import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import {
-  EditorInteractorService,
-  EditorOperationServices,
-  EditorProvidableServices,
-  EditorProvidedServices,
-} from "./services";
+import { EditorInteractorService, EditorOperationServices, EditorProvidableServices } from "./services";
 import { EditorState } from "./state";
 
 export interface EditorConfig {
@@ -28,20 +23,18 @@ export interface EditorConfig {
   readonly document: Document;
   readonly cursor?: Cursor;
   readonly omitDefaultInteractor?: boolean;
-  readonly provideServices?: (
-    services: EditorProvidedServices,
-    events: EditorEvents
-  ) => Partial<EditorProvidableServices>;
+  readonly provideServices?: (events: EditorEvents) => Partial<EditorProvidableServices>;
 }
 
 export class Editor {
   public readonly events: EditorEvents;
+  // TODO make private once we move interactors into state (rather than as a service)
+  public readonly operationServices: EditorOperationServices;
 
   private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
   private historyList: EditorState[];
   private readonly operationRegistry: Map<string, EditorOperation<unknown, unknown, string>>;
-  private readonly operationServices: EditorOperationServices;
   private state: EditorState;
 
   public constructor({
@@ -68,18 +61,14 @@ export class Editor {
     this.eventEmitters = new EditorEventEmitter();
     this.events = this.eventEmitters;
 
+    const providedServices = provideServices && provideServices(this.events);
+
     this.operationServices = {
+      ...providedServices,
       idGenerator,
-      interactors: new EditorInteractorService(this.events),
+      interactors: new EditorInteractorService(this.events, idGenerator, providedServices?.layout),
       execute: this.executeRelatedOperation,
     };
-
-    if (provideServices) {
-      this.operationServices = {
-        ...this.operationServices,
-        ...provideServices(this.operationServices, this.events),
-      };
-    }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.operationRegistry = new Map();

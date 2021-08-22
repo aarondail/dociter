@@ -18,6 +18,7 @@ import { EditorInteractorService } from "./interactorService";
  * These are all the services available to `EditorOperation` functions.
  */
 export interface EditorOperationServices {
+  // TODO delete
   readonly idGenerator: FriendlyIdGenerator;
 
   /**
@@ -39,11 +40,6 @@ export interface EditorOperationServices {
    */
   readonly interactors: EditorInteractorService;
 }
-
-/**
- * These are services that the Editor provides in all cases.
- */
-export type EditorProvidedServices = Pick<EditorOperationServices, "idGenerator" | "interactors" | "execute">;
 
 /**
  * These are services that have to be provided to the Editor.

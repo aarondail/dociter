@@ -3,46 +3,37 @@ import { Draft } from "immer";
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { EditorState, Interactor, InteractorId } from "../editor";
+import { NodeLayoutReporter } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
-import { Document, Node } from "../models";
+import { Node } from "../models";
 import { WorkingDocument } from "../working-document";
 
-import { Anchor } from "./anchor";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
-export type InteractorInputPosition = Anchor | Cursor | { path: Path | PathString; orientation: CursorOrientation };
+export type InteractorInputPosition = Cursor | { path: Path | PathString; orientation: CursorOrientation };
 
 export enum FlowDirection {
   Backward = "BACKWARD",
   Forward = "FORWARD",
 }
 
-export function convertInteractorInputPositionToAnchor(
+export function convertInteractorInputPositionToCursorNavigator(
   state: Draft<EditorState>,
-  services: EditorOperationServices,
+  layout: NodeLayoutReporter | undefined,
   position: InteractorInputPosition
-): Anchor {
-  const nav = new CursorNavigator(state.document2.document, services.layout);
-  if (position instanceof Anchor) {
-    const cursor = position.toCursor(state.document2);
-    if (!cursor || !nav.navigateTo(cursor)) {
-      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid anchor");
-    }
-    return position;
-  } else {
-    const cursor =
-      position instanceof Cursor
-        ? position
-        : new Cursor(position.path instanceof Path ? position.path : Path.parse(position.path), position.orientation);
+): CursorNavigator {
+  const nav = new CursorNavigator(state.document2.document, layout);
+  const cursor =
+    position instanceof Cursor
+      ? position
+      : new Cursor(position.path instanceof Path ? position.path : Path.parse(position.path), position.orientation);
 
-    if (!cursor || !nav.navigateTo(cursor)) {
-      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid cursor position");
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return Anchor.fromCursorNavigator(nav)!;
+  if (!cursor || !nav.navigateTo(cursor)) {
+    throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid cursor position");
   }
+  return nav;
 }
 
 // TODO delete this?
@@ -58,7 +49,8 @@ export function getCursorNavigatorAndValidate(
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
   } else {
-    const cursor = interactor.mainAnchor.toCursor(state.document2);
+    const anchor = state.document2.getAnchor(interactor.mainAnchor);
+    const cursor = anchor && services.interactors.anchorToCursor(anchor);
     if (!cursor || !nav.navigateTo(cursor)) {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
     }
@@ -78,7 +70,8 @@ function getMainCursorNavigatorFor(
   services: EditorOperationServices
 ): CursorNavigator {
   const nav = new CursorNavigator(state.document2.document, services.layout);
-  const cursor = target.mainAnchor.toCursor(state.document2);
+  const anchor = state.document2.getAnchor(target.mainAnchor);
+  const cursor = anchor && services.interactors.anchorToCursor(anchor);
   if (!cursor || !nav.navigateTo(cursor)) {
     throw new EditorOperationError(
       EditorOperationErrorCode.InvalidCursorPosition,
@@ -99,8 +92,10 @@ function getBothCursorNavigatorsForSelection(
   state: Draft<EditorState>,
   services: EditorOperationServices
 ): { navigators: [CursorNavigator, CursorNavigator]; isMainCursorFirst: boolean } | undefined {
-  const mainCursor = target.mainAnchor.toCursor(state.document2);
-  const saCursor = target.selectionAnchor?.toCursor(state.document2);
+  const main = state.document2.getAnchor(target.mainAnchor);
+  const mainCursor = main && services.interactors.anchorToCursor(main);
+  const sa = target.selectionAnchor && state.document2.getAnchor(target.selectionAnchor);
+  const saCursor = sa && services.interactors.anchorToCursor(sa);
 
   if (!mainCursor || !saCursor) {
     return;
@@ -148,9 +143,15 @@ export function getNavigatorToSiblingIfMatchingPredicate(
   return navPrime;
 }
 
-export function getRangeForSelection(target: Interactor, workingDocument: Draft<WorkingDocument>): Range | undefined {
-  const mainCursor = target.mainAnchor.toCursor(workingDocument);
-  const saCursor = target.selectionAnchor?.toCursor(workingDocument);
+export function getRangeForSelection(
+  target: Interactor,
+  workingDocument: Draft<WorkingDocument>,
+  services: EditorOperationServices
+): Range | undefined {
+  const main = workingDocument.getAnchor(target.mainAnchor);
+  const mainCursor = main && services.interactors.anchorToCursor(main);
+  const sa = target.selectionAnchor && workingDocument.getAnchor(target.selectionAnchor);
+  const saCursor = sa && services.interactors.anchorToCursor(sa);
 
   if (!mainCursor || !saCursor) {
     return;

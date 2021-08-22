@@ -4,6 +4,7 @@ export enum EditorOperationErrorCode {
   SelectionNotAllowed = "SELECTION_NOT_ALLOWED",
   InvalidArgument = "INVALID_ARGUMENT",
   UnknownOperation = "UNKNOWN_OPERATION",
+  UnexpectedState = "UNEXPECTED_STATE",
 }
 
 export class EditorOperationError extends Error {

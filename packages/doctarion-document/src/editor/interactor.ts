@@ -1,8 +1,7 @@
 import { immerable } from "immer";
 
 import { HorizontalVisualAnchor } from "../layout-reporting";
-
-import { Anchor } from "./anchor";
+import { AnchorId } from "../working-document";
 
 export type InteractorId = string;
 
@@ -21,9 +20,9 @@ export class Interactor {
 
   public constructor(
     public readonly id: InteractorId,
-    public readonly mainAnchor: Anchor,
+    public readonly mainAnchor: AnchorId,
     public readonly status: InteractorStatus = InteractorStatus.Active,
-    public readonly selectionAnchor?: Anchor,
+    public readonly selectionAnchor?: AnchorId,
     /**
      * When moving between lines visually, this value stores cursor's x value at
      * the start of the line movement, so we can intelligently move between lines
@@ -36,7 +35,7 @@ export class Interactor {
     public readonly name?: string
   ) {}
 
-  public getAnchor(type: InteractorAnchorType): Anchor | undefined {
+  public getAnchor(type: InteractorAnchorType): AnchorId | undefined {
     return type === InteractorAnchorType.Main ? this.mainAnchor : this.selectionAnchor;
   }
 

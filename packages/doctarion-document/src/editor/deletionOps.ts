@@ -6,13 +6,12 @@ import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } f
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
 import { NodeAssociatedData, WorkingDocument } from "../working-document";
 
-import { Anchor } from "./anchor";
-import { InteractorAnchorType } from "./interactor";
 import { InteractorAnchorDeletionHelper } from "./interactorAnchorDeletionHelper";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 import { FlowDirection, getRangeForSelection, selectTargets } from "./utils";
 
 const castDraft = immer.castDraft;
@@ -69,7 +68,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       // ------------------
       // SELECTION DELETION
       // ------------------
-      const chainsToDelete = getRangeForSelection(target.interactor, state.document2)?.getChainsCoveringRange(
+      const chainsToDelete = getRangeForSelection(target.interactor, state.document2, services)?.getChainsCoveringRange(
         state.document2.document
       );
 
@@ -78,7 +77,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       }
 
       // This is probably a very inefficient way to deal with text.. and everything
-      const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const deletionHelper = new InteractorAnchorDeletionHelper(state as any, services);
       const nav = new NodeNavigator(state.document2.document);
       for (const chain of lodash.reverse(chainsToDelete)) {
         nav.navigateTo(chain.path);
@@ -87,8 +87,8 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
       if (deletionHelper.hasAnchors()) {
         const cursorNav = target.isMainCursorFirst ? target.navigators[0].clone() : target.navigators[1].clone();
-        const postDeleteAnchor = determineAnchorForAfterDeletion(cursorNav, FlowDirection.Forward, true);
-        setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, deletionHelper);
+        const postDeleteCursor = determineFinalCursorPositionForAfterDeletion(cursorNav, FlowDirection.Forward, true);
+        setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteCursor, deletionHelper);
       }
 
       // Clear selection
@@ -102,23 +102,21 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
         // ------------------------
         // INDIVIDUAL NODE DELETION
         // ------------------------
-        const deletionHelper = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const deletionHelper = new InteractorAnchorDeletionHelper(state as any, services);
         deleteNode(state.document2, result.nodeToDelete, deletionHelper);
 
         if (deletionHelper.hasAnchors()) {
-          const postDeleteAnchor = determineAnchorForAfterDeletion(navigator, options.direction);
+          const postDeleteAnchor = determineFinalCursorPositionForAfterDeletion(navigator, options.direction);
           setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, deletionHelper);
         }
       } else if (result?.justMoveTo) {
         // -------------------------------------------
         // JUST MOVE THE ANCHOR (DONT DELETE ANYTHING)
         // -------------------------------------------
-        const newAnchor = Anchor.fromCursorNavigator(result.justMoveTo);
-        if (newAnchor) {
-          interactor.mainAnchor = newAnchor;
-          // Should this clear selection?
-          services.interactors.notifyUpdated(interactor.id);
-        }
+        services.interactors.updateInteractor(interactor.id, {
+          to: result.justMoveTo.cursor,
+        });
       } else if (result?.joinInstead) {
         // ----------------------
         // JOIN INSTEAD OF DELETE
@@ -153,14 +151,14 @@ export const deletePrimitive = createCoreOperation<{ path: Path | PathString; di
     if (!nodeToDelete.navigateTo(payload.path) || !originalCursorPosition.navigateTo(payload.path)) {
       return;
     }
-    const anchorMarker = new InteractorAnchorDeletionHelper(Object.values(state.interactors));
+    const anchorMarker = new InteractorAnchorDeletionHelper((state as unknown) as EditorState, services);
     deleteNode(state.document2, nodeToDelete, anchorMarker);
     if (anchorMarker.hasAnchors()) {
-      const postDeleteAnchor = determineAnchorForAfterDeletion(
+      const postDeleteCursor = determineFinalCursorPositionForAfterDeletion(
         originalCursorPosition,
         payload.direction || FlowDirection.Backward
       );
-      setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteAnchor, anchorMarker);
+      setMarkedInteractorAnchorsAfterNodeDeletion(services, postDeleteCursor, anchorMarker);
     }
   }
 );
@@ -214,22 +212,6 @@ function deleteNode(
     }
   }
   return undefined;
-}
-
-function determineAnchorForAfterDeletion(
-  originalPositionAndNode: ReadonlyCursorNavigator,
-  direction: FlowDirection,
-  forwardAgain?: boolean
-): Anchor {
-  const c = determineCursorPositionAfterDeletion(originalPositionAndNode, direction);
-  if (forwardAgain) {
-    c.navigateToNextCursorPosition();
-  }
-  const a = Anchor.fromCursorNavigator(c);
-  if (!a) {
-    throw new Error("Unexpectedly could not convert cursor position into anchor");
-  }
-  return a;
 }
 
 function determineCursorPositionAfterDeletion(
@@ -322,6 +304,18 @@ function determineCursorPositionAfterDeletion(
     }
   }
   return n;
+}
+
+function determineFinalCursorPositionForAfterDeletion(
+  originalPositionAndNode: ReadonlyCursorNavigator,
+  direction: FlowDirection,
+  forwardAgain?: boolean
+): CursorNavigator {
+  const c = determineCursorPositionAfterDeletion(originalPositionAndNode, direction);
+  if (forwardAgain) {
+    c.navigateToNextCursorPosition();
+  }
+  return c;
 }
 
 /**
@@ -460,25 +454,26 @@ function findNodeRelativeToCursorForDeletion(
 
 function setMarkedInteractorAnchorsAfterNodeDeletion(
   services: EditorOperationServices,
-  postDeleteAnchor: Anchor,
+  postDeleteCursor: CursorNavigator,
   deletionHelper: InteractorAnchorDeletionHelper
 ) {
   for (const { interactor, anchorType, relativeGraphemeDeletionCount } of deletionHelper.getAnchors()) {
-    if (anchorType === InteractorAnchorType.Main) {
-      if (relativeGraphemeDeletionCount === undefined || interactor.mainAnchor.graphemeIndex === undefined) {
-        castDraft(interactor).mainAnchor = postDeleteAnchor;
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        castDraft(interactor).mainAnchor.graphemeIndex! -= relativeGraphemeDeletionCount;
-      }
-    } else {
-      if (relativeGraphemeDeletionCount === undefined || interactor.selectionAnchor?.graphemeIndex === undefined) {
-        castDraft(interactor).selectionAnchor = postDeleteAnchor;
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        castDraft(interactor).selectionAnchor!.graphemeIndex! -= relativeGraphemeDeletionCount;
-      }
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+
+    if (!anchor) {
+      continue;
     }
-    services.interactors.notifyUpdated(interactor.id);
+
+    if (relativeGraphemeDeletionCount === undefined || anchor.graphemeIndex === undefined) {
+      const anchorInfo = services.interactors.anchorInfoFromCursorNavigator(postDeleteCursor);
+      if (!anchorInfo) {
+        continue;
+      }
+      services.interactors.updateAnchor(interactor, anchorType, anchorInfo);
+    } else {
+      services.interactors.updateAnchor(interactor, anchorType, {
+        graphemeIndex: anchor.graphemeIndex - relativeGraphemeDeletionCount,
+      });
+    }
   }
 }

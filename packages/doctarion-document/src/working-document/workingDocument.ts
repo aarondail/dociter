@@ -94,6 +94,7 @@ export class WorkingDocument {
     };
 
     console.log(debugPrime(this.document, 0));
+    // console.log(JSON.stringify(this.nodeParentIdMap, undefined, 4));
   }
 
   public deleteAnchor(anchor: Anchor | AnchorId): void {
@@ -118,6 +119,7 @@ export class WorkingDocument {
   }
 
   public lookupChainTo(nodeId: NodeId): Chain | undefined {
+    // this.debug();
     const idChain = [];
     let currentId: string | undefined = nodeId;
     while (currentId) {
@@ -197,37 +199,32 @@ export class WorkingDocument {
 
   public updateAnchor(
     id: AnchorId,
-    updates: {
-      readonly node?: NodeId | ObjectNode;
-      readonly orientation?: AnchorOrientation;
-      readonly graphemeIndex?: number;
-    }
+    nodeId: NodeId,
+    orientation: AnchorOrientation,
+    graphemeIndex: number | undefined
   ): void {
     const anchor = this.anchors[id];
     if (!anchor) {
       return;
     }
 
-    if (updates.node) {
-      const nodeId = typeof updates.node === "string" ? updates.node : NodeAssociatedData.getId(updates.node);
-      if (!nodeId) {
-        return undefined;
-      }
-      const newNode = this.nodeParentIdMap[nodeId];
-      if (!newNode) {
-        return undefined;
-      }
-      const oldNode = this.nodeParentIdMap[anchor.nodeId];
-      if (oldNode) {
-        NodeAssociatedData.removeAnchorFromNode(oldNode, anchor.id);
-      }
-      NodeAssociatedData.addAnchorToNode(newNode, anchor.id);
-    }
-    if (updates.orientation !== undefined) {
-      immer.castDraft(anchor).orientation = updates.orientation;
-    }
-    if (updates.graphemeIndex !== undefined) {
-      immer.castDraft(anchor).graphemeIndex = updates.graphemeIndex;
-    }
+    immer.castDraft(anchor).nodeId = nodeId;
+    // if (updates.nodeId) {
+    //   const nodeId = updates.nodeId; // typeof updates.node === "string" ? updates.node : NodeAssociatedData.getId(updates.node);
+    //   if (!nodeId) {
+    //     return undefined;
+    //   }
+    //   const newNode = this.nodeParentIdMap[nodeId];
+    //   if (!newNode) {
+    //     return undefined;
+    //   }
+    //   const oldNode = this.nodeParentIdMap[anchor.nodeId];
+    //   if (oldNode) {
+    //     NodeAssociatedData.removeAnchorFromNode(oldNode, anchor.id);
+    //   }
+    //   NodeAssociatedData.addAnchorToNode(newNode, anchor.id);
+    // }
+    immer.castDraft(anchor).orientation = orientation;
+    immer.castDraft(anchor).graphemeIndex = graphemeIndex;
   }
 }

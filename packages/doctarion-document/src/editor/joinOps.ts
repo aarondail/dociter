@@ -6,7 +6,7 @@ import lodash from "lodash";
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
-import { NodeAssociatedData, WorkingDocument } from "../working-document";
+import { AnchorOrientation, NodeAssociatedData, WorkingDocument } from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
 import { Interactor, InteractorAnchorType } from "./interactor";
@@ -252,11 +252,17 @@ function adjustAnchorPositionsAfterBlockMerge(
   }
 
   function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const a = castDraft(interactor.getAnchor(anchorType));
-    if (a && a.nodeId === destinationId && destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
-      a.orientation = CursorOrientation.After;
-      // This will get fixed by the jiggling
-      services.interactors.notifyUpdated(interactor.id);
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    if (
+      anchor &&
+      anchor.nodeId === destinationId &&
+      destinationOriginalChildCount === 0 &&
+      sourceOriginalChildCount > 0
+    ) {
+      services.interactors.updateAnchor(interactor, anchorType, {
+        // This will get fixed by the jiggling
+        orientation: (CursorOrientation.After as unknown) as AnchorOrientation,
+      });
     }
   }
 
@@ -287,50 +293,64 @@ function adjustAnchorPositionsAfterInlineTextMerge(
   }
 
   function caseBackwardsDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const a = castDraft(interactor.getAnchor(anchorType));
-    if (a && a.nodeId === destinationId && destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
-      a.graphemeIndex = 0;
-      a.orientation = CursorOrientation.Before;
-      services.interactors.notifyUpdated(interactor.id);
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    if (
+      anchor &&
+      anchor.nodeId === destinationId &&
+      destinationOriginalChildCount === 0 &&
+      sourceOriginalChildCount > 0
+    ) {
+      services.interactors.updateAnchor(interactor, anchorType, {
+        graphemeIndex: 0,
+        orientation: (CursorOrientation.Before as unknown) as AnchorOrientation,
+      });
     }
   }
 
   function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const a = castDraft(interactor.getAnchor(anchorType));
-    if (a && a.nodeId === destinationId) {
-      if (a.graphemeIndex !== undefined) {
-        a.graphemeIndex = sourceOriginalChildCount + a.graphemeIndex;
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    if (anchor && anchor.nodeId === destinationId) {
+      if (anchor.graphemeIndex !== undefined) {
+        services.interactors.updateAnchor(interactor, anchorType, {
+          graphemeIndex: sourceOriginalChildCount + anchor.graphemeIndex,
+        });
       }
-      services.interactors.notifyUpdated(interactor.id);
     }
   }
 
   function caseBackwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const a = castDraft(interactor.getAnchor(anchorType));
-    if (a && a.nodeId === sourceId) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      a.nodeId = destinationId!;
-      if (a.graphemeIndex !== undefined) {
-        a.graphemeIndex = destinationOriginalChildCount + a.graphemeIndex;
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    if (anchor && anchor.nodeId === sourceId) {
+      if (anchor.graphemeIndex !== undefined) {
+        services.interactors.updateAnchor(interactor, anchorType, {
+          nodeId: destinationId,
+          graphemeIndex: destinationOriginalChildCount + anchor.graphemeIndex,
+        });
       } else if (destinationOriginalChildCount > 0) {
-        a.graphemeIndex = destinationOriginalChildCount - 1;
-        // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
-        a.orientation = CursorOrientation.After;
+        services.interactors.updateAnchor(interactor, anchorType, {
+          nodeId: destinationId,
+          graphemeIndex: destinationOriginalChildCount - 1,
+          // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
+          orientation: (CursorOrientation.After as unknown) as AnchorOrientation,
+        });
       }
       services.interactors.notifyUpdated(interactor.id);
     }
   }
 
   function caseForwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const a = castDraft(interactor.getAnchor(anchorType));
-    if (a && a.nodeId === sourceId) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      a.nodeId = destinationId!;
-      services.interactors.notifyUpdated(interactor.id);
-
-      if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
-        a.graphemeIndex = 0; // destinationOriginalChildCount - 1;
-        a.orientation = CursorOrientation.Before;
+    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    if (anchor && anchor.nodeId === sourceId) {
+      if (anchor.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
+        services.interactors.updateAnchor(interactor, anchorType, {
+          nodeId: destinationId,
+          graphemeIndex: 0,
+          orientation: (CursorOrientation.Before as unknown) as AnchorOrientation,
+        });
+      } else {
+        services.interactors.updateAnchor(interactor, anchorType, {
+          nodeId: destinationId,
+        });
       }
     }
   }

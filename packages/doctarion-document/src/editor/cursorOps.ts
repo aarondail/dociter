@@ -2,31 +2,26 @@ import { Draft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { NodeLayoutReporter, Side } from "../layout-reporting";
+import { Side } from "../layout-reporting";
 
-import { Anchor } from "./anchor";
 import { Interactor } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { InteractorMovementPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
-import { InteractorInputPosition, convertInteractorInputPositionToAnchor, selectTargets } from "./utils";
+import { InteractorInputPosition, selectTargets } from "./utils";
 
 export const moveBack = createCoreOperation<InteractorMovementPayload>(
   "cursor/moveBack",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
-        const oldAnchor = interactor.mainAnchor;
-        const newAnchor = Anchor.fromCursorNavigator(navigator);
-        if (newAnchor) {
-          interactor.mainAnchor = newAnchor;
-          interactor.lineMovementHorizontalVisualAnchor = undefined;
-          interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
-          return true;
-        }
+        services.interactors.updateInteractor(interactor.id, {
+          to: navigator.cursor,
+          lineMovementHorizontalVisualAnchor: undefined,
+          selectTo: payload.select ? "main" : undefined,
+        });
       }
-      return false;
     });
   }
 );
@@ -36,14 +31,11 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
-        const oldAnchor = interactor.mainAnchor;
-        const newAnchor = Anchor.fromCursorNavigator(navigator);
-        if (newAnchor) {
-          interactor.mainAnchor = newAnchor;
-          interactor.lineMovementHorizontalVisualAnchor = undefined;
-          interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldAnchor : undefined;
-          return true;
-        }
+        services.interactors.updateInteractor(interactor.id, {
+          to: navigator.cursor,
+          lineMovementHorizontalVisualAnchor: undefined,
+          selectTo: payload.select ? "main" : undefined,
+        });
       }
       return false;
     });
@@ -57,7 +49,7 @@ export const moveVisualDown = createCoreOperation<InteractorMovementPayload>(
       if (!services.layout) {
         return false;
       }
-      return moveVisualUpOrDownHelper("DOWN", services.layout, interactor, navigator);
+      return moveVisualUpOrDownHelper(services, "DOWN", interactor, navigator);
     });
   }
 );
@@ -78,7 +70,7 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
       if (!services.layout) {
         return false;
       }
-      return moveVisualUpOrDownHelper("UP", services.layout, interactor, navigator);
+      return moveVisualUpOrDownHelper(services, "UP", interactor, navigator);
     });
   }
 );
@@ -95,13 +87,12 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
 export const jump = createCoreOperation<{ to: InteractorInputPosition } & InteractorMovementPayload>(
   "cursor/jump",
   (state, services, payload): void => {
-    const anchor = convertInteractorInputPositionToAnchor(state, services, payload.to);
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor) => {
-      const oldCursor = interactor.mainAnchor;
-      interactor.mainAnchor = anchor;
-      interactor.lineMovementHorizontalVisualAnchor = undefined;
-      interactor.selectionAnchor = payload.select ? interactor.selectionAnchor ?? oldCursor : undefined;
-      return true;
+      services.interactors.updateInteractor(interactor.id, {
+        to: payload.to,
+        lineMovementHorizontalVisualAnchor: undefined,
+        selectTo: payload.select ? "main" : undefined,
+      });
     });
   }
 );
@@ -110,19 +101,15 @@ function forEachInteractorInMovementTargetPayloadDo(
   state: Draft<EditorState>,
   services: EditorOperationServices,
   payload: InteractorMovementPayload,
-  updateFn: (interactor: Draft<Interactor>, navigator: CursorNavigator) => boolean
+  updateFn: (interactor: Draft<Interactor>, navigator: CursorNavigator) => void
 ): void {
   for (const target of selectTargets(state, services, payload.target)) {
     if (target.isSelection) {
       const { interactor, navigators, isMainCursorFirst } = target;
-      if (updateFn(interactor, isMainCursorFirst ? navigators[0] : navigators[1])) {
-        services.interactors.notifyUpdated(interactor.id);
-      }
+      updateFn(interactor, isMainCursorFirst ? navigators[0] : navigators[1]);
     } else {
       const { interactor, navigator } = target;
-      if (updateFn(interactor, navigator)) {
-        services.interactors.notifyUpdated(interactor.id);
-      }
+      updateFn(interactor, navigator);
     }
   }
 }
@@ -135,21 +122,22 @@ function forEachInteractorInMovementTargetPayloadDo(
 // or
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/caretRangeFromPoint
 function moveVisualUpOrDownHelper(
+  services: EditorOperationServices,
   direction: "UP" | "DOWN",
-  layout: NodeLayoutReporter,
   interactor: Draft<Interactor>,
   navigator: CursorNavigator
-): boolean {
+): void {
   const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
     interactor.lineMovementHorizontalVisualAnchor ??
-    layout.getTargetHorizontalAnchor(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    services.layout!.getTargetHorizontalAnchor(
       startNavigator,
       navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
     );
   if (targetAnchor === undefined) {
-    return false;
+    return;
   }
 
   const advance = () =>
@@ -158,8 +146,10 @@ function moveVisualUpOrDownHelper(
     direction === "DOWN" ? navigator.navigateToPrecedingCursorPosition() : navigator.navigateToNextCursorPosition();
   const didLineWrap = (anchor: NodeNavigator) =>
     direction === "DOWN"
-      ? layout.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator())
-      : layout.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
+      ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        services.layout!.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator())
+      : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        services.layout!.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
 
   let foundNewLine = false;
   while (advance()) {
@@ -180,20 +170,20 @@ function moveVisualUpOrDownHelper(
   // console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
 
   if (!foundNewLine) {
-    return false;
+    return;
   }
 
   // console.log("found new line", currentLayoutRect, nav.tip.node);
   // Now that we think we are on the next line...
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  let distance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
+  let distance = services.layout!.detectHorizontalDistanceFromTargetHorizontalAnchor(
     navigator.toNodeNavigator(),
     navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
     targetAnchor
   );
 
   if (!distance) {
-    return false;
+    return;
   }
 
   // console.log(distance);
@@ -215,7 +205,7 @@ function moveVisualUpOrDownHelper(
         break;
       }
 
-      const newDistance = layout.detectHorizontalDistanceFromTargetHorizontalAnchor(
+      const newDistance = services.layout?.detectHorizontalDistanceFromTargetHorizontalAnchor(
         navigator.toNodeNavigator(),
         navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
         targetAnchor
@@ -244,12 +234,9 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  const newAnchor = Anchor.fromCursorNavigator(navigator);
-  if (newAnchor) {
-    interactor.mainAnchor = newAnchor;
-    interactor.selectionAnchor = undefined;
-    interactor.lineMovementHorizontalVisualAnchor = undefined;
-    return true;
-  }
-  return false;
+  services.interactors.updateInteractor(interactor.id, {
+    to: navigator.cursor,
+    lineMovementHorizontalVisualAnchor: undefined,
+    selectTo: undefined,
+  });
 }

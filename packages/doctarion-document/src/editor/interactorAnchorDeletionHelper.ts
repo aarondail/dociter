@@ -1,29 +1,45 @@
-import { NodeId } from "../working-document";
+import { Anchor, NodeId } from "../working-document";
 
 import { Interactor, InteractorAnchorType } from "./interactor";
+import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 
 export interface InteractorAnchorEntry {
   readonly interactor: Interactor;
   readonly anchorType: InteractorAnchorType;
+  readonly anchor: Anchor;
 }
 
 export class NodeIdToInteractorAnchorMap {
   private dictionary: { [nodeId: string]: InteractorAnchorEntry[] };
 
-  public constructor(interactors: Interactor[]) {
+  public constructor(state: EditorState, services: EditorOperationServices) {
     this.dictionary = {};
-    for (const interactor of interactors) {
-      if (this.dictionary[interactor.mainAnchor.nodeId] === undefined) {
-        this.dictionary[interactor.mainAnchor.nodeId] = [];
+    for (const interactor of Object.values(state.interactors)) {
+      const mainAnchor = services.interactors.getAnchor(interactor, InteractorAnchorType.Main);
+      if (!mainAnchor) {
+        continue;
       }
-      this.dictionary[interactor.mainAnchor.nodeId].push({ interactor, anchorType: InteractorAnchorType.Main });
+      if (this.dictionary[mainAnchor.nodeId] === undefined) {
+        this.dictionary[mainAnchor.nodeId] = [];
+      }
+      this.dictionary[mainAnchor.nodeId].push({
+        interactor,
+        anchor: mainAnchor,
+        anchorType: InteractorAnchorType.Main,
+      });
 
       if (interactor.selectionAnchor) {
-        if (this.dictionary[interactor.selectionAnchor.nodeId] === undefined) {
-          this.dictionary[interactor.selectionAnchor.nodeId] = [];
+        const saAnchor = services.interactors.getAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+        if (!saAnchor) {
+          continue;
         }
-        this.dictionary[interactor.selectionAnchor.nodeId].push({
+        if (this.dictionary[saAnchor.nodeId] === undefined) {
+          this.dictionary[saAnchor.nodeId] = [];
+        }
+        this.dictionary[saAnchor.nodeId].push({
           interactor,
+          anchor: saAnchor,
           anchorType: InteractorAnchorType.SelectionAnchor,
         });
       }
@@ -35,7 +51,7 @@ export class NodeIdToInteractorAnchorMap {
   }
 }
 
-export interface InteractorAnchorDeletionEntry extends InteractorAnchorEntry {
+export interface InteractorAnchorDeletionEntry extends Omit<InteractorAnchorEntry, "anchor"> {
   readonly relativeGraphemeDeletionCount?: number;
 }
 
@@ -112,9 +128,9 @@ export class InteractorAnchorDeletionHelper {
   private markedInteractorAnchors: InteractorAnchorSet;
   private nodeIdToInteractorAnchorMap: NodeIdToInteractorAnchorMap;
 
-  public constructor(interactors: Interactor[]) {
+  public constructor(state: EditorState, services: EditorOperationServices) {
     this.markedInteractorAnchors = new InteractorAnchorSet();
-    this.nodeIdToInteractorAnchorMap = new NodeIdToInteractorAnchorMap(interactors);
+    this.nodeIdToInteractorAnchorMap = new NodeIdToInteractorAnchorMap(state, services);
   }
 
   public getAnchors(): InteractorAnchorDeletionEntry[] {
@@ -143,7 +159,7 @@ export class InteractorAnchorDeletionHelper {
     }
 
     for (const match of objectNodeMatches) {
-      const g = match.interactor.getAnchor(match.anchorType)?.graphemeIndex;
+      const g = match.anchor.graphemeIndex;
       if (g === undefined) {
         continue;
       }

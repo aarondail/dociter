@@ -94,7 +94,7 @@ CURSOR: 0/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   });
 
-  it("inserts muliple graphemes successfully", () => {
+  it("inserts multiple graphemes successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     // Jump to second N in the "NNN" inline text
     editor.execute(OPS.jump({ to: { path: "1/2/1", orientation: After } }));
