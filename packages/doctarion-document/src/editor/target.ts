@@ -1,6 +1,6 @@
 import { Draft } from "immer";
 
-import { InteractorId, InteractorStatus } from "../editor";
+import { InteractorId, InteractorStatus } from "../working-document";
 
 import { EditorState } from "./state";
 
@@ -42,9 +42,10 @@ export function getTargetedInteractorIds(
   } else if (typeof target === "string") {
     switch (target) {
       case TargetInteractors.All:
-        return Object.values(state.interactors).map((e) => e.id);
+        return state.getAllInteractors().map((e) => e.id);
       case TargetInteractors.AllActive:
-        return Object.values(state.interactors)
+        return state
+          .getAllInteractors()
           .filter((e) => e.status === InteractorStatus.Active)
           .map((e) => e.id);
       case TargetInteractors.Focused:
@@ -59,7 +60,8 @@ export function getTargetedInteractorIds(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorIds !== undefined) {
     return (
-      Object.values(state.interactors)
+      state
+        .getAllInteractors()
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         .filter((e) => untypedIdentifier.interactorIds.includes(e.id))
         .map((e) => e.id)

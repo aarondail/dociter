@@ -5,10 +5,9 @@
 // and access the EditorState.
 // -----------------------------------------------------------------------------
 
-import { FriendlyIdGenerator } from "doctarion-utils";
 import { Draft } from "immer";
 
-import { NodeLayoutReporter } from "../../layout-reporting";
+import { NodeLayoutReporter } from "../../cursor";
 import { EditorOperationCommand } from "../operation";
 import { EditorState } from "../state";
 
@@ -18,9 +17,6 @@ import { EditorInteractorService } from "./interactorService";
  * These are all the services available to `EditorOperation` functions.
  */
 export interface EditorOperationServices {
-  // TODO delete
-  readonly idGenerator: FriendlyIdGenerator;
-
   /**
    * Use this to execute (during an operation) another related operation.  You
    * have to pass the state (the draft of the immer state).

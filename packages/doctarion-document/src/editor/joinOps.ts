@@ -6,10 +6,15 @@ import lodash from "lodash";
 import { LiftingPathMap, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { CursorOrientation } from "../cursor";
 import { Block, InlineText, Node, NodeUtils } from "../models";
-import { AnchorOrientation, NodeAssociatedData, WorkingDocument } from "../working-document";
+import {
+  AnchorOrientation,
+  Interactor,
+  InteractorAnchorType,
+  NodeAssociatedData,
+  WorkingDocument,
+} from "../working-document";
 
 import { deletePrimitive } from "./deletionOps";
-import { Interactor, InteractorAnchorType } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
@@ -56,7 +61,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
       }
 
       new Range(startBlock.path, endBlock.path).walk(
-        state.document2.document,
+        state.document,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
@@ -91,7 +96,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     const destinationBlockOriginalChildCount = destinationBlock.children.length;
     const sourceBlockOriginalChildCount = (sourceNav.tip.node as Block).children.length;
 
-    moveBlockChildren(state.document2, sourceNav, destinationNav, direction);
+    moveBlockChildren(state, sourceNav, destinationNav, direction);
 
     adjustAnchorPositionsAfterBlockMerge(
       state,
@@ -109,7 +114,7 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
     // The true means we will update all interactor anchors... we don't strictly
     // need to do this but its easier to code than figuring out the boundary
     // cases (interactors on the first/last child of the joined blocks).
-    services.interactors.jiggleInteractors(services, state.document2, true);
+    services.interactors.jiggleInteractors(services, state, true);
 
     if (payload.mergeCompatibleInlineTextsIfPossible) {
       mergeCompatibleInlineChildrenIfPossible(
@@ -160,7 +165,7 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
       }
 
       new Range(startInlineTextNav.path, endInlineTextNav.path).walk(
-        state.document2.document,
+        state.document,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
@@ -192,7 +197,7 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
 export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathString; direction: FlowDirection }>(
   "join/inlineText/primitive",
   (state, services, payload) => {
-    const sourceNav = new NodeNavigator(state.document2.document);
+    const sourceNav = new NodeNavigator(state.document);
 
     if (!sourceNav.navigateTo(payload.path) || !(sourceNav.tip.node instanceof InlineText)) {
       return;
@@ -228,10 +233,36 @@ export const joinInlineTextPrimitive = createCoreOperation<{ path: Path | PathSt
       destinationInlineTextOriginalChildCount
     );
 
+    // console.log(
+    //   "AFTER JOIN",
+    //   state
+    //     .getAllInteractors()
+    //     .map((i) => {
+    //       const m = services.interactors.anchorToCursor(state.getAnchor(i.mainAnchor)!)!.toString();
+    //       const sa =
+    //         i.selectionAnchor && services.interactors.anchorToCursor(state.getAnchor(i.selectionAnchor)!)!.toString();
+    //       return `${m}::${sa}`;
+    //     })
+    //     .join(" | ")
+    // );
+
     services.execute(state, deletePrimitive({ path: sourceNav.path, direction: payload.direction }));
 
     // This could be redundant with what deletePrimitive is doing...
-    services.interactors.jiggleInteractors(services, state.document2);
+    services.interactors.jiggleInteractors(services, state);
+
+    // console.log(
+    //   "POST JIGGLE",
+    //   state
+    //     .getAllInteractors()
+    //     .map((i) => {
+    //       const m = services.interactors.anchorToCursor(state.getAnchor(i.mainAnchor)!)!.toString();
+    //       const sa =
+    //         i.selectionAnchor && services.interactors.anchorToCursor(state.getAnchor(i.selectionAnchor)!)!.toString();
+    //       return `${m}::${sa}`;
+    //     })
+    //     .join(" | ")
+    // );
   }
 );
 
@@ -252,24 +283,27 @@ function adjustAnchorPositionsAfterBlockMerge(
   }
 
   function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    const anchor = state.getInteractorAnchor(interactor, anchorType);
     if (
       anchor &&
       anchor.nodeId === destinationId &&
       destinationOriginalChildCount === 0 &&
       sourceOriginalChildCount > 0
     ) {
-      services.interactors.updateAnchor(interactor, anchorType, {
+      state.updateAnchor(
+        anchor.id,
+        anchor.nodeId,
         // This will get fixed by the jiggling
-        orientation: (CursorOrientation.After as unknown) as AnchorOrientation,
-      });
+        (CursorOrientation.After as unknown) as AnchorOrientation,
+        anchor.graphemeIndex
+      );
     }
   }
 
   if (direction === FlowDirection.Backward) {
     // Nothing to do
   } else {
-    for (const i of Object.values(state.interactors)) {
+    for (const i of state.getAllInteractors()) {
       caseForwardDestination(i, InteractorAnchorType.Main);
       i.selectionAnchor && caseForwardDestination(i, InteractorAnchorType.SelectionAnchor);
     }
@@ -293,77 +327,87 @@ function adjustAnchorPositionsAfterInlineTextMerge(
   }
 
   function caseBackwardsDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    const anchor = state.getInteractorAnchor(interactor, anchorType);
     if (
       anchor &&
       anchor.nodeId === destinationId &&
       destinationOriginalChildCount === 0 &&
       sourceOriginalChildCount > 0
     ) {
-      services.interactors.updateAnchor(interactor, anchorType, {
-        graphemeIndex: 0,
-        orientation: (CursorOrientation.Before as unknown) as AnchorOrientation,
-      });
+      state.updateAnchor(anchor.id, anchor.nodeId, (CursorOrientation.Before as unknown) as AnchorOrientation, 0);
     }
   }
 
   function caseForwardDestination(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    const anchor = state.getInteractorAnchor(interactor, anchorType);
     if (anchor && anchor.nodeId === destinationId) {
       if (anchor.graphemeIndex !== undefined) {
-        services.interactors.updateAnchor(interactor, anchorType, {
-          graphemeIndex: sourceOriginalChildCount + anchor.graphemeIndex,
-        });
+        state.updateAnchor(
+          anchor.id,
+          anchor.nodeId,
+          anchor.orientation,
+          sourceOriginalChildCount + anchor.graphemeIndex
+        );
       }
     }
   }
 
   function caseBackwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    const anchor = state.getInteractorAnchor(interactor, anchorType);
     if (anchor && anchor.nodeId === sourceId) {
       if (anchor.graphemeIndex !== undefined) {
-        services.interactors.updateAnchor(interactor, anchorType, {
-          nodeId: destinationId,
-          graphemeIndex: destinationOriginalChildCount + anchor.graphemeIndex,
-        });
+        state.updateAnchor(
+          anchor.id,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          destinationId!,
+          anchor.orientation,
+          destinationOriginalChildCount + anchor.graphemeIndex
+        );
       } else if (destinationOriginalChildCount > 0) {
-        services.interactors.updateAnchor(interactor, anchorType, {
-          nodeId: destinationId,
-          graphemeIndex: destinationOriginalChildCount - 1,
+        state.updateAnchor(
+          anchor.id,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          destinationId!,
           // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
-          orientation: (CursorOrientation.After as unknown) as AnchorOrientation,
-        });
+          (CursorOrientation.After as unknown) as AnchorOrientation,
+          destinationOriginalChildCount - 1
+        );
       }
-      services.interactors.notifyUpdated(interactor.id);
     }
   }
 
   function caseForwardSource(interactor: Interactor, anchorType: InteractorAnchorType) {
-    const anchor = services.interactors.getAnchor(interactor, anchorType);
+    const anchor = state.getInteractorAnchor(interactor, anchorType);
     if (anchor && anchor.nodeId === sourceId) {
       if (anchor.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
-        services.interactors.updateAnchor(interactor, anchorType, {
-          nodeId: destinationId,
-          graphemeIndex: 0,
-          orientation: (CursorOrientation.Before as unknown) as AnchorOrientation,
-        });
+        state.updateAnchor(
+          anchor.id,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          destinationId!,
+          (CursorOrientation.Before as unknown) as AnchorOrientation,
+          0
+        );
       } else {
-        services.interactors.updateAnchor(interactor, anchorType, {
-          nodeId: destinationId,
-        });
+        state.updateAnchor(
+          anchor.id,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          destinationId!,
+          anchor.orientation,
+          anchor.graphemeIndex
+        );
       }
     }
   }
 
   if (direction === FlowDirection.Backward) {
-    for (const i of Object.values(state.interactors)) {
+    for (const i of state.getAllInteractors()) {
       caseBackwardsDestination(i, InteractorAnchorType.Main);
       i.selectionAnchor && caseBackwardsDestination(i, InteractorAnchorType.SelectionAnchor);
       caseBackwardSource(i, InteractorAnchorType.Main);
       i.selectionAnchor && caseBackwardSource(i, InteractorAnchorType.SelectionAnchor);
     }
   } else {
-    for (const i of Object.values(state.interactors)) {
+    for (const i of state.getAllInteractors()) {
       caseForwardDestination(i, InteractorAnchorType.Main);
       i.selectionAnchor && caseForwardDestination(i, InteractorAnchorType.SelectionAnchor);
       caseForwardSource(i, InteractorAnchorType.Main);
@@ -443,7 +487,7 @@ function mergeCompatibleInlineChildrenIfPossible(
     return;
   }
 
-  const inlineTextNav = new NodeNavigator(state.document2.document);
+  const inlineTextNav = new NodeNavigator(state.document);
   inlineTextNav.navigateTo(path);
   if (leftChild.children.length === 0 && rightChild.children.length > 0) {
     inlineTextNav.navigateToChild(leftChildIndex + 1);

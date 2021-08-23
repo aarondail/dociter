@@ -25,7 +25,7 @@ describe("delete selection", () => {
       CURSOR: <| 1/0/0
       SLICE:  PARAGRAPH > URL_LINK g.com > \\"GLE\\""
     `);
-    expect(debugBlockSimple(editor.document, "1")).toMatchInlineSnapshot(`
+    expect(debugBlockSimple(editor.state.document, "1")).toMatchInlineSnapshot(`
       "
       PARAGRAPH > URL_LINK g.com > \\"GLE\\"
       PARAGRAPH > TEXT {} > \\"DD\\""

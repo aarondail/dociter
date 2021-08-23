@@ -2,14 +2,13 @@ import { Draft } from "immer";
 
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
-import { EditorState, Interactor, InteractorId } from "../editor";
-import { NodeLayoutReporter } from "../layout-reporting";
 import { SimpleComparison } from "../miscUtils";
 import { Node } from "../models";
-import { WorkingDocument } from "../working-document";
+import { Interactor, InteractorId, WorkingDocument } from "../working-document";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
+import { EditorState } from "./state";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
 export type InteractorInputPosition = Cursor | { path: Path | PathString; orientation: CursorOrientation };
@@ -17,23 +16,6 @@ export type InteractorInputPosition = Cursor | { path: Path | PathString; orient
 export enum FlowDirection {
   Backward = "BACKWARD",
   Forward = "FORWARD",
-}
-
-export function convertInteractorInputPositionToCursorNavigator(
-  state: Draft<EditorState>,
-  layout: NodeLayoutReporter | undefined,
-  position: InteractorInputPosition
-): CursorNavigator {
-  const nav = new CursorNavigator(state.document2.document, layout);
-  const cursor =
-    position instanceof Cursor
-      ? position
-      : new Cursor(position.path instanceof Path ? position.path : Path.parse(position.path), position.orientation);
-
-  if (!cursor || !nav.navigateTo(cursor)) {
-    throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition, "Invalid cursor position");
-  }
-  return nav;
 }
 
 // TODO delete this?
@@ -44,12 +26,12 @@ export function getCursorNavigatorAndValidate(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interactorId: number // InteractorId
 ): CursorNavigator {
-  const nav = new CursorNavigator(state.document2.document, services.layout);
-  const interactor = state.interactors[Object.keys(state.interactors)[0]]; //interactorId];
+  const nav = new CursorNavigator(state.document, services.layout);
+  const interactor = state.getAllInteractors()[0];
   if (!interactor) {
     throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
   } else {
-    const anchor = state.document2.getAnchor(interactor.mainAnchor);
+    const anchor = state.getAnchor(interactor.mainAnchor);
     const cursor = anchor && services.interactors.anchorToCursor(anchor);
     if (!cursor || !nav.navigateTo(cursor)) {
       throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
@@ -69,8 +51,8 @@ function getMainCursorNavigatorFor(
   state: Draft<EditorState>,
   services: EditorOperationServices
 ): CursorNavigator {
-  const nav = new CursorNavigator(state.document2.document, services.layout);
-  const anchor = state.document2.getAnchor(target.mainAnchor);
+  const nav = new CursorNavigator(state.document, services.layout);
+  const anchor = state.getAnchor(target.mainAnchor);
   const cursor = anchor && services.interactors.anchorToCursor(anchor);
   if (!cursor || !nav.navigateTo(cursor)) {
     throw new EditorOperationError(
@@ -92,9 +74,9 @@ function getBothCursorNavigatorsForSelection(
   state: Draft<EditorState>,
   services: EditorOperationServices
 ): { navigators: [CursorNavigator, CursorNavigator]; isMainCursorFirst: boolean } | undefined {
-  const main = state.document2.getAnchor(target.mainAnchor);
+  const main = state.getAnchor(target.mainAnchor);
   const mainCursor = main && services.interactors.anchorToCursor(main);
-  const sa = target.selectionAnchor && state.document2.getAnchor(target.selectionAnchor);
+  const sa = target.selectionAnchor && state.getAnchor(target.selectionAnchor);
   const saCursor = sa && services.interactors.anchorToCursor(sa);
 
   if (!mainCursor || !saCursor) {
@@ -103,7 +85,7 @@ function getBothCursorNavigatorsForSelection(
 
   const isMainCursorFirst = mainCursor.compareTo(saCursor) !== SimpleComparison.After;
 
-  const nav1 = new CursorNavigator(state.document2.document, services.layout);
+  const nav1 = new CursorNavigator(state.document, services.layout);
 
   if (!nav1.navigateTo(mainCursor)) {
     throw new EditorOperationError(
@@ -112,7 +94,7 @@ function getBothCursorNavigatorsForSelection(
     );
   }
 
-  const nav2 = new CursorNavigator(state.document2.document, services.layout);
+  const nav2 = new CursorNavigator(state.document, services.layout);
 
   if (!nav2.navigateTo(saCursor)) {
     throw new EditorOperationError(
@@ -218,7 +200,10 @@ export function selectTargets(
   const result: SelectTargetsResult[] = [];
 
   const recordResult = (t: InteractorId) => {
-    const interactor = state.interactors[t];
+    const interactor = state.getInteractor(t);
+    if (!interactor) {
+      return;
+    }
     if (interactor.isSelection) {
       const r = getBothCursorNavigatorsForSelection(interactor, state, services);
       if (r) {

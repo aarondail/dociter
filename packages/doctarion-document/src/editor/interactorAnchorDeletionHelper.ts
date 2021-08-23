@@ -1,6 +1,5 @@
-import { Anchor, NodeId } from "../working-document";
+import { Anchor, Interactor, InteractorAnchorType, NodeId } from "../working-document";
 
-import { Interactor, InteractorAnchorType } from "./interactor";
 import { EditorOperationServices } from "./services";
 import { EditorState } from "./state";
 
@@ -13,10 +12,10 @@ export interface InteractorAnchorEntry {
 export class NodeIdToInteractorAnchorMap {
   private dictionary: { [nodeId: string]: InteractorAnchorEntry[] };
 
-  public constructor(state: EditorState, services: EditorOperationServices) {
+  public constructor(state: EditorState) {
     this.dictionary = {};
-    for (const interactor of Object.values(state.interactors)) {
-      const mainAnchor = services.interactors.getAnchor(interactor, InteractorAnchorType.Main);
+    for (const interactor of state.getAllInteractors()) {
+      const mainAnchor = state.getInteractorAnchor(interactor, InteractorAnchorType.Main);
       if (!mainAnchor) {
         continue;
       }
@@ -30,7 +29,7 @@ export class NodeIdToInteractorAnchorMap {
       });
 
       if (interactor.selectionAnchor) {
-        const saAnchor = services.interactors.getAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+        const saAnchor = state.getInteractorAnchor(interactor, InteractorAnchorType.SelectionAnchor);
         if (!saAnchor) {
           continue;
         }
@@ -128,9 +127,9 @@ export class InteractorAnchorDeletionHelper {
   private markedInteractorAnchors: InteractorAnchorSet;
   private nodeIdToInteractorAnchorMap: NodeIdToInteractorAnchorMap;
 
-  public constructor(state: EditorState, services: EditorOperationServices) {
+  public constructor(state: EditorState) {
     this.markedInteractorAnchors = new InteractorAnchorSet();
-    this.nodeIdToInteractorAnchorMap = new NodeIdToInteractorAnchorMap(state, services);
+    this.nodeIdToInteractorAnchorMap = new NodeIdToInteractorAnchorMap(state);
   }
 
   public getAnchors(): InteractorAnchorDeletionEntry[] {

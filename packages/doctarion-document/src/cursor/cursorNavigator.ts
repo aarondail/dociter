@@ -1,9 +1,9 @@
 import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-traversal";
-import { NodeLayoutReporter } from "../layout-reporting";
 import { Document, NodeUtils } from "../models";
 
 import { Cursor, CursorOrientation } from "./cursor";
 import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
+import { NodeLayoutReporter } from "./layoutReporter";
 
 export interface ReadonlyCursorNavigator {
   readonly chain: Chain;

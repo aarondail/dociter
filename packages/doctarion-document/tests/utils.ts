@@ -5,7 +5,7 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
-import { Editor, Interactor, InteractorAnchorType, InteractorId, InteractorStatus } from "../src/editor";
+import { Editor } from "../src/editor";
 import { SimpleComparison } from "../src/miscUtils";
 import {
   Block,
@@ -20,7 +20,14 @@ import {
   Text,
   TextModifiers,
 } from "../src/models";
-import { Anchor, ReadonlyWorkingDocument } from "../src/working-document";
+import {
+  Anchor,
+  Interactor,
+  InteractorAnchorType,
+  InteractorId,
+  InteractorStatus,
+  ReadonlyWorkingDocument,
+} from "../src/working-document";
 
 export const doc = (...blocks: readonly Block[]): Document => new Document("title", ...blocks);
 export const header = (...args: any[]) => new HeaderBlock(...args);
@@ -139,7 +146,7 @@ export const DebugEditorHelpers = (() => {
     workingDocument: ReadonlyWorkingDocument,
     editor: Editor
   ): { cursorDebug: string; chain: Chain | undefined; cursor: Cursor | undefined } => {
-    const cursor = anchor && editor.operationServices.interactors.anchorToCursor(anchor);
+    const cursor = anchor && editor.anchorToCursor(anchor);
     if (cursor && testingNavigator.navigateTo(cursor.path)) {
       const cursorDebug =
         cursor.orientation === CursorOrientation.Before
@@ -159,25 +166,27 @@ export const DebugEditorHelpers = (() => {
   };
 
   const debugInteractors = (editor: Editor) => {
-    const nav = new NodeNavigator(editor.document);
+    const nav = new NodeNavigator(editor.state.document);
 
-    const interactors = lodash.sortBy(Object.values(editor.interactors), (i) => i.name);
+    const interactors = lodash.sortBy(editor.state.getAllInteractors(), (i) => i.name);
     return interactors
       .map((i, index) => {
         const a = i.getAnchor(InteractorAnchorType.Main);
-        const c = debugCursor(editor.workingDocument.getAnchor(a!), nav, editor.workingDocument, editor);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const c = debugCursor(editor.state.getAnchor(a!), nav, editor.state, editor);
         const cursorDebug = c.cursorDebug;
 
         let saCursorDebug;
         let mainFirst = false;
         if (i.isSelection) {
           const sa = i.getAnchor(InteractorAnchorType.SelectionAnchor);
-          const saC = debugCursor(editor.workingDocument.getAnchor(sa!), nav, editor.workingDocument, editor);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const saC = debugCursor(editor.state.getAnchor(sa!), nav, editor.state, editor);
           saCursorDebug = saC.cursorDebug;
           mainFirst = !!(c.cursor && saC.cursor && c.cursor.compareTo(saC.cursor) !== SimpleComparison.After);
         }
 
-        const f = editor.focusedInteractor === i;
+        const f = editor.state.focusedInteractor === i;
         const s =
           f || i.status === InteractorStatus.Inactive
             ? `(${f ? "F" : ""}${i.status === InteractorStatus.Inactive ? "I" : ""}) `
@@ -194,18 +203,19 @@ export const DebugEditorHelpers = (() => {
   };
 
   const debugEditorStateForInteractor = (editor: Editor, interactor: Interactor, description?: string) => {
-    const nav = new NodeNavigator(editor.document);
+    const nav = new NodeNavigator(editor.state.document);
     if (interactor.isSelection) {
       const { cursorDebug: cursorDebug1, chain: chain1 } = debugCursor(
-        editor.workingDocument.getAnchor(interactor.mainAnchor),
+        editor.state.getAnchor(interactor.mainAnchor),
         nav,
-        editor.workingDocument,
+        editor.state,
         editor
       );
       const { cursorDebug: cursorDebug2, chain: chain2 } = debugCursor(
-        editor.workingDocument.getAnchor(interactor.selectionAnchor!),
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        editor.state.getAnchor(interactor.selectionAnchor!),
         nav,
-        editor.workingDocument,
+        editor.state,
         editor
       );
       let s1 = "";
@@ -219,7 +229,7 @@ SLICE:  ${elementString}`;
 MAIN CURSOR: ${cursorDebug1}
 SLICE:  !INVALID CURSOR POSITION!
 DOCUMENT BLOCKS:
-${JSON.stringify(editor.document.children, undefined, 4)}
+${JSON.stringify(editor.state.document.children, undefined, 4)}
 `;
       }
 
@@ -234,16 +244,16 @@ SLICE:  ${elementString}`;
 S.A. CURSOR: ${cursorDebug2}
 SLICE:  !INVALID CURSOR POSITION!
 DOCUMENT BLOCKS:
-${JSON.stringify(editor.document.children, undefined, 4)}
+${JSON.stringify(editor.state.document.children, undefined, 4)}
 `;
       }
 
       return s1 + s2;
     } else {
       const { cursorDebug, chain } = debugCursor(
-        editor.workingDocument.getAnchor(interactor.mainAnchor),
+        editor.state.getAnchor(interactor.mainAnchor),
         nav,
-        editor.workingDocument,
+        editor.state,
         editor
       );
       if (chain) {
@@ -256,25 +266,26 @@ SLICE:  ${elementString}`;
 CURSOR: ${cursorDebug}
 SLICE:  !INVALID CURSOR POSITION!
 DOCUMENT BLOCKS:
-${JSON.stringify(editor.document.children, undefined, 4)}
+${JSON.stringify(editor.state.document.children, undefined, 4)}
 `;
       }
     }
   };
 
   const debugEditorStateSimple = (editor: Editor) => {
-    if (!editor.focusedInteractor) {
+    if (!editor.state.focusedInteractor) {
       throw new Error("There is no focused interactor.");
     }
-    return debugEditorStateForInteractor(editor, editor.focusedInteractor);
+    return debugEditorStateForInteractor(editor, editor.state.focusedInteractor);
   };
 
   const debugEditorStateLessSimple = (editor: Editor) => {
-    return Object.values(editor.interactors)
+    return editor.state
+      .getAllInteractors()
       .map((i, index) => {
         return debugEditorStateForInteractor(
           editor,
-          editor.interactors[i.id],
+          i,
           // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
           "\nINTR. " + (i.name ? i.name : "#" + (index + 1))
         );
@@ -283,16 +294,19 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
   };
 
   const debugBlockAtInteractor = (editor: Editor, interactorId: InteractorId): string => {
-    const i = editor.interactors[interactorId];
-    const mainCursor = editor.operationServices.interactors.anchorToCursor(
-      editor.workingDocument.getAnchor(i.mainAnchor)!
+    const i = editor.state.getAllInteractors().find((x) => x.id === interactorId);
+    const mainCursor = editor.anchorToCursor(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      editor.state.getAnchor(i!.mainAnchor)!
     );
     if (!mainCursor) {
       throw Error("Could not convert main anchor into cursor");
     }
     const selectionAnchorCursor =
-      i.selectionAnchor &&
-      editor.operationServices.interactors.anchorToCursor(editor.workingDocument.getAnchor(i.selectionAnchor)!);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      i!.selectionAnchor &&
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      editor.anchorToCursor(editor.state.getAnchor(i!.selectionAnchor)!);
     if (selectionAnchorCursor) {
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       const path1 = "" + mainCursor.path?.parts[0].index;
@@ -300,20 +314,20 @@ ${JSON.stringify(editor.document.children, undefined, 4)}
       const path2 = "" + selectionAnchorCursor.path?.parts[0].index;
       return (
         "\nMAIN CURSOR:" +
-        debugBlockSimple(editor.document, path1) +
+        debugBlockSimple(editor.state.document, path1) +
         "\nS.A. CURSOR:" +
-        debugBlockSimple(editor.document, path2)
+        debugBlockSimple(editor.state.document, path2)
       );
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       const path = "" + mainCursor.path?.parts[0].index;
-      return debugBlockSimple(editor.document, path);
+      return debugBlockSimple(editor.state.document, path);
     }
   };
 
   const debugCurrentBlock = (editor: Editor): string => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const i = editor.focusedInteractor!;
+    const i = editor.state.focusedInteractor!;
     const c = i.mainAnchor;
     if (!c) {
       throw new Error("There is no focused interactor.");

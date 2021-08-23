@@ -1,7 +1,8 @@
 import { immerable } from "immer";
 
-import { HorizontalVisualAnchor } from "../layout-reporting";
-import { AnchorId } from "../working-document";
+import { HorizontalVisualPosition } from "../cursor";
+
+import { AnchorId } from "./anchor";
 
 export type InteractorId = string;
 
@@ -28,18 +29,18 @@ export class Interactor {
      * the start of the line movement, so we can intelligently move between lines
      * of different length and have the cursor try to go to the right spot.
      */
-    public readonly lineMovementHorizontalVisualAnchor?: HorizontalVisualAnchor,
+    public readonly lineMovementHorizontalVisualPosition?: HorizontalVisualPosition,
     /**
      * Optional name to describe the interactor.
      */
     public readonly name?: string
   ) {}
 
-  public getAnchor(type: InteractorAnchorType): AnchorId | undefined {
-    return type === InteractorAnchorType.Main ? this.mainAnchor : this.selectionAnchor;
-  }
-
   public get isSelection(): boolean {
     return this.selectionAnchor !== undefined;
+  }
+
+  public getAnchor(type: InteractorAnchorType): AnchorId | undefined {
+    return type === InteractorAnchorType.Main ? this.mainAnchor : this.selectionAnchor;
   }
 }

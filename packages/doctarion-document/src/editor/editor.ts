@@ -3,16 +3,15 @@ import * as immer from "immer";
 
 import { Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
-import { Interactor } from "../editor";
 import { Document } from "../models";
-import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document";
+import { Anchor, AnchorId } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorInteractorService, EditorOperationServices, EditorProvidableServices } from "./services";
-import { EditorState } from "./state";
+import { EditorState, ReadonlyEditorState } from "./state";
 
 export interface EditorConfig {
   // For reasons I dont fully understand typescript doesn't allow you to pass an
@@ -28,14 +27,13 @@ export interface EditorConfig {
 
 export class Editor {
   public readonly events: EditorEvents;
-  // TODO make private once we move interactors into state (rather than as a service)
-  public readonly operationServices: EditorOperationServices;
 
   private readonly eventEmitters: EditorEventEmitter;
   private futureList: EditorState[];
   private historyList: EditorState[];
   private readonly operationRegistry: Map<string, EditorOperation<unknown, unknown, string>>;
-  private state: EditorState;
+  private readonly operationServices: EditorOperationServices;
+  private workingState: EditorState;
 
   public constructor({
     document: initialDocument,
@@ -46,15 +44,10 @@ export class Editor {
   }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
 
-    const workingDocument = new WorkingDocument(initialDocument as immer.Draft<Document>, idGenerator);
-    this.state = {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-      document2: workingDocument as any,
-      // Clone because we are going to assign ids which technically is a
-      // mutation
-      interactors: {},
-      focusedInteractorId: undefined,
-    };
+    let workingState = new EditorState(initialDocument as immer.Draft<Document>, idGenerator);
+    workingState = immer.produce(workingState, (x) => x);
+
+    this.workingState = workingState;
     this.historyList = [];
     this.futureList = [];
 
@@ -65,8 +58,11 @@ export class Editor {
 
     this.operationServices = {
       ...providedServices,
-      idGenerator,
-      interactors: new EditorInteractorService(this.events, idGenerator, providedServices?.layout),
+      interactors: new EditorInteractorService(
+        this.events,
+        (this.workingState as unknown) as immer.Draft<EditorState>,
+        providedServices?.layout
+      ),
       execute: this.executeRelatedOperation,
     };
 
@@ -85,7 +81,7 @@ export class Editor {
     if (!omitDefaultInteractor) {
       let cursor = initialCursor;
       if (!cursor) {
-        const cn = new CursorNavigator(this.state.document2.document, undefined);
+        const cn = new CursorNavigator(this.workingState.document, undefined);
         cn.navigateTo(new Path([]), CursorOrientation.On);
         cn.navigateToNextCursorPosition();
         cn.navigateToPrecedingCursorPosition();
@@ -95,27 +91,16 @@ export class Editor {
     }
   }
 
-  public get focusedInteractor(): Interactor | undefined {
-    if (this.state.focusedInteractorId !== undefined) {
-      return this.state.interactors[this.state.focusedInteractorId];
-    }
-    return undefined;
-  }
-
-  public get document(): Document {
-    return this.state.document2.document;
-  }
-
-  public get history(): readonly EditorState[] {
+  public get history(): readonly ReadonlyEditorState[] {
     return this.historyList;
   }
 
-  public get interactors(): EditorState["interactors"] {
-    return this.state.interactors;
+  public get state(): ReadonlyEditorState {
+    return this.workingState;
   }
 
-  public get workingDocument(): ReadonlyWorkingDocument {
-    return this.state.document2;
+  public anchorToCursor(anchor: AnchorId | Anchor): Cursor {
+    return this.operationServices.interactors.anchorToCursor(anchor);
   }
 
   public execute<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
@@ -125,24 +110,24 @@ export class Editor {
     }
 
     let result!: ReturnType;
-    const oldState = this.state;
-    const newState = immer.produce(this.state, (draft) => {
+    const oldState = this.workingState;
+    const newState = immer.produce(this.workingState, (draft) => {
       this.eventEmitters.operationWillRun.emit(draft);
       result = op.operationRunFunction(draft, this.operationServices, command.payload) as ReturnType;
       this.eventEmitters.operationHasRun.emit(draft);
     });
 
     // If there were no changes, don't do anything
-    if (newState !== this.state) {
+    if (newState !== this.workingState) {
       // This is far too basic...
-      this.historyList.push(this.state);
-      this.state = newState;
+      this.historyList.push(this.workingState);
+      this.workingState = newState;
       // Reset future
       this.futureList.splice(0, this.futureList.length);
     }
-    this.eventEmitters.operationHasCompleted.emit(this.state);
-    if (newState.document2.document !== oldState.document2.document) {
-      this.eventEmitters.documentHasBeenUpdated.emit(this.state.document2.document);
+    this.eventEmitters.operationHasCompleted.emit(this.workingState);
+    if (newState.document !== oldState.document) {
+      this.eventEmitters.documentHasBeenUpdated.emit(this.workingState.document);
     }
 
     return result;
@@ -151,8 +136,8 @@ export class Editor {
   public redo(): void {
     const futureButNowState = this.futureList.pop();
     if (futureButNowState) {
-      this.historyList.push(this.state);
-      this.state = futureButNowState;
+      this.historyList.push(this.workingState);
+      this.workingState = futureButNowState;
     }
   }
   public resetHistory(): void {
@@ -163,8 +148,8 @@ export class Editor {
   public undo(): void {
     const oldButNewState = this.historyList.pop();
     if (oldButNewState) {
-      this.futureList.push(this.state);
-      this.state = oldButNewState;
+      this.futureList.push(this.workingState);
+      this.workingState = oldButNewState;
     }
   }
 

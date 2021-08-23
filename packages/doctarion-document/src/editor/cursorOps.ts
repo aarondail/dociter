@@ -2,9 +2,9 @@ import { Draft } from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { Side } from "../layout-reporting";
+import { Side } from "../miscUtils";
+import { Interactor } from "../working-document";
 
-import { Interactor } from "./interactor";
 import { createCoreOperation } from "./operation";
 import { InteractorMovementPayload } from "./payloads";
 import { EditorOperationServices } from "./services";
@@ -16,9 +16,9 @@ export const moveBack = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToPrecedingCursorPosition()) {
-        services.interactors.updateInteractor(interactor.id, {
-          to: navigator.cursor,
-          lineMovementHorizontalVisualAnchor: undefined,
+        state.updateInteractor(interactor.id, {
+          to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+          lineMovementHorizontalVisualPosition: undefined,
           selectTo: payload.select ? "main" : undefined,
         });
       }
@@ -31,9 +31,9 @@ export const moveForward = createCoreOperation<InteractorMovementPayload>(
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
       if (navigator.navigateToNextCursorPosition()) {
-        services.interactors.updateInteractor(interactor.id, {
-          to: navigator.cursor,
-          lineMovementHorizontalVisualAnchor: undefined,
+        state.updateInteractor(interactor.id, {
+          to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+          lineMovementHorizontalVisualPosition: undefined,
           selectTo: payload.select ? "main" : undefined,
         });
       }
@@ -49,7 +49,7 @@ export const moveVisualDown = createCoreOperation<InteractorMovementPayload>(
       if (!services.layout) {
         return false;
       }
-      return moveVisualUpOrDownHelper(services, "DOWN", interactor, navigator);
+      return moveVisualUpOrDownHelper(state, services, "DOWN", interactor, navigator);
     });
   }
 );
@@ -70,7 +70,7 @@ export const moveVisualUp = createCoreOperation<InteractorMovementPayload>(
       if (!services.layout) {
         return false;
       }
-      return moveVisualUpOrDownHelper(services, "UP", interactor, navigator);
+      return moveVisualUpOrDownHelper(state, services, "UP", interactor, navigator);
     });
   }
 );
@@ -88,9 +88,9 @@ export const jump = createCoreOperation<{ to: InteractorInputPosition } & Intera
   "cursor/jump",
   (state, services, payload): void => {
     forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor) => {
-      services.interactors.updateInteractor(interactor.id, {
-        to: payload.to,
-        lineMovementHorizontalVisualAnchor: undefined,
+      state.updateInteractor(interactor.id, {
+        to: services.interactors.convertInteractorInputPositionToAnchorPosition(payload.to),
+        lineMovementHorizontalVisualPosition: undefined,
         selectTo: payload.select ? "main" : undefined,
       });
     });
@@ -122,6 +122,7 @@ function forEachInteractorInMovementTargetPayloadDo(
 // or
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/caretRangeFromPoint
 function moveVisualUpOrDownHelper(
+  state: Draft<EditorState>,
   services: EditorOperationServices,
   direction: "UP" | "DOWN",
   interactor: Draft<Interactor>,
@@ -130,7 +131,7 @@ function moveVisualUpOrDownHelper(
   const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
-    interactor.lineMovementHorizontalVisualAnchor ??
+    interactor.lineMovementHorizontalVisualPosition ??
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     services.layout!.getTargetHorizontalAnchor(
       startNavigator,
@@ -161,19 +162,16 @@ function moveVisualUpOrDownHelper(
     // works so that it doesn't have to compute all the line breaks in a
     // InlineText to do its work
 
-    // console.log("cursorOps:loop1:advance ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
     if (didLineWrap(startNavigator)) {
       foundNewLine = true;
       break;
     }
   }
-  // console.log("cursorOps:lopp1:done ", currentNavigator.tip.node, currentNavigator.tip.pathPart.index);
 
   if (!foundNewLine) {
     return;
   }
 
-  // console.log("found new line", currentLayoutRect, nav.tip.node);
   // Now that we think we are on the next line...
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let distance = services.layout!.detectHorizontalDistanceFromTargetHorizontalAnchor(
@@ -186,7 +184,6 @@ function moveVisualUpOrDownHelper(
     return;
   }
 
-  // console.log(distance);
   if (distance.estimatedSubjectSiblingsToTarget) {
     navigator.navigateToRelativeSibling(
       distance.estimatedSubjectSiblingsToTarget,
@@ -198,9 +195,7 @@ function moveVisualUpOrDownHelper(
     const newLineStartNavigator = navigator.toNodeNavigator();
 
     while (advance()) {
-      // console.log("curos:loop2:advance");
       if (didLineWrap(newLineStartNavigator)) {
-        // console.log("curos:loop2:line wrap detected");
         retreat();
         break;
       }
@@ -211,12 +206,10 @@ function moveVisualUpOrDownHelper(
         targetAnchor
       );
       if (!newDistance) {
-        // console.log("curos:loop2:dist null");
         retreat();
         break;
       }
       if (Math.abs(newDistance.distance) > Math.abs(distance.distance)) {
-        // console.log("curos:loop2:dist ok");
         retreat();
         break;
       }
@@ -234,9 +227,9 @@ function moveVisualUpOrDownHelper(
     }
   }
 
-  services.interactors.updateInteractor(interactor.id, {
-    to: navigator.cursor,
-    lineMovementHorizontalVisualAnchor: undefined,
+  state.updateInteractor(interactor.id, {
+    to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+    lineMovementHorizontalVisualPosition: undefined,
     selectTo: undefined,
   });
 }

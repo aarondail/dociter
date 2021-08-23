@@ -1,5 +1,6 @@
 import { immerable } from "immer";
 
+import { InteractorId } from "./interactor";
 import { NodeId } from "./nodeAssociatedData";
 
 export type AnchorId = string;
@@ -15,6 +16,12 @@ export enum AnchorOrientation {
   On = "ON",
 }
 
+export interface AnchorPosition {
+  readonly nodeId: NodeId;
+  readonly orientation: AnchorOrientation;
+  readonly graphemeIndex?: number;
+}
+
 /**
  * An Anchor is very similar to a Cursor, but instead of being composed of a
  * path and an orientation it is composed of a NodeId, a possible grapheme index
@@ -24,7 +31,7 @@ export enum AnchorOrientation {
  * much easier to insert and delete nodes in the Document because existing
  * anchors (contained by interactors) do not need to be updated (generally).
  */
-export class Anchor {
+export class Anchor implements AnchorPosition {
   [immerable] = true;
 
   public constructor(
@@ -32,6 +39,7 @@ export class Anchor {
     public readonly nodeId: NodeId,
     public readonly orientation: AnchorOrientation,
     public readonly graphemeIndex?: number,
-    public readonly name?: string
+    public readonly name?: string,
+    public readonly relatedInteractorId?: InteractorId
   ) {}
 }

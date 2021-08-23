@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Path } from "../../src/basic-traversal";
 import { Cursor, CursorOrientation } from "../../src/cursor";
-import { Editor, InteractorStatus, OPS } from "../../src/editor";
+import { Editor, OPS } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
+import { InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { debugInteractors: debug } = DebugEditorHelpers;
@@ -20,7 +21,7 @@ const testDoc1 = doc(
 let editor: Editor;
 beforeEach(() => {
   editor = new Editor({ document: testDoc1 });
-  editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
+  editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, name: "α" }));
 });
 
 describe("addInteractor", () => {
@@ -79,10 +80,10 @@ describe("updateInteractor", () => {
   it("can update default interactor", () => {
     expect(debug(editor)).toEqual(`α (F) <| 0/0/0`);
     // This should be a no-op
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor?.id || "" }));
+    editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor?.id || "" }));
     expect(debug(editor)).toEqual(`α (F) <| 0/0/0`);
 
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor?.id || "", to: cursorBefore("3/0/1") }));
+    editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor?.id || "", to: cursorBefore("3/0/1") }));
     expect(debug(editor)).toEqual(`α (F) 3/0/0 |>`);
   });
 
@@ -142,20 +143,20 @@ describe("updateInteractor", () => {
 
   it("will have the main position slightly adjusted if there is a preferable position", () => {
     // An "after" position is preferable to a before position at this spot in text
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, to: cursorBefore("3/1/2") }));
+    editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, to: cursorBefore("3/1/2") }));
     expect(debug(editor)).toEqual(`α (F) 3/1/1 |>`);
   });
 
   it("will have the selection anchor position slightly adjusted if there is a preferable position", () => {
     // An "after" position is preferable to a before position at this spot in text
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, selectTo: cursorBefore("3/1/2") }));
+    editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, selectTo: cursorBefore("3/1/2") }));
     expect(debug(editor)).toEqual(`α (F) <| 0/0/0 ◉◀◀◀ 3/1/1 |>`);
   });
 });
 
 describe("removeInteractor", () => {
   it("can remove all interactors", () => {
-    const id0 = editor.focusedInteractor!.id;
+    const id0 = editor.state.focusedInteractor!.id;
     const id1 = editor.execute(OPS.addInteractor({ at: cursorBefore("1/0/0"), name: "β" }))!;
     const id2 = editor.execute(
       OPS.addInteractor({ at: cursorAfter("1/2/1"), selectTo: cursorAfter("3/0/0"), name: "γ" })
@@ -166,12 +167,12 @@ describe("removeInteractor", () => {
     editor.execute(OPS.removeInteractor({ id: id1 }));
     expect(debug(editor)).toEqual(`α (F) <| 0/0/0`);
     editor.execute(OPS.removeInteractor({ id: id0 }));
-    expect(editor.focusedInteractor).toBeUndefined();
+    expect(editor.state.focusedInteractor).toBeUndefined();
   });
 
   it("removing the focused interactor results in no focused interactor", () => {
-    const id = editor.focusedInteractor!.id;
+    const id = editor.state.focusedInteractor!.id;
     editor.execute(OPS.removeInteractor({ id }));
-    expect(editor.focusedInteractor).toBeUndefined();
+    expect(editor.state.focusedInteractor).toBeUndefined();
   });
 });

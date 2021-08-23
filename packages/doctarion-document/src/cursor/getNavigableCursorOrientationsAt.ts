@@ -1,6 +1,7 @@
 import { NodeNavigator } from "../basic-traversal";
-import { NodeLayoutReporter } from "../layout-reporting";
 import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
+
+import { NodeLayoutReporter } from "./layoutReporter";
 
 // -----------------------------------------------------------------------------
 // This file is responsible for detecting which "navigable" cursor positions are

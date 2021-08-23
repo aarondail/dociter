@@ -1,6 +1,7 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, FlowDirection, InteractorStatus, OPS, TargetInteractors } from "../../src/editor";
+import { Editor, FlowDirection, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
+import { InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, After } = CursorOrientation;
@@ -127,12 +128,12 @@ MAIN CURSOR: 3/2/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "DD"
 S.A. CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
-    expect(debugBlockSimple(editor.document, "1")).toMatchInlineSnapshot(`
+    expect(debugBlockSimple(editor.state.document, "1")).toMatchInlineSnapshot(`
       "
       PARAGRAPH > TEXT {} > \\"MMNNAABB\\""
     `);
-    expect(debugBlockSimple(editor.document, "2")).toMatchInlineSnapshot(`""`);
-    expect(debugBlockSimple(editor.document, "3")).toMatchInlineSnapshot(`
+    expect(debugBlockSimple(editor.state.document, "2")).toMatchInlineSnapshot(`""`);
+    expect(debugBlockSimple(editor.state.document, "3")).toMatchInlineSnapshot(`
       "
       PARAGRAPH > TEXT {} > \\"CC\\"
       PARAGRAPH > URL_LINK g.com > \\"GOOGLE\\"
@@ -148,12 +149,12 @@ MAIN CURSOR: 3/2/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "DD"
 S.A. CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
-    expect(debugBlockSimple(editor.document, "1")).toMatchInlineSnapshot(`
+    expect(debugBlockSimple(editor.state.document, "1")).toMatchInlineSnapshot(`
       "
       PARAGRAPH > TEXT {BOLD} > \\"MMNNAABB\\""
     `);
-    expect(debugBlockSimple(editor.document, "2")).toMatchInlineSnapshot(`""`);
-    expect(debugBlockSimple(editor.document, "3")).toMatchInlineSnapshot(`
+    expect(debugBlockSimple(editor.state.document, "2")).toMatchInlineSnapshot(`""`);
+    expect(debugBlockSimple(editor.state.document, "3")).toMatchInlineSnapshot(`
       "
       PARAGRAPH > TEXT {} > \\"CC\\"
       PARAGRAPH > URL_LINK g.com > \\"GOOGLE\\"
@@ -164,7 +165,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
   it("when merging blocks forward, an anchor on a empty block is moved appropriately", () => {
     const editor = new Editor({ document: testDoc1 });
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    editor.execute(OPS.updateInteractor({ id: editor.focusedInteractor!.id, name: "α" }));
+    editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, name: "α" }));
     editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
 
     editor.execute(

@@ -1,13 +1,27 @@
-import { WorkingDocument } from "../working-document";
+import { FriendlyIdGenerator } from "doctarion-utils";
+import { immerable } from "immer";
 
-import { Interactor, InteractorId } from "./interactor";
+import { Document } from "../models";
+import { Interactor, InteractorId, ReadonlyWorkingDocument, WorkingDocument } from "../working-document";
 
-export interface EditorState {
-  readonly document2: WorkingDocument;
-
+export interface ReadonlyEditorState extends ReadonlyWorkingDocument {
   readonly focusedInteractorId: InteractorId | undefined;
-  /**
-   * This should only be updated by using the EditorInteractorService.
-   */
-  readonly interactors: { readonly [id: string /* InteractorId */]: Interactor };
+  readonly focusedInteractor: Interactor | undefined;
+}
+
+export class EditorState extends WorkingDocument implements ReadonlyEditorState {
+  public readonly focusedInteractorId: InteractorId | undefined;
+
+  [immerable] = true;
+
+  public constructor(document: Document, idGenerator: FriendlyIdGenerator) {
+    super(document, idGenerator);
+  }
+
+  public get focusedInteractor(): Interactor | undefined {
+    if (this.focusedInteractorId !== undefined) {
+      return this.getInteractor(this.focusedInteractorId);
+    }
+    return undefined;
+  }
 }

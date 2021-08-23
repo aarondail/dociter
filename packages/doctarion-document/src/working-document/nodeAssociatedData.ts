@@ -58,35 +58,35 @@ export const NodeAssociatedData = {
     return getData(node).parentId;
   },
 
-  addAnchorToNode(node: Node, id: AnchorId): void {
-    if (typeof node === "string") {
-      throw new Error("Cannot assign an anchor to graphemes.");
-    }
-    const data = getData(node);
-    if (!data.anchorIds) {
-      data.anchorIds = [];
-    }
-    data.anchorIds.push(id);
-  },
+  // addAnchorToNode(node: Node, id: AnchorId): void {
+  //   if (typeof node === "string") {
+  //     throw new Error("Cannot assign an anchor to graphemes.");
+  //   }
+  //   const data = getData(node);
+  //   if (!data.anchorIds) {
+  //     data.anchorIds = [];
+  //   }
+  //   data.anchorIds.push(id);
+  // },
 
-  getAnchorsAtNode(node: Node): readonly AnchorId[] | undefined {
-    if (typeof node === "string") {
-      throw new Error("Cannot get anchors on graphemes.");
-    }
-    return getData(node).anchorIds;
-  },
+  // getAnchorsAtNode(node: Node): readonly AnchorId[] | undefined {
+  //   if (typeof node === "string") {
+  //     throw new Error("Cannot get anchors on graphemes.");
+  //   }
+  //   return getData(node).anchorIds;
+  // },
 
-  removeAnchorFromNode(node: Node, id: AnchorId): void {
-    if (typeof node === "string") {
-      throw new Error("Cannot remove an anchor from graphemes.");
-    }
-    const array = getData(node).anchorIds;
-    if (!array) {
-      return;
-    }
-    const index = array.indexOf(id);
-    if (index !== -1) {
-      array.splice(index, 1);
-    }
-  },
+  // removeAnchorFromNode(node: Node, id: AnchorId): void {
+  //   if (typeof node === "string") {
+  //     throw new Error("Cannot remove an anchor from graphemes.");
+  //   }
+  //   const array = getData(node).anchorIds;
+  //   if (!array) {
+  //     return;
+  //   }
+  //   const index = array.indexOf(id);
+  //   if (index !== -1) {
+  //     array.splice(index, 1);
+  //   }
+  // },
 };

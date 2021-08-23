@@ -103,7 +103,7 @@ SLICE:  PARAGRAPH > URL_LINK g.com > ""`);
 INTR. #1
 CURSOR: 3/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "CC"`);
-      expect(debugBlockSimple(editor.document, "3")).toEqual(`
+      expect(debugBlockSimple(editor.state.document, "3")).toEqual(`
 PARAGRAPH > TEXT {} > "CC"
 PARAGRAPH > TEXT {} > "DD"`);
     });
