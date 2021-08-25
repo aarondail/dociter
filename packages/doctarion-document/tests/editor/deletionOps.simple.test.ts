@@ -48,21 +48,24 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
 
     it("stops at the beginning of the doc", () => {
       let editor = new Editor({ document: testDoc1 });
-      editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`
-CURSOR: <| 0/0/0
-SLICE:  HEADER ONE > TEXT {} > "1"`);
+      //       editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
+      //       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      //       expect(debugState(editor)).toEqual(`
+      // CURSOR: <| 0/0/0
+      // SLICE:  HEADER ONE > TEXT {} > "1"`);
 
-      // This is a no-op
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
-      expect(debugState(editor)).toEqual(`
-CURSOR: <| 0/0/0
-SLICE:  HEADER ONE > TEXT {} > "1"`);
+      //       // This is a no-op
+      //       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      //       expect(debugState(editor)).toEqual(`
+      // CURSOR: <| 0/0/0
+      // SLICE:  HEADER ONE > TEXT {} > "1"`);
 
       editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      expect(debugState(editor)).toEqual(`
+CURSOR: 0/0/0 |>
+SLICE:  HEADER ONE > TEXT {} > "H"`);
       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0

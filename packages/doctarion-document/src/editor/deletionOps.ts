@@ -1,21 +1,13 @@
-import * as immer from "immer";
-import { Draft } from "immer";
 import lodash from "lodash";
 
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
+import { CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
-import { NodeAssociatedData, WorkingDocument } from "../working-document";
 
-import { InteractorAnchorDeletionHelper } from "./interactorAnchorDeletionHelper";
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
-import { EditorOperationServices } from "./services";
-import { EditorState } from "./state";
 import { FlowDirection, getRangeForSelection, selectTargets } from "./utils";
-
-const castDraft = immer.castDraft;
 
 interface DeleteAtOptions {
   /**
@@ -66,31 +58,15 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
   for (const target of lodash.reverse(targets)) {
     if (target.isSelection) {
-      // ------------------
-      // SELECTION DELETION
-      // ------------------
-      const chainsToDelete = getRangeForSelection(target.interactor, state, services)?.getChainsCoveringRange(
-        state.document
-      );
-
-      if (!chainsToDelete) {
+      // Selection/range deletion
+      const range = getRangeForSelection(target.interactor, state, services);
+      if (!range) {
         continue;
       }
 
-      // This is probably a very inefficient way to deal with text.. and everything
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const deletionHelper = new InteractorAnchorDeletionHelper((state as unknown) as EditorState);
-      const nav = new NodeNavigator(state.document);
-      for (const chain of lodash.reverse(chainsToDelete)) {
-        nav.navigateTo(chain.path);
-        deleteNode(state, nav, deletionHelper);
-      }
-
-      if (deletionHelper.hasAnchors()) {
-        const cursorNav = target.isMainCursorFirst ? target.navigators[0].clone() : target.navigators[1].clone();
-        const postDeleteCursor = determineFinalCursorPositionForAfterDeletion(cursorNav, FlowDirection.Forward, true);
-        updateMarkedInteractorAnchorsAfterNodeDeletion(state, services, postDeleteCursor, deletionHelper);
-      }
+      state.deleteNodesInRange(range, {
+        flow: target.isMainCursorFirst ? FlowDirection.Backward : FlowDirection.Forward,
+      });
 
       // Clear selection
       state.updateInteractor(target.interactor.id, {
@@ -101,31 +77,15 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 
       const result = findNodeRelativeToCursorForDeletion(navigator as ReadonlyCursorNavigator, options);
       if (result?.nodeToDelete) {
-        // ------------------------
-        // INDIVIDUAL NODE DELETION
-        // ------------------------
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const deletionHelper = new InteractorAnchorDeletionHelper(state as any);
-        deleteNode(state, result.nodeToDelete, deletionHelper);
-
-        if (deletionHelper.hasAnchors()) {
-          // console.log(services.interactors.anchorToCursor(state.getAllInteractors()[0].mainAnchor).toString());
-          const postDeleteAnchor = determineFinalCursorPositionForAfterDeletion(navigator, options.direction);
-          // console.log( services.interactors.anchorToCursor(state.getAllInteractors()[0].mainAnchor).toString(), postDeleteAnchor.cursor.toString());
-          updateMarkedInteractorAnchorsAfterNodeDeletion(state, services, postDeleteAnchor, deletionHelper);
-          // console.log(services.interactors.anchorToCursor(state.getAllInteractors()[0].mainAnchor).toString());
-        }
+        // Individual node deletion
+        state.deleteNodeByPath(result.nodeToDelete.path, { flow: payload.direction });
       } else if (result?.justMoveTo) {
-        // -------------------------------------------
-        // JUST MOVE THE ANCHOR (DONT DELETE ANYTHING)
-        // -------------------------------------------
+        // Just move the anchor/interactor
         state.updateInteractor(interactor.id, {
           to: services.interactors.cursorNavigatorToAnchorPosition(result.justMoveTo),
         });
       } else if (result?.joinInstead) {
-        // ----------------------
-        // JOIN INSTEAD OF DELETE
-        // ----------------------
+        // Join instead of delete
         if (state.getInteractor(interactor.id) === undefined) {
           continue;
         }
@@ -150,178 +110,9 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 export const deletePrimitive = createCoreOperation<{ path: Path | PathString; direction?: FlowDirection }>(
   "delete/primitive",
   (state, services, payload) => {
-    const nodeToDelete = new NodeNavigator(state.document);
-    const originalCursorPosition = new CursorNavigator(state.document, services.layout);
-
-    if (!nodeToDelete.navigateTo(payload.path) || !originalCursorPosition.navigateTo(payload.path)) {
-      return;
-    }
-    const anchorMarker = new InteractorAnchorDeletionHelper((state as unknown) as EditorState);
-    deleteNode(state, nodeToDelete, anchorMarker);
-    if (anchorMarker.hasAnchors()) {
-      const postDeleteCursor = determineFinalCursorPositionForAfterDeletion(
-        originalCursorPosition,
-        payload.direction || FlowDirection.Backward
-      );
-      updateMarkedInteractorAnchorsAfterNodeDeletion(state, services, postDeleteCursor, anchorMarker);
-    }
+    state.deleteNodeByPath(payload.path, { flow: payload.direction });
   }
 );
-
-/**
- * This either returns:
- * 1. Nothing if there was no deletion
- * 2. A set of all nodes deleted EXCLUDING graphemes (so just object ids)
- * 3. In the case where JUST a grapheme is deleted, an object with the
- *    containing (ObjectNode) id and the grapheme index.
- */
-function deleteNode(
-  workingDocument: immer.Draft<WorkingDocument>,
-  nodeNavigator: NodeNavigator,
-  deletionHelper: InteractorAnchorDeletionHelper
-) {
-  const node = nodeNavigator.tip.node;
-  const parent = nodeNavigator.parent;
-  const pathPart = nodeNavigator.tip.pathPart;
-  const kidIndex = pathPart?.index;
-  const kids = parent && NodeUtils.getChildren(parent.node);
-
-  // This shouldn't be possible
-  if (parent && (!kids || kidIndex === undefined)) {
-    return undefined;
-  }
-
-  // Unregister all child nodes and the node itself
-  if (!NodeUtils.isGrapheme(node)) {
-    nodeNavigator.traverseDescendants(
-      (n) => {
-        workingDocument.processNodeDeleted(n);
-        deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(n) || "");
-      },
-      { skipGraphemes: true }
-    );
-    if (parent && kids) {
-      workingDocument.processNodeDeleted(node);
-      deletionHelper.markAnchorsOnNode(NodeAssociatedData.getId(node) || "");
-      castDraft(kids).splice(kidIndex, 1);
-    } else {
-      // This is the Document node case
-      castDraft(node).children = [];
-    }
-  } else {
-    // This is the grapheme case, note that at this point we always expect kids
-    // to be defined
-    if (parent && kids) {
-      castDraft(kids).splice(kidIndex, 1);
-      deletionHelper.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent.node) || "", kidIndex);
-    }
-  }
-  return undefined;
-}
-
-function determineCursorPositionAfterDeletion(
-  originalPositionAndNode: ReadonlyCursorNavigator,
-  direction: FlowDirection
-): CursorNavigator {
-  // The node that the `originalPosition` navigator is pointed to is now
-  // deleted, along with (possibly) its parent and grandparent.
-  const originalNode = originalPositionAndNode.tip.node;
-  const originalParent = originalPositionAndNode.parent?.node;
-  const originalCursor = originalPositionAndNode.cursor;
-  const isBack = direction === undefined || direction === FlowDirection.Backward;
-
-  const n = originalPositionAndNode.clone();
-  if (n.navigateToUnchecked(originalCursor)) {
-    if (NodeUtils.isGrapheme(originalNode)) {
-      if (n.parent?.node === originalParent) {
-        const currentIndex = n.tip.pathPart?.index;
-        isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-
-        // This fixes a bug where we navigate but the only thing that changed is
-        // the CursorOrientation
-        if (
-          n.tip.pathPart &&
-          n.tip.pathPart.index === currentIndex &&
-          n.cursor.orientation === (isBack ? CursorOrientation.Before : CursorOrientation.After) &&
-          (isBack ? n.toNodeNavigator().navigateToPrecedingSibling() : n.toNodeNavigator().navigateToNextSibling())
-        ) {
-          isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-        }
-        return n;
-      }
-      // OK we were able to navigate to the same cursor location but a different
-      // node or parent node
-      n.navigateToParentUnchecked();
-    } else if (originalNode instanceof InlineEmoji) {
-      if (n.parent?.node === originalPositionAndNode.parent?.node) {
-        const currentIndex = n.tip.pathPart?.index;
-        // JIC this node is an InlineUrlText or something do this
-        n.navigateToFirstDescendantCursorPosition();
-        // Then move the previous position... this actually works properly no
-        // matter which direction we were moving... mostly. The check for here
-        // is saying that if we are moving forward and landed On something
-        // (which must be an empty inline text or emoji) don't move. This is a
-        // little bit weird and specific so the logic here could definitely be
-        // wrong.
-        if (isBack || n.cursor.orientation !== CursorOrientation.On) {
-          n.navigateToPrecedingCursorPosition();
-        }
-
-        // This fixes a bug where we navigate but the only thing that changed is
-        // the CursorOrientation
-        if (n.tip.pathPart && n.tip.pathPart.index === currentIndex) {
-          if (n.cursor.orientation === CursorOrientation.On && originalCursor.orientation !== CursorOrientation.On) {
-            isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-          }
-        }
-        return n;
-      }
-      // OK we were able to navigate to the same cursor location but a different
-      // node or parent node
-      n.navigateToParentUnchecked();
-    }
-    if (n.navigateToPrecedingSiblingUnchecked()) {
-      if (direction === FlowDirection.Forward && NodeUtils.isBlock(n.tip.node) && n.navigateToNextSiblingUnchecked()) {
-        n.navigateToFirstDescendantCursorPosition();
-      } else {
-        n.navigateToLastDescendantCursorPosition();
-      }
-    } else {
-      n.navigateToFirstDescendantCursorPosition();
-    }
-  } else {
-    // Try one level higher as a fallback
-    const p = originalCursor.path.withoutTip();
-    if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
-      n.navigateToLastDescendantCursorPosition();
-    } else {
-      // OK try one more level higher again
-      const p2 = originalCursor.path.withoutTip().withoutTip();
-      if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
-        // Not sure this is really right...
-        n.navigateToLastDescendantCursorPosition();
-      } else {
-        // Not sure this is really right...
-        if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
-          throw new Error("Could not refresh navigator is not a valid cursor");
-        }
-      }
-    }
-  }
-  return n;
-}
-
-function determineFinalCursorPositionForAfterDeletion(
-  originalPositionAndNode: ReadonlyCursorNavigator,
-  direction: FlowDirection,
-  forwardAgain?: boolean
-): CursorNavigator {
-  const c = determineCursorPositionAfterDeletion(originalPositionAndNode, direction);
-  if (forwardAgain) {
-    c.navigateToNextCursorPosition();
-  }
-  return c;
-}
 
 /**
  * This function identifies the proper node to delete based on the passed in
@@ -455,34 +246,4 @@ function findNodeRelativeToCursorForDeletion(
     return { justMoveTo: navPrime };
   }
   return undefined;
-}
-
-function updateMarkedInteractorAnchorsAfterNodeDeletion(
-  state: Draft<EditorState>,
-  services: EditorOperationServices,
-  postDeleteCursor: CursorNavigator,
-  deletionHelper: InteractorAnchorDeletionHelper
-) {
-  for (const { interactor, anchorType, relativeGraphemeDeletionCount } of deletionHelper.getAnchors()) {
-    const anchor = state.getInteractorAnchor(interactor, anchorType);
-
-    if (!anchor) {
-      continue;
-    }
-
-    if (relativeGraphemeDeletionCount === undefined || anchor.graphemeIndex === undefined) {
-      const anchorPosition = services.interactors.cursorNavigatorToAnchorPosition(postDeleteCursor);
-      if (!anchorPosition) {
-        continue;
-      }
-      state.updateAnchor(anchor.id, anchorPosition.nodeId, anchorPosition.orientation, anchorPosition.graphemeIndex);
-    } else {
-      state.updateAnchor(
-        anchor.id,
-        anchor.nodeId,
-        anchor.orientation,
-        anchor.graphemeIndex - relativeGraphemeDeletionCount
-      );
-    }
-  }
 }

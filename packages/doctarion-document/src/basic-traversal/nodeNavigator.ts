@@ -5,6 +5,15 @@ import { ChainLink } from "./chainLink";
 import { Path, PathString } from "./path";
 import { PathPart } from "./pathPart";
 
+export interface ReadonlyNodeNavigator {
+  readonly chain: Chain;
+  readonly parent: ChainLink | undefined;
+  readonly tip: ChainLink;
+  readonly path: Path;
+
+  clone(): NodeNavigator;
+}
+
 /**
  * This class helps with navigating between nodes of a document. It does not
  * understand (text) cursor navigation which is more complicated than just
@@ -18,7 +27,7 @@ import { PathPart } from "./pathPart";
  * page to get a clear idea of the order in which the DFS visits nodes:
  * https://en.wikipedia.org/wiki/Depth-first_search
  */
-export class NodeNavigator {
+export class NodeNavigator implements ReadonlyNodeNavigator {
   // Note this is a mutable property (can be changed) but the chain itself is
   // immutable
   private currentChain: Chain;

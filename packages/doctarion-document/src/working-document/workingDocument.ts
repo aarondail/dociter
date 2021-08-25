@@ -3,21 +3,29 @@ import * as immer from "immer";
 import { immerable } from "immer";
 import lodash from "lodash";
 
-import { Chain, NodeNavigator, Path } from "../basic-traversal";
+import { Chain, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
+import { FlowDirection } from "../editor";
 import { Document, Node, NodeUtils, ObjectNode, Text } from "../models";
 
 import { Anchor, AnchorId, AnchorOrientation, AnchorPosition } from "./anchor";
+import { NodeDeletionAnchorMarker } from "./anchorMarkers";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorAnchorType, InteractorId, InteractorStatus } from "./interactor";
 import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
+export interface NodeEditAdditionalContext {
+  readonly flow?: FlowDirection;
+}
+
 export interface ReadonlyWorkingDocument {
   readonly document: Document;
 
   debug(): void;
+  getAllAnchors(): readonly Anchor[];
   getAllInteractors(): readonly Interactor[];
   getAnchor(anchorId: AnchorId): Anchor | undefined;
+  getInteractorAnchor(id: InteractorId | Interactor, anchorType: InteractorAnchorType): Anchor | undefined;
   getId(node: Node): NodeId | undefined;
   getInteractor(interactorId: InteractorId): Interactor | undefined;
   lookupChainTo(nodeId: NodeId): Chain | undefined;
@@ -78,7 +86,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.anchors[anchorId] = anchor;
 
     if (relatedInteractorId) {
-      this.eventEmitters.interactorUpdated.emit(relatedInteractorId);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.eventEmitters.interactorUpdated.emit(this.interactors[relatedInteractorId]!);
     }
     return anchor;
   }
@@ -99,7 +108,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.interactors[id] = newInteractor;
     this.updateInteractor(id, { to: at, ...otherOptions });
-    this.eventEmitters.interactorUpdated.emit(id);
+    this.eventEmitters.interactorUpdated.emit(newInteractor);
     return newInteractor;
   }
 
@@ -147,7 +156,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     delete this.anchors[id];
 
     if (resolvedAnchor.relatedInteractorId) {
-      this.eventEmitters.interactorUpdated.emit(resolvedAnchor.relatedInteractorId);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.eventEmitters.interactorUpdated.emit(this.interactors[resolvedAnchor.relatedInteractorId]!);
     }
   }
 
@@ -161,7 +171,58 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     actualInteractor.selectionAnchor && this.deleteAnchor(actualInteractor.selectionAnchor);
     delete this.interactors[actualInteractor.id];
 
-    this.eventEmitters.interactorUpdated.emit(actualInteractor.id);
+    this.eventEmitters.interactorUpdated.emit(actualInteractor);
+  }
+
+  public deleteNode(nodeId: NodeId, graphemeIndex?: number, additionalContext?: NodeEditAdditionalContext): void {
+    const nav = this.createNodeNavigatorTo(nodeId, graphemeIndex);
+    if (!nav) {
+      throw new WorkingDocumentError("Could not find node to delete");
+    }
+    const anchorMarker = new NodeDeletionAnchorMarker(this as ReadonlyWorkingDocument);
+    this.deleteNodeAtNodeNavigator(nav, anchorMarker);
+    this.processMarkedAnchorsRelatedToNodeDeletion(anchorMarker, nav, additionalContext);
+  }
+
+  public deleteNodeByPath(path: PathString | Path, additionalContext?: NodeEditAdditionalContext): void {
+    const nav = new NodeNavigator(this.document);
+    nav.navigateTo(path);
+    const anchorMarker = new NodeDeletionAnchorMarker(this as ReadonlyWorkingDocument);
+    this.deleteNodeAtNodeNavigator(nav, anchorMarker);
+    this.processMarkedAnchorsRelatedToNodeDeletion(anchorMarker, nav, additionalContext);
+  }
+
+  public deleteNodesInRange(range: Range, additionalContext?: NodeEditAdditionalContext): void {
+    // console.log(range.from.toString(), range.to.toString());
+    const chainsToDelete = range.getChainsCoveringRange(this.document);
+    if (chainsToDelete.length === 0) {
+      return;
+    }
+
+    const fromNav = new NodeNavigator(this.document);
+    const toNav = new NodeNavigator(this.document);
+    if (!fromNav.navigateTo(range.from) || !toNav.navigateTo(range.to)) {
+      throw new WorkingDocumentError("Range seems invalid");
+    }
+
+    const anchorMarker = new NodeDeletionAnchorMarker(this as ReadonlyWorkingDocument);
+
+    const nav = new NodeNavigator(this.document);
+    // This is probably a very inefficient way to deal with text.. and everything
+    for (const chain of lodash.reverse(chainsToDelete)) {
+      if (!nav.navigateTo(chain.path)) {
+        throw new WorkingDocumentError("Could not navigate to path " + chain.path.toString() + " for deletion.");
+      }
+      // console.log("DELETING", chain.path.toString());
+      this.deleteNodeAtNodeNavigator(nav, anchorMarker);
+      // this.debug();
+    }
+
+    this.processMarkedAnchorsRelatedToNodeDeletion(anchorMarker, [fromNav, toNav], additionalContext);
+  }
+
+  public getAllAnchors(): readonly Anchor[] {
+    return Object.values(this.anchors) as Anchor[];
   }
 
   public getAllInteractors(): Interactor[] {
@@ -190,82 +251,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public lookupChainTo(nodeId: NodeId): Chain | undefined {
-    // this.debug();
-    const idChain = [];
-    let currentId: string | undefined = nodeId;
-    while (currentId) {
-      idChain.push(currentId);
-      currentId = this.nodeParentIdMap[currentId];
-    }
-    idChain.reverse();
-
-    const nav = new NodeNavigator(this.document);
-    if (idChain.length === 0) {
-      return undefined;
-    }
-    if (idChain[0] !== NodeAssociatedData.getId(this.document)) {
-      return undefined;
-    }
-    // Now walk the chain and find the matching nodes
-    for (const id of idChain.slice(1)) {
-      const children = NodeUtils.getChildren(nav.tip.node);
-      if (!children) {
-        return undefined;
-      }
-      const index = children.findIndex((n: Node) => NodeAssociatedData.getId(n) === id);
-      if (index === -1) {
-        return undefined;
-      }
-      nav.navigateToChild(index);
-    }
-    return nav.chain;
+    return this.createNodeNavigatorTo(nodeId)?.chain;
   }
 
   public lookupNode(nodeId: NodeId): Node | undefined {
-    const chain = this.lookupChainTo(nodeId);
-    if (!chain) {
-      return undefined;
-    }
-    return chain.tipNode;
+    return this.createNodeNavigatorTo(nodeId)?.tip.node;
   }
 
   public lookupPathTo(nodeId: NodeId): Path | undefined {
-    const chain = this.lookupChainTo(nodeId);
-    if (chain) {
-      return chain.path;
-    }
-    return undefined;
-  }
-
-  // TODO this and other process methods should be private
-  /**
-   * When a new node is added to the document, this method must be called (the
-   * exception being graphemes). This method assigns the node its id.
-   */
-  public processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
-    const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
-    NodeAssociatedData.assignId(node, nodeId);
-    parentId && NodeAssociatedData.assignParentId(node, parentId);
-    this.nodeParentIdMap[nodeId] = parentId;
-    return nodeId;
-  }
-
-  public processNodeDeleted(node: NodeId | ObjectNode): void {
-    const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
-    if (id) {
-      delete this.nodeParentIdMap[id];
-    }
-  }
-
-  public processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
-    const nodeId = NodeAssociatedData.getId(node);
-    const parentId = typeof newParent === "string" ? newParent : NodeAssociatedData.getId(newParent);
-    parentId && NodeAssociatedData.assignParentId(node, parentId);
-    if (nodeId) {
-      this.nodeParentIdMap[nodeId] = parentId;
-    }
+    return this.createNodeNavigatorTo(nodeId)?.path;
   }
 
   public updateAnchor(
@@ -299,7 +293,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     immer.castDraft(anchor).graphemeIndex = graphemeIndex;
 
     if (anchor.relatedInteractorId) {
-      this.eventEmitters.interactorUpdated.emit(anchor.relatedInteractorId);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.eventEmitters.interactorUpdated.emit(this.interactors[anchor.relatedInteractorId]!);
     }
   }
 
@@ -389,6 +384,141 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       interactor.status = options.status;
     }
 
-    this.eventEmitters.interactorUpdated.emit(interactor.id);
+    this.eventEmitters.interactorUpdated.emit(interactor);
+  }
+
+  private createNodeNavigatorTo(nodeId: NodeId, graphemeIndex?: number): NodeNavigator | undefined {
+    const idChain = [];
+    let currentId: string | undefined = nodeId;
+    while (currentId) {
+      idChain.push(currentId);
+      currentId = this.nodeParentIdMap[currentId];
+    }
+    idChain.reverse();
+
+    const nav = new NodeNavigator(this.document);
+    if (idChain.length === 0) {
+      return undefined;
+    }
+    if (idChain[0] !== NodeAssociatedData.getId(this.document)) {
+      return undefined;
+    }
+    // Now walk the chain and find the matching nodes
+    for (const id of idChain.slice(1)) {
+      const children = NodeUtils.getChildren(nav.tip.node);
+      if (!children) {
+        return undefined;
+      }
+      const index = children.findIndex((n: Node) => NodeAssociatedData.getId(n) === id);
+      if (index === -1) {
+        return undefined;
+      }
+
+      if (!nav.navigateToChild(index)) {
+        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator.");
+      }
+    }
+
+    if (graphemeIndex !== undefined) {
+      if (!nav.navigateToChild(graphemeIndex)) {
+        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator.");
+      }
+    }
+
+    return nav;
+  }
+
+  private deleteNodeAtNodeNavigator(navigator: NodeNavigator, anchorMarker: NodeDeletionAnchorMarker): void {
+    const node = navigator.tip.node;
+    const parent = navigator.parent?.node;
+    const pathPart = navigator.tip.pathPart;
+    const kidIndex = pathPart?.index;
+    const kids = parent && NodeUtils.getChildren(parent);
+
+    // This shouldn't be possible
+    if (parent && (!kids || kidIndex === undefined)) {
+      throw new WorkingDocumentError("Node has parent without children which should be impossible");
+    }
+
+    // Unregister all child nodes and the node itself
+    if (!NodeUtils.isGrapheme(node)) {
+      navigator.traverseDescendants(
+        (n) => {
+          this.processNodeDeleted(n);
+          anchorMarker.markAnchorsDirectlyOnNode(NodeAssociatedData.getId(n) || "");
+        },
+        { skipGraphemes: true }
+      );
+      if (parent && kids) {
+        this.processNodeDeleted(node);
+        anchorMarker.markAnchorsDirectlyOnNode(NodeAssociatedData.getId(node) || "");
+
+        immer.castDraft(kids).splice(kidIndex, 1);
+      } else {
+        // This is the Document node case
+        immer.castDraft(node).children = [];
+      }
+    } else {
+      // This is the grapheme case, note that at this point we always expect kids
+      // to be defined
+      if (parent && kids) {
+        immer.castDraft(kids).splice(kidIndex, 1);
+        anchorMarker.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent) || "", kidIndex);
+      }
+    }
+  }
+
+  private processMarkedAnchorsRelatedToNodeDeletion(
+    anchorMarker: NodeDeletionAnchorMarker,
+    deletionTarget: NodeNavigator | [NodeNavigator, NodeNavigator],
+    deletionAdditionalContext: NodeEditAdditionalContext | undefined
+  ) {
+    const orphanedAnchors: Anchor[] = [];
+    for (const { anchor, relativeGraphemeDeletionCount } of anchorMarker.getMarkedAnchors()) {
+      if (relativeGraphemeDeletionCount === undefined || anchor.graphemeIndex === undefined) {
+        orphanedAnchors.push(anchor);
+      } else {
+        this.updateAnchor(
+          anchor.id,
+          anchor.nodeId,
+          anchor.orientation,
+          anchor.graphemeIndex - relativeGraphemeDeletionCount
+        );
+      }
+    }
+
+    if (orphanedAnchors.length > 0) {
+      this.eventEmitters.anchorsOrphaned.emit({
+        anchors: orphanedAnchors,
+        deletionTarget,
+        deletionAdditionalContext,
+      });
+    }
+  }
+
+  private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
+    const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
+    NodeAssociatedData.assignId(node, nodeId);
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
+    this.nodeParentIdMap[nodeId] = parentId;
+    return nodeId;
+  }
+
+  private processNodeDeleted(node: NodeId | ObjectNode): void {
+    const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
+    if (id) {
+      delete this.nodeParentIdMap[id];
+    }
+  }
+
+  private processNodeMoved(node: Node, newParent: NodeId | ObjectNode): void {
+    const nodeId = NodeAssociatedData.getId(node);
+    const parentId = typeof newParent === "string" ? newParent : NodeAssociatedData.getId(newParent);
+    parentId && NodeAssociatedData.assignParentId(node, parentId);
+    if (nodeId) {
+      this.nodeParentIdMap[nodeId] = parentId;
+    }
   }
 }

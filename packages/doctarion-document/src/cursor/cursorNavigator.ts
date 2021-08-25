@@ -343,7 +343,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
   }
 
   public navigateToUnchecked(cursor: Cursor): boolean;
-  public navigateToUnchecked(path: PathString | Path, orientation: CursorOrientation): boolean;
+  public navigateToUnchecked(path: PathString | Path, orientation?: CursorOrientation): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public navigateToUnchecked(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     if (typeof cursorOrPath === "string") {
@@ -359,7 +359,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     if ((cursorOrPath as Path).parts?.length >= 0) {
       path = cursorOrPath as Path;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      orientation = maybeOrientation!;
+      orientation = maybeOrientation || CursorOrientation.On;
     } else {
       path = (cursorOrPath as Cursor).path;
       orientation = (cursorOrPath as Cursor).orientation;

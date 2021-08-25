@@ -20,10 +20,28 @@ describe("delete selection", () => {
     editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
     editor.execute(OPS.jump({ to: { path: "3/1/2", orientation: After }, select: true }));
     editor.execute(OPS.deleteAt({}));
+    // Arguably this should be inside the URL_LINK
     expect(debugState(editor)).toMatchInlineSnapshot(`
       "
-      CURSOR: <| 1/0/0
+      CURSOR: <| 1/0
       SLICE:  PARAGRAPH > URL_LINK g.com > \\"GLE\\""
+    `);
+    expect(debugBlockSimple(editor.state.document, "1")).toMatchInlineSnapshot(`
+      "
+      PARAGRAPH > URL_LINK g.com > \\"GLE\\"
+      PARAGRAPH > TEXT {} > \\"DD\\""
+    `);
+  });
+
+  it("basically works backwards", () => {
+    const editor = new Editor({ document: testDoc1 });
+    editor.execute(OPS.jump({ to: { path: "3/1/2", orientation: After } }));
+    editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After }, select: true }));
+    editor.execute(OPS.deleteAt({}));
+    expect(debugState(editor)).toMatchInlineSnapshot(`
+      "
+      CURSOR: 0/0/0 |>
+      SLICE:  HEADER ONE > TEXT {} > \\"H\\""
     `);
     expect(debugBlockSimple(editor.state.document, "1")).toMatchInlineSnapshot(`
       "

@@ -1,13 +1,14 @@
 import { Draft, castDraft } from "immer";
 
-import { Path, PathPart } from "../../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter } from "../../cursor";
-import { NodeUtils } from "../../models";
+import { NodeNavigator, Path, PathPart, ReadonlyNodeNavigator } from "../../basic-traversal";
+import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter, ReadonlyCursorNavigator } from "../../cursor";
+import { Document, InlineEmoji, NodeUtils } from "../../models";
 import {
   Anchor,
   AnchorId,
   AnchorOrientation,
   AnchorPosition,
+  AnchorsOrphanedEventPayload,
   Interactor,
   InteractorAnchorType,
   InteractorId,
@@ -17,7 +18,7 @@ import {
 import { EditorEvents } from "../events";
 import { EditorOperationError, EditorOperationErrorCode } from "../operationError";
 import { EditorState } from "../state";
-import { InteractorInputPosition } from "../utils";
+import { FlowDirection, InteractorInputPosition } from "../utils";
 
 import { EditorOperationServices } from "./services";
 
@@ -34,6 +35,7 @@ export class EditorInteractorService {
     this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
     this.editorEvents.operationHasRun.addListener(this.handleOperationHasRun);
     this.editorState.events.interactorUpdated.addListener(this.handleInteractorUpdated);
+    this.editorState.events.anchorsOrphaned.addListener(this.handleAnchorsOrphaned);
   }
 
   public anchorToCursor(id: AnchorId | Anchor): Cursor {
@@ -205,7 +207,139 @@ export class EditorInteractorService {
     }
   }
 
-  private handleInteractorUpdated = (id: InteractorId) => {
+  private determineCursorPositionAfterDeletion(
+    originalPositionAndNode: ReadonlyNodeNavigator,
+    direction: FlowDirection
+  ): CursorNavigator {
+    // The node that the `originalPosition` navigator is pointed to is now
+    // deleted, along with (possibly) its parent and grandparent.
+    const originalNode = originalPositionAndNode.tip.node;
+    const originalParent = originalPositionAndNode.parent?.node;
+    const isBack = direction === undefined || direction === FlowDirection.Backward;
+
+    const n = new CursorNavigator(this.editorState.document, this.layout);
+    if (n.navigateToUnchecked(originalPositionAndNode.path, CursorOrientation.On)) {
+      if (NodeUtils.isGrapheme(originalNode)) {
+        if (n.parent?.node === originalParent) {
+          const currentIndex = n.tip.pathPart?.index;
+          isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+
+          // This fixes a bug where we navigate but the only thing that changed is
+          // the CursorOrientation
+          if (
+            n.tip.pathPart &&
+            n.tip.pathPart.index === currentIndex &&
+            n.cursor.orientation === (isBack ? CursorOrientation.Before : CursorOrientation.After) &&
+            (isBack ? n.toNodeNavigator().navigateToPrecedingSibling() : n.toNodeNavigator().navigateToNextSibling())
+          ) {
+            isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+          }
+          return n;
+        }
+        // OK we were able to navigate to the same cursor location but a different
+        // node or parent node
+        n.navigateToParentUnchecked();
+      } else if (originalNode instanceof InlineEmoji) {
+        if (n.parent?.node === originalPositionAndNode.parent?.node) {
+          const currentIndex = n.tip.pathPart?.index;
+          // JIC this node is an InlineUrlText or something do this
+          n.navigateToFirstDescendantCursorPosition();
+          // Then move the previous position... this actually works properly no
+          // matter which direction we were moving... mostly. The check for here
+          // is saying that if we are moving forward and landed On something
+          // (which must be an empty inline text or emoji) don't move. This is a
+          // little bit weird and specific so the logic here could definitely be
+          // wrong.
+          if (isBack || n.cursor.orientation !== CursorOrientation.On) {
+            n.navigateToPrecedingCursorPosition();
+          }
+
+          // This fixes a bug where we navigate but the only thing that changed is
+          // the CursorOrientation
+          if (n.tip.pathPart && n.tip.pathPart.index === currentIndex) {
+            // if (n.cursor.orientation === CursorOrientation.On && originalCursor.orientation !== CursorOrientation.On) {
+            //   isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+            // }
+            // if (n.cursor.orientation === CursorOrientation.On) {
+            //   isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+            // }
+          }
+          return n;
+        }
+        // OK we were able to navigate to the same cursor location but a different
+        // node or parent node
+        n.navigateToParentUnchecked();
+      }
+      if (n.navigateToPrecedingSiblingUnchecked()) {
+        if (
+          direction === FlowDirection.Forward &&
+          NodeUtils.isBlock(n.tip.node) &&
+          n.navigateToNextSiblingUnchecked()
+        ) {
+          n.navigateToFirstDescendantCursorPosition();
+        } else {
+          n.navigateToLastDescendantCursorPosition();
+        }
+      } else {
+        n.navigateToFirstDescendantCursorPosition();
+      }
+    } else {
+      // Try one level higher as a fallback
+      const p = originalPositionAndNode.path.withoutTip();
+      if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
+        n.navigateToLastDescendantCursorPosition();
+      } else {
+        // OK try one more level higher again
+        const p2 = originalPositionAndNode.path.withoutTip().withoutTip();
+        if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
+          // Not sure this is really right...
+          n.navigateToLastDescendantCursorPosition();
+        } else {
+          // Not sure this is really right...
+          if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
+            throw new Error("Could not refresh navigator is not a valid cursor");
+          }
+        }
+      }
+    }
+    return n;
+  }
+
+  private handleAnchorsOrphaned = ({
+    anchors,
+    deletionTarget,
+    deletionAdditionalContext,
+  }: AnchorsOrphanedEventPayload) => {
+    if (anchors.length === 0) {
+      return;
+    }
+
+    const postDeleteCursor = this.determineCursorPositionAfterDeletion(
+      deletionTarget instanceof NodeNavigator
+        ? deletionTarget
+        : // This is always the "from" navigator because the node on the "to"
+          // navigator can be very far past the end of the (new) document
+          (deletionTarget as [ReadonlyNodeNavigator, ReadonlyNodeNavigator])[0],
+      deletionAdditionalContext?.flow || FlowDirection.Backward
+    );
+    // Minor fixup for selections... ideally wouldn't have to do this
+    if (Array.isArray(deletionTarget)) {
+      postDeleteCursor.navigateToNextCursorPosition();
+    }
+
+    const anchorPosition = this.cursorNavigatorToAnchorPosition(postDeleteCursor);
+
+    for (const anchor of anchors) {
+      this.editorState.updateAnchor(
+        anchor.id,
+        anchorPosition.nodeId,
+        anchorPosition.orientation,
+        anchorPosition.graphemeIndex
+      );
+    }
+  };
+
+  private handleInteractorUpdated = (interactor: Interactor) => {
     if (!this.editorState) {
       return;
     }
@@ -214,13 +348,7 @@ export class EditorInteractorService {
       this.updatedInteractors = new Set();
     }
 
-    if (typeof id === "string") {
-      this.updatedInteractors.add(id);
-      // } else {
-      //   for (const actualId of id) {
-      //     this.updatedInteractors.add(actualId);
-      //   }
-    }
+    this.updatedInteractors.add(interactor.id);
   };
 
   private handleOperationHasCompleted = (newState: EditorState) => {
