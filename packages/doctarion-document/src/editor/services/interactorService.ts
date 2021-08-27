@@ -22,7 +22,8 @@ import { EditorState } from "../state";
 import { InteractorInputPosition, getNearestAncestorBlock } from "../utils";
 
 export class EditorInteractorService {
-  private needJiggle: boolean | "all";
+  private anchorsNeedJiggle?: undefined | "updatedInteractors" | "all";
+  // TODO should we also be tracking updated anchors?
   private updatedInteractors: Set<InteractorId> | null;
 
   public constructor(
@@ -31,7 +32,7 @@ export class EditorInteractorService {
     private layout?: NodeLayoutReporter
   ) {
     this.updatedInteractors = null;
-    this.needJiggle = false;
+    this.anchorsNeedJiggle = undefined;
     this.editorEvents.operationWillRun.addListener(this.handleOperationWillRun);
     this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
     this.editorEvents.operationHasRun.addListener(this.handleOperationHasRun);
@@ -110,7 +111,7 @@ export class EditorInteractorService {
    *
    * This must be called after the interactorOrdering has been sorted.
    */
-  public dedupe(): InteractorId[] | undefined {
+  public dedupeInteractors(): InteractorId[] | undefined {
     if (!this.editorState) {
       return;
     }
@@ -152,84 +153,6 @@ export class EditorInteractorService {
       }
     }
     return dupeIds;
-  }
-
-  public jiggleInteractors(all?: boolean): void {
-    if (!this.editorState) {
-      return;
-    }
-
-    // for (const a of this.editorState.getAllAnchors()) {
-    //   console.log(this.anchorToCursor(a.id).toString());
-    // }
-
-    const navHelper = new CursorNavigator(this.editorState.document, this.layout);
-
-    const updateAnchor = (anchor: Draft<Anchor>) => {
-      const currentCursor = this.anchorToCursor(anchor);
-      if (currentCursor && !navHelper.navigateTo(currentCursor)) {
-        return;
-      }
-
-      // console.log("jigggline", this.anchorToCursor(anchor).toString());
-      const originalBlock = getNearestAncestorBlock(navHelper);
-      if (navHelper.navigateToNextCursorPosition()) {
-        // console.log("jigggline#", navHelper.cursor.toString());
-        const newBlock = getNearestAncestorBlock(navHelper);
-        if (originalBlock !== newBlock) {
-          // console.log(NodeAssociatedData.getId(originalBlock!), NodeAssociatedData.getId(newBlock!));
-
-          navHelper.navigateToPrecedingCursorPosition();
-          // console.log("bail jigggline#", navHelper.cursor.toString());
-        } else {
-          navHelper.navigateToPrecedingCursorPosition();
-          // console.log("jigggline##", navHelper.cursor.toString());
-          const newerBlock = getNearestAncestorBlock(navHelper);
-          if (newBlock !== newerBlock) {
-            navHelper.navigateToNextCursorPosition();
-            // console.log("bail jigggline##", navHelper.cursor.toString());
-          }
-        }
-      }
-
-      const info = this.cursorNavigatorToAnchorPosition(navHelper);
-      if (!info) {
-        return;
-      }
-
-      this.editorState.updateAnchor(anchor.id, info.nodeId, info.orientation, info.graphemeIndex);
-    };
-
-    if (all) {
-      for (const a of this.editorState.getAllAnchors()) {
-        // console.log("updating anchor in jiggle: ", this.anchorToCursor(a).toString());
-        updateAnchor(a);
-      }
-    } else {
-      if (!this.updatedInteractors) {
-        return;
-      }
-      for (const id of this.updatedInteractors) {
-        const interactor = this.editorState.getInteractor(id);
-        if (!interactor) {
-          continue;
-        }
-        let anchor = this.editorState.getInteractorAnchor(id, InteractorAnchorType.Main);
-        if (anchor) {
-          updateAnchor(anchor);
-        }
-        anchor = interactor.selectionAnchor
-          ? this.editorState.getInteractorAnchor(id, InteractorAnchorType.SelectionAnchor)
-          : undefined;
-        if (anchor) {
-          updateAnchor(anchor);
-        }
-      }
-    }
-
-    // for (const a of this.editorState.getAllAnchors()) {
-    //   console.log(this.anchorToCursor(a.id).toString());
-    // }
   }
 
   private determineCursorPositionAfterDeletion(
@@ -378,10 +301,10 @@ export class EditorInteractorService {
 
   private handleNodesJoined = ({ destination }: NodesJoinedEventPayload) => {
     if (NodeUtils.isBlock(destination.tip.node)) {
-      this.needJiggle = "all";
+      this.anchorsNeedJiggle = "all";
     } else {
-      if (this.needJiggle !== "all") {
-        this.needJiggle = true;
+      if (this.anchorsNeedJiggle !== "all") {
+        this.anchorsNeedJiggle = "updatedInteractors";
       }
     }
   };
@@ -390,16 +313,16 @@ export class EditorInteractorService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.editorState = newState as any; // null;
     this.updatedInteractors = null;
-    this.needJiggle = false;
+    this.anchorsNeedJiggle = undefined;
   };
 
   private handleOperationHasRun = () => {
-    if (this.updatedInteractors || this.needJiggle) {
+    if (this.updatedInteractors || this.anchorsNeedJiggle) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       // Then take care of status and cursor position changes by just doing the
       // simplest thing possible and resorting the ordered iterators.
       // this.editorState?.interactorOrdering.sort(this.comparator);
-      this.dedupe();
+      this.dedupeInteractors();
 
       if (this.updatedInteractors) {
         for (const id of this.updatedInteractors) {
@@ -409,8 +332,9 @@ export class EditorInteractorService {
         }
       }
 
-      if (this.needJiggle) {
-        this.jiggleInteractors(true); //this.updatedInteractorsNeedJiggle === "all");
+      if (this.anchorsNeedJiggle) {
+        this.jiggleAnchors(this.anchorsNeedJiggle === "all");
+        this.anchorsNeedJiggle = undefined;
       }
     }
   };
@@ -418,4 +342,73 @@ export class EditorInteractorService {
   private handleOperationWillRun = (newState: Draft<EditorState>) => {
     this.editorState = newState;
   };
+
+  private jiggleAnchors(allAnchors?: boolean): void {
+    if (!this.editorState) {
+      return;
+    }
+
+    const navHelper = new CursorNavigator(this.editorState.document, this.layout);
+
+    const updateAnchor = (anchor: Draft<Anchor>) => {
+      const currentCursor = this.anchorToCursor(anchor);
+      if (currentCursor && !navHelper.navigateTo(currentCursor)) {
+        return;
+      }
+
+      const originalBlock = getNearestAncestorBlock(navHelper);
+      if (navHelper.navigateToNextCursorPosition()) {
+        // console.log("jigggline#", navHelper.cursor.toString());
+        const newBlock = getNearestAncestorBlock(navHelper);
+        if (originalBlock !== newBlock) {
+          navHelper.navigateToPrecedingCursorPosition();
+          // console.log("bail jigggline#", navHelper.cursor.toString());
+        } else {
+          navHelper.navigateToPrecedingCursorPosition();
+          // console.log("jigggline##", navHelper.cursor.toString());
+          const newerBlock = getNearestAncestorBlock(navHelper);
+          if (newBlock !== newerBlock) {
+            navHelper.navigateToNextCursorPosition();
+            // console.log("bail jigggline##", navHelper.cursor.toString());
+          }
+        }
+      }
+
+      const info = this.cursorNavigatorToAnchorPosition(navHelper);
+      if (!info) {
+        return;
+      }
+
+      // Note that this may very well fire a new interactorUpdated event... this
+      // seems ok for now but we may want to have a way to ignore this.
+      this.editorState.updateAnchor(anchor.id, info.nodeId, info.orientation, info.graphemeIndex);
+    };
+
+    if (allAnchors) {
+      for (const a of this.editorState.getAllAnchors()) {
+        // console.log("updating anchor in jiggle: ", this.anchorToCursor(a).toString());
+        updateAnchor(a);
+      }
+    } else {
+      if (!this.updatedInteractors) {
+        return;
+      }
+      for (const id of this.updatedInteractors) {
+        const interactor = this.editorState.getInteractor(id);
+        if (!interactor) {
+          continue;
+        }
+        let anchor = this.editorState.getInteractorAnchor(id, InteractorAnchorType.Main);
+        if (anchor) {
+          updateAnchor(anchor);
+        }
+        anchor = interactor.selectionAnchor
+          ? this.editorState.getInteractorAnchor(id, InteractorAnchorType.SelectionAnchor)
+          : undefined;
+        if (anchor) {
+          updateAnchor(anchor);
+        }
+      }
+    }
+  }
 }

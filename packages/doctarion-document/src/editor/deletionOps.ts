@@ -91,15 +91,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
           continue;
         }
 
-        services.execute(
-          state,
-          joinBlocks({
-            target: { interactorId: interactor.id },
-            // Should this be its own option?
-            mergeCompatibleInlineTextsIfPossible: true,
-            direction: options.direction,
-          })
-        );
+        services.execute(state, joinBlocks({ target: { interactorId: interactor.id }, direction: options.direction }));
       }
     }
   }

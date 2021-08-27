@@ -368,6 +368,7 @@ export function nodeToXml(node: ObjectNode, includeIds?: boolean): string {
         s += p(`<${node.kind}>${Text.toString(node.children)}</${node.kind}`, ind);
         return s;
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         s += p(`<${node.kind}>`, ind);
       }
     }

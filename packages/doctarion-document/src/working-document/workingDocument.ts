@@ -4,7 +4,7 @@ import { immerable } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
-import { Block, Document, InlineText, Node, NodeUtils, ObjectNode, Text } from "../models";
+import { Block, Document, InlineText, Node, NodeUtils, ObjectNode } from "../models";
 
 import { Anchor, AnchorId, AnchorOrientation, AnchorPosition } from "./anchor";
 import { NodeDeletionAnchorMarker } from "./anchorMarkers";
@@ -256,31 +256,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters.nodesJoined.emit({ destination: destinationNav, source: sourceNav });
 
     // Merge "boundary" InlineTexts if possible
-    const boundaryInlineChildNav = destinationNav.clone();
+    const inlineJoinNav = destinationNav.clone();
     if (
-      boundaryInlineChildNav.navigateToChild(
+      inlineJoinNav.navigateToChild(
         direction === FlowDirection.Backward ? destinationOriginalChildCount - 1 : sourceOriginalChildCount - 1
-      ) &&
-      NodeUtils.isInlineText(boundaryInlineChildNav.tip.node)
+      )
     ) {
-      const otherBoundaryInlineChildNav = boundaryInlineChildNav.clone();
-      if (
-        otherBoundaryInlineChildNav.navigateToNextSibling() &&
-        NodeUtils.isInlineText(otherBoundaryInlineChildNav.tip.node)
-      ) {
-        if (
-          NodeUtils.getChildren(boundaryInlineChildNav.tip.node)?.length === 0 &&
-          (NodeUtils.getChildren(otherBoundaryInlineChildNav.tip.node)?.length || 0) > 0
-        ) {
-          this.joinInlineTextAtPath(otherBoundaryInlineChildNav.path, FlowDirection.Backward, {
-            onlyIfModifiersAreCompatible: true,
-          });
-        } else {
-          this.joinInlineTextAtPath(boundaryInlineChildNav.path, FlowDirection.Forward, {
-            onlyIfModifiersAreCompatible: true,
-          });
-        }
-      }
+      this.joinInlineTextAtNodeNavigatorIfAppropriate(inlineJoinNav);
     }
 
     this.deleteNodeAtPath(sourceNav.path, { flow: direction });
@@ -479,15 +461,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       return;
     }
 
-    for (const a of this.getAllAnchors()) {
-      if (direction === FlowDirection.Backward) {
-        // Source
-        // if (a.nodeId === sourceId) {
-        //   if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
-        //     this.updateAnchor(a.id, destinationId, AnchorOrientation.After, undefined);
-        //   }
-        // }
-      } else {
+    if (direction === FlowDirection.Backward) {
+      // Nothing to do
+    } else {
+      for (const a of this.getAllAnchors()) {
         // Destination
         if (a.nodeId === destinationId) {
           if (destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
@@ -547,13 +524,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             destinationOriginalChildCount + anchor.graphemeIndex
           );
         } else if (destinationOriginalChildCount > 0) {
-          this.updateAnchor(
-            anchor.id,
-            destinationId,
-            // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
-            AnchorOrientation.After,
-            destinationOriginalChildCount - 1
-          );
+          this.updateAnchor(anchor.id, destinationId, AnchorOrientation.After, destinationOriginalChildCount - 1);
         }
       }
     };
@@ -656,6 +627,30 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (parent && kids) {
         immer.castDraft(kids).splice(kidIndex, 1);
         anchorMarker.markAnchorsRelativeToGrapheme(NodeAssociatedData.getId(parent) || "", kidIndex);
+      }
+    }
+  }
+
+  private joinInlineTextAtNodeNavigatorIfAppropriate(navigator: NodeNavigator) {
+    if (!NodeUtils.isInlineText(navigator.tip.node)) {
+      return;
+    }
+    const otherBoundaryInlineChildNav = navigator.clone();
+    if (
+      otherBoundaryInlineChildNav.navigateToNextSibling() &&
+      NodeUtils.isInlineText(otherBoundaryInlineChildNav.tip.node)
+    ) {
+      if (
+        NodeUtils.getChildren(navigator.tip.node)?.length === 0 &&
+        (NodeUtils.getChildren(otherBoundaryInlineChildNav.tip.node)?.length || 0) > 0
+      ) {
+        this.joinInlineTextAtPath(otherBoundaryInlineChildNav.path, FlowDirection.Backward, {
+          onlyIfModifiersAreCompatible: true,
+        });
+      } else {
+        this.joinInlineTextAtPath(navigator.path, FlowDirection.Forward, {
+          onlyIfModifiersAreCompatible: true,
+        });
       }
     }
   }

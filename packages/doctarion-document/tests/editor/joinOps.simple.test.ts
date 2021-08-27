@@ -64,7 +64,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward, mergeCompatibleInlineTextsIfPossible: true }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "AA"`);
@@ -121,7 +121,7 @@ PARAGRAPH > TEXT {} > "DD"`);
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: Before } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward, mergeCompatibleInlineTextsIfPossible: true }));
+      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0/0
 SLICE:  PARAGRAPH > TEXT {} > "AA"`);

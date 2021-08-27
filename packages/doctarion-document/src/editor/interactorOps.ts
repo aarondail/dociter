@@ -20,7 +20,7 @@ export const addInteractor = createCoreOperation<
     name,
   });
 
-  const dedupeIds = services.interactors.dedupe();
+  const dedupeIds = services.interactors.dedupeInteractors();
   if (dedupeIds && dedupeIds.includes(interactor.id)) {
     return undefined;
   }

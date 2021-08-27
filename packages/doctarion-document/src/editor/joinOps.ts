@@ -16,8 +16,6 @@ interface JoinBlocksOptions {
    * or the last.
    */
   readonly direction: FlowDirection;
-
-  readonly mergeCompatibleInlineTextsIfPossible: boolean;
 }
 
 export type JoinBlocksPayload = TargetPayload & Partial<JoinBlocksOptions>;
@@ -147,42 +145,3 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
     state.joinInlineTextAtPath(nav.path, direction);
   }
 });
-
-// function mergeCompatibleInlineChildrenIfPossible(
-//   path: Path,
-//   block: Node,
-//   leftChildIndex: number,
-//   state: Draft<EditorState>
-// ): void {
-//   if (!NodeUtils.isInlineContainer(block)) {
-//     return;
-//   }
-//   if (leftChildIndex >= 0 && leftChildIndex >= block.children.length - 1) {
-//     return;
-//   }
-//   const leftChild = block.children[leftChildIndex];
-//   const rightChild = block.children[leftChildIndex + 1];
-
-//   if (!(leftChild instanceof InlineText && rightChild instanceof InlineText)) {
-//     return;
-//   }
-
-//   if (
-//     !(
-//       leftChild.children.length === 0 ||
-//       rightChild.children.length === 0 ||
-//       lodash.isEqual(leftChild.modifiers, rightChild.modifiers)
-//     )
-//   ) {
-//     return;
-//   }
-
-//   const inlineTextNav = new NodeNavigator(state.document);
-//   inlineTextNav.navigateTo(path);
-//   inlineTextNav.navigateToChild(leftChildIndex);
-//   if (leftChild.children.length === 0 && rightChild.children.length > 0) {
-//     state.joinInlineTextAtPath(inlineTextNav.path, FlowDirection.Backward);
-//   } else {
-//     state.joinInlineTextAtPath(inlineTextNav.path, FlowDirection.Forward);
-//   }
-// }
