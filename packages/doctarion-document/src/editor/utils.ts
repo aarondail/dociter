@@ -2,8 +2,8 @@ import { Draft } from "immer";
 
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
+import { Block, Node, NodeUtils } from "../document-model";
 import { SimpleComparison } from "../miscUtils";
-import { Block, Node, NodeUtils } from "../models";
 import { Interactor, InteractorId, WorkingDocument } from "../working-document";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";

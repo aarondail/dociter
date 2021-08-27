@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { Node } from "../models";
+import { Node } from "../document-model";
 
 import { AnchorId } from "./anchor";
 

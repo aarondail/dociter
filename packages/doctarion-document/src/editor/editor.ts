@@ -3,7 +3,7 @@ import * as immer from "immer";
 
 import { Path } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
-import { Document } from "../models";
+import { Document } from "../document-model";
 import { Anchor, AnchorId } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";

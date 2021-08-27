@@ -2,7 +2,7 @@ import lodash from "lodash";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
-import { InlineEmoji, InlineText, NodeUtils } from "../models";
+import { InlineEmoji, InlineText, NodeUtils } from "../document-model";
 import { FlowDirection } from "../working-document";
 
 import { joinBlocks } from "./joinOps";

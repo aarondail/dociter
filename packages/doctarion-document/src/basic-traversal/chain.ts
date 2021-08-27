@@ -1,6 +1,6 @@
 import * as IterTools from "iter-tools";
 
-import { Document, Node } from "../models";
+import { Document, Node } from "../document-model";
 
 import { ChainLink } from "./chainLink";
 import { Path } from "./path";

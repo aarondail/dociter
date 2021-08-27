@@ -1,4 +1,4 @@
-import { Document, Node, NodeUtils } from "../models";
+import { Document, Node, NodeUtils } from "../document-model";
 
 import { Chain } from "./chain";
 import { ChainLink } from "./chainLink";

@@ -1,7 +1,7 @@
 import { EventChannel, EventEmitter } from "doctarion-utils";
 import { Draft } from "immer";
 
-import { Document } from "../models";
+import { Document } from "../document-model";
 
 import { EditorState } from "./state";
 

@@ -1,5 +1,5 @@
 import { Chain, Path, Range } from "../../src/basic-traversal";
-import { HeaderLevel, NodeUtils } from "../../src/models";
+import { HeaderLevel, NodeUtils } from "../../src/document-model";
 import { doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(

@@ -2,7 +2,15 @@ import * as immer from "immer";
 
 import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
-import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
+import {
+  Document,
+  InlineContainingNode,
+  InlineText,
+  InlineUrlLink,
+  NodeUtils,
+  ParagraphBlock,
+  Text,
+} from "../document-model";
 
 import { delete_ } from "./deletionOps";
 import { createCoreOperation } from "./operation";

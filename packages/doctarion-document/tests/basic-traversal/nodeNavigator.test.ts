@@ -1,5 +1,5 @@
 import { NodeNavigator } from "../../src/basic-traversal/nodeNavigator";
-import { HeaderLevel } from "../../src/models";
+import { HeaderLevel } from "../../src/document-model";
 import { debugPath, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const testDoc1 = doc(

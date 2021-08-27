@@ -1,4 +1,4 @@
-import { Document, Node } from "../models";
+import { Document, Node } from "../document-model";
 
 import { PathPart } from "./pathPart";
 

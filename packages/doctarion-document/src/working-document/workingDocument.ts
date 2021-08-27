@@ -4,7 +4,7 @@ import { immerable } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
-import { Block, Document, InlineText, Node, NodeUtils, ObjectNode } from "../models";
+import { Block, Document, InlineText, Node, NodeUtils, ObjectNode } from "../document-model";
 
 import { Anchor, AnchorId, AnchorOrientation, AnchorPosition } from "./anchor";
 import { NodeDeletionAnchorMarker } from "./anchorMarkers";

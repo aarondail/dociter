@@ -1,7 +1,7 @@
 import { Chain, NodeLayoutReporter, NodeNavigator } from "../../src";
 import { CursorOrientation } from "../../src/cursor/cursor";
 import { CursorNavigator } from "../../src/cursor/cursorNavigator";
-import { HeaderLevel, NodeUtils } from "../../src/models";
+import { HeaderLevel, NodeUtils } from "../../src/document-model";
 import {
   debugCursorNavigator,
   debugCursorNavigator2,

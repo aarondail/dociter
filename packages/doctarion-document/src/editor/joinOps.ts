@@ -2,7 +2,7 @@
 import lodash from "lodash";
 
 import { LiftingPathMap, NodeNavigator, Range } from "../basic-traversal";
-import { InlineText, NodeUtils } from "../models";
+import { InlineText, NodeUtils } from "../document-model";
 import { FlowDirection } from "../working-document";
 
 import { createCoreOperation } from "./operation";

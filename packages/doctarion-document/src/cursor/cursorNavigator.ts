@@ -1,5 +1,5 @@
 import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-traversal";
-import { Document, NodeUtils } from "../models";
+import { Document, NodeUtils } from "../document-model";
 
 import { Cursor, CursorOrientation } from "./cursor";
 import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";

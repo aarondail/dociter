@@ -2,7 +2,7 @@ import { Draft } from "immer";
 
 import { NodeNavigator, Path, PathPart, ReadonlyNodeNavigator } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter } from "../cursor";
-import { InlineEmoji, NodeUtils } from "../models";
+import { InlineEmoji, NodeUtils } from "../document-model";
 import {
   Anchor,
   AnchorId,

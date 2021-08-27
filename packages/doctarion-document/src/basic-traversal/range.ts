@@ -1,7 +1,7 @@
 import { immerable } from "immer";
 
 import { Chain, NodeNavigator, Path } from "../basic-traversal";
-import { Document, Node, NodeUtils } from "../models";
+import { Document, Node, NodeUtils } from "../document-model";
 
 import { PathComparison } from "./path";
 

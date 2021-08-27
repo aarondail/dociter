@@ -5,8 +5,6 @@ import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString } from "../src/basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../src/cursor";
-import { Editor } from "../src/editor";
-import { SimpleComparison } from "../src/miscUtils";
 import {
   Block,
   Document,
@@ -20,7 +18,9 @@ import {
   ParagraphBlock,
   Text,
   TextModifiers,
-} from "../src/models";
+} from "../src/document-model";
+import { Editor } from "../src/editor";
+import { SimpleComparison } from "../src/miscUtils";
 import {
   Anchor,
   Interactor,

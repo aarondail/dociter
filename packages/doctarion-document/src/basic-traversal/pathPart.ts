@@ -1,7 +1,7 @@
 import { immerable } from "immer";
 
+import { Node, NodeUtils } from "../document-model";
 import { SimpleComparison } from "../miscUtils";
-import { Node, NodeUtils } from "../models";
 
 export class PathPart {
   [immerable] = true;

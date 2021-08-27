@@ -1,7 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import { immerable } from "immer";
 
-import { Document } from "../models";
+import { Document } from "../document-model";
 import { Interactor, InteractorId, ReadonlyWorkingDocument, WorkingDocument } from "../working-document";
 
 export interface ReadonlyEditorState extends ReadonlyWorkingDocument {

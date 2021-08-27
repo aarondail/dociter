@@ -1,6 +1,6 @@
 import { CursorOrientation } from "../../src/cursor";
+import { HeaderLevel } from "../../src/document-model";
 import { Editor, OPS } from "../../src/editor";
-import { HeaderLevel } from "../../src/models";
 import { FlowDirection } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 

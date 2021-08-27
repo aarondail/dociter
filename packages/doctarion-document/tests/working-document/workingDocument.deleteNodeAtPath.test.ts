@@ -1,4 +1,4 @@
-import { HeaderLevel } from "../../src/models";
+import { HeaderLevel } from "../../src/document-model";
 import { WorkingDocument } from "../../src/working-document";
 import { doc, header, inlineText, inlineUrlLink, nodeToXml, paragraph } from "../utils";
 

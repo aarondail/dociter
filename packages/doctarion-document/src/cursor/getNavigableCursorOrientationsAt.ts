@@ -1,5 +1,5 @@
 import { NodeNavigator } from "../basic-traversal";
-import { InlineText, Node, NodeLayoutType, NodeUtils } from "../models";
+import { InlineText, Node, NodeLayoutType, NodeUtils } from "../document-model";
 
 import { NodeLayoutReporter } from "./layoutReporter";
 
