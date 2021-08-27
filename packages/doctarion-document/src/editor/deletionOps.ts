@@ -3,11 +3,12 @@ import lodash from "lodash";
 import { NodeNavigator, Path, PathString } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
+import { FlowDirection } from "../working-document";
 
 import { joinBlocks } from "./joinOps";
 import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
-import { FlowDirection, getRangeForSelection, selectTargets } from "./utils";
+import { getRangeForSelection, selectTargets } from "./utils";
 
 interface DeleteAtOptions {
   /**
@@ -78,7 +79,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
       const result = findNodeRelativeToCursorForDeletion(navigator as ReadonlyCursorNavigator, options);
       if (result?.nodeToDelete) {
         // Individual node deletion
-        state.deleteNodeByPath(result.nodeToDelete.path, { flow: payload.direction });
+        state.deleteNodeAtPath(result.nodeToDelete.path, { flow: payload.direction });
       } else if (result?.justMoveTo) {
         // Just move the anchor/interactor
         state.updateInteractor(interactor.id, {
@@ -110,7 +111,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
 export const deletePrimitive = createCoreOperation<{ path: Path | PathString; direction?: FlowDirection }>(
   "delete/primitive",
   (state, services, payload) => {
-    state.deleteNodeByPath(payload.path, { flow: payload.direction });
+    state.deleteNodeAtPath(payload.path, { flow: payload.direction });
   }
 );
 

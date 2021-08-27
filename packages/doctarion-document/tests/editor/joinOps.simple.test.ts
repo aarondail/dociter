@@ -1,6 +1,7 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, FlowDirection, OPS } from "../../src/editor";
+import { Editor, OPS } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
+import { FlowDirection } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, After } = CursorOrientation;
@@ -21,11 +22,11 @@ describe("joinBlocks for a single interactor", () => {
       editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
       editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
-CURSOR: 0/3/0 |>
+CURSOR: 0/2/0 |>
 SLICE:  HEADER ONE > TEXT {} > "NN"`);
+      // Note the H1 and MM InlineTexts were merged
       expect(debugCurrentBlock(editor)).toEqual(`
-HEADER ONE > TEXT {} > "H1"
-HEADER ONE > TEXT {} > "MM"
+HEADER ONE > TEXT {} > "H1MM"
 HEADER ONE > TEXT {} > ""
 HEADER ONE > TEXT {} > "NN"
 HEADER ONE > TEXT {} > "AA"
@@ -58,21 +59,8 @@ PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
     });
 
-    it("merges compatible inline texts", () => {
-      let editor = new Editor({ document: testDoc1 });
-      editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Backward, mergeCompatibleInlineTextsIfPossible: true }));
-      expect(debugState(editor)).toEqual(`
-CURSOR: 0/2/0 |>
-SLICE:  HEADER ONE > TEXT {} > "NN"`);
-      expect(debugCurrentBlock(editor)).toEqual(`
-HEADER ONE > TEXT {} > "H1MM"
-HEADER ONE > TEXT {} > ""
-HEADER ONE > TEXT {} > "NN"
-HEADER ONE > TEXT {} > "AA"
-HEADER ONE > TEXT {BOLD} > "BB"`);
-
-      editor = new Editor({
+    it("wont merge incompatible inline texts", () => {
+      const editor = new Editor({
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: After } }));
@@ -92,10 +80,10 @@ PARAGRAPH > TEXT {} > "AA"`);
       editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
-SLICE:  PARAGRAPH > TEXT {} > "H1"`);
+SLICE:  PARAGRAPH > TEXT {} > "H1MM"`);
+      // Note the H1 and MM InlineTexts were merged
       expect(debugCurrentBlock(editor)).toEqual(`
-PARAGRAPH > TEXT {} > "H1"
-PARAGRAPH > TEXT {} > "MM"
+PARAGRAPH > TEXT {} > "H1MM"
 PARAGRAPH > TEXT {} > ""
 PARAGRAPH > TEXT {} > "NN"
 PARAGRAPH > TEXT {} > "AA"
@@ -128,21 +116,8 @@ PARAGRAPH > URL_LINK g.com > "GOOGLE"
 PARAGRAPH > TEXT {} > "DD"`);
     });
 
-    it("merges compatible inline texts", () => {
-      let editor = new Editor({ document: testDoc1 });
-      editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
-      editor.execute(OPS.joinBlocks({ direction: FlowDirection.Forward, mergeCompatibleInlineTextsIfPossible: true }));
-      expect(debugState(editor)).toEqual(`
-CURSOR: 1/2/0 |>
-SLICE:  PARAGRAPH > TEXT {} > "NN"`);
-      expect(debugCurrentBlock(editor)).toEqual(`
-PARAGRAPH > TEXT {} > "MM"
-PARAGRAPH > TEXT {} > ""
-PARAGRAPH > TEXT {} > "NN"
-PARAGRAPH > TEXT {} > "AA"
-PARAGRAPH > TEXT {BOLD} > "BB"`);
-
-      editor = new Editor({
+    it("wont merge incompatible inline texts", () => {
+      const editor = new Editor({
         document: doc(paragraph(inlineText("", { bold: true })), paragraph(inlineText("AA"))),
       });
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: Before } }));

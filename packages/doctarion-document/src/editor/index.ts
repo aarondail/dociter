@@ -6,7 +6,6 @@ export * from "./payloads";
 export * from "./services";
 export * from "./state";
 export * from "./target";
-export { FlowDirection } from "./utils";
 
 import * as CursorOps from "./cursorOps";
 import * as DeletionOps from "./deletionOps";

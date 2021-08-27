@@ -1,7 +1,7 @@
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, FlowDirection, OPS, TargetInteractors } from "../../src/editor";
+import { Editor, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
-import { InteractorStatus } from "../../src/working-document";
+import { FlowDirection, InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, After } = CursorOrientation;
@@ -62,17 +62,17 @@ describe("joinBlocks for selections and multiple interactors", () => {
         SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"
         INTR. #1
         S.A. CURSOR: 1/7/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"DD\\"
+        SLICE:  PARAGRAPH > TEXT {} > \\"DDEE\\"
 
         INTR. #2
         MAIN CURSOR: 1/4/1 |>
         SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"
         INTR. #2
-        S.A. CURSOR: 1/8/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"EE\\"
+        S.A. CURSOR: 1/7/2 |>
+        SLICE:  PARAGRAPH > TEXT {} > \\"DDEE\\"
 
         INTR. #3
-        CURSOR: 1/9/1 |>
+        CURSOR: 1/8/1 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"FF\\"
 
         INTR. #4
@@ -132,17 +132,17 @@ describe("joinBlocks for selections and multiple interactors", () => {
         SLICE:  PARAGRAPH > TEXT {} > \\"NN\\"
         INTR. #1
         S.A. CURSOR: 1/7/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"DD\\"
+        SLICE:  PARAGRAPH > TEXT {} > \\"DDEE\\"
 
         INTR. #2
         MAIN CURSOR: 1/4/1 |>
         SLICE:  PARAGRAPH > TEXT {BOLD} > \\"BB\\"
         INTR. #2
-        S.A. CURSOR: 1/8/0 |>
-        SLICE:  PARAGRAPH > TEXT {} > \\"EE\\"
+        S.A. CURSOR: 1/7/2 |>
+        SLICE:  PARAGRAPH > TEXT {} > \\"DDEE\\"
 
         INTR. #3
-        CURSOR: 1/9/1 |>
+        CURSOR: 1/8/1 |>
         SLICE:  PARAGRAPH > TEXT {} > \\"FF\\"
 
         INTR. #4

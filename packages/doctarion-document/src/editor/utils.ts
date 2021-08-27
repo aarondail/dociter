@@ -3,7 +3,7 @@ import { Draft } from "immer";
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { SimpleComparison } from "../miscUtils";
-import { Node } from "../models";
+import { Block, Node, NodeUtils } from "../models";
 import { Interactor, InteractorId, WorkingDocument } from "../working-document";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
@@ -12,11 +12,6 @@ import { EditorState } from "./state";
 import { OperationTarget, getTargetedInteractorIds } from "./target";
 
 export type InteractorInputPosition = Cursor | { path: Path | PathString; orientation: CursorOrientation };
-
-export enum FlowDirection {
-  Backward = "BACKWARD",
-  Forward = "FORWARD",
-}
 
 // TODO delete this?
 export function getCursorNavigatorAndValidate(
@@ -106,25 +101,6 @@ function getBothCursorNavigatorsForSelection(
   return { navigators: [nav1, nav2], isMainCursorFirst };
 }
 
-export function getNavigatorToSiblingIfMatchingPredicate(
-  navigator: NodeNavigator,
-  direction: FlowDirection,
-  predicate: (node: Node) => boolean
-): NodeNavigator | undefined {
-  const navPrime = navigator.clone();
-  if (
-    !(direction === FlowDirection.Backward ? navPrime.navigateToPrecedingSibling() : navPrime.navigateToNextSibling())
-  ) {
-    return undefined;
-  }
-
-  const candidate = navPrime.tip.node;
-  if (!predicate(candidate)) {
-    return undefined;
-  }
-  return navPrime;
-}
-
 export function getRangeForSelection(
   target: Interactor,
   workingDocument: Draft<WorkingDocument>,
@@ -166,6 +142,11 @@ export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefi
     return callback(a);
   }
   return undefined;
+}
+
+export function getNearestAncestorBlock(navigator: NodeNavigator | CursorNavigator): Block | undefined {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  return navigator.chain.searchBackwards(NodeUtils.isBlock) as Block | undefined;
 }
 
 export function navigateToAncestorMatchingPredicate(

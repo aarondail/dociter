@@ -1,28 +1,28 @@
-import { Draft, castDraft } from "immer";
+import { Draft } from "immer";
 
 import { NodeNavigator, Path, PathPart, ReadonlyNodeNavigator } from "../../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter, ReadonlyCursorNavigator } from "../../cursor";
-import { Document, InlineEmoji, NodeUtils } from "../../models";
+import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter } from "../../cursor";
+import { InlineEmoji, NodeUtils } from "../../models";
 import {
   Anchor,
   AnchorId,
   AnchorOrientation,
   AnchorPosition,
   AnchorsOrphanedEventPayload,
+  FlowDirection,
   Interactor,
   InteractorAnchorType,
   InteractorId,
   NodeAssociatedData,
-  WorkingDocument,
+  NodesJoinedEventPayload,
 } from "../../working-document";
 import { EditorEvents } from "../events";
 import { EditorOperationError, EditorOperationErrorCode } from "../operationError";
 import { EditorState } from "../state";
-import { FlowDirection, InteractorInputPosition } from "../utils";
-
-import { EditorOperationServices } from "./services";
+import { InteractorInputPosition, getNearestAncestorBlock } from "../utils";
 
 export class EditorInteractorService {
+  private needJiggle: boolean | "all";
   private updatedInteractors: Set<InteractorId> | null;
 
   public constructor(
@@ -31,11 +31,13 @@ export class EditorInteractorService {
     private layout?: NodeLayoutReporter
   ) {
     this.updatedInteractors = null;
+    this.needJiggle = false;
     this.editorEvents.operationWillRun.addListener(this.handleOperationWillRun);
     this.editorEvents.operationHasCompleted.addListener(this.handleOperationHasCompleted);
     this.editorEvents.operationHasRun.addListener(this.handleOperationHasRun);
-    this.editorState.events.interactorUpdated.addListener(this.handleInteractorUpdated);
     this.editorState.events.anchorsOrphaned.addListener(this.handleAnchorsOrphaned);
+    this.editorState.events.interactorUpdated.addListener(this.handleInteractorUpdated);
+    this.editorState.events.nodesJoined.addListener(this.handleNodesJoined);
   }
 
   public anchorToCursor(id: AnchorId | Anchor): Cursor {
@@ -152,45 +154,56 @@ export class EditorInteractorService {
     return dupeIds;
   }
 
-  public jiggleInteractors(
-    services: EditorOperationServices,
-    workingDocument: Draft<WorkingDocument>,
-    all?: boolean
-  ): void {
+  public jiggleInteractors(all?: boolean): void {
     if (!this.editorState) {
       return;
     }
 
-    const navHelper = new CursorNavigator(this.editorState.document, services.layout);
+    // for (const a of this.editorState.getAllAnchors()) {
+    //   console.log(this.anchorToCursor(a.id).toString());
+    // }
 
-    const updateAnchor = (interactor: Draft<Interactor>, anchorType: InteractorAnchorType) => {
-      const currentAnchor = workingDocument.getAnchor(interactor.getAnchor(anchorType) || "");
-      if (!currentAnchor) {
-        return;
-      }
-      const currentCursor = this.anchorToCursor(currentAnchor);
+    const navHelper = new CursorNavigator(this.editorState.document, this.layout);
+
+    const updateAnchor = (anchor: Draft<Anchor>) => {
+      const currentCursor = this.anchorToCursor(anchor);
       if (currentCursor && !navHelper.navigateTo(currentCursor)) {
         return;
       }
+
+      // console.log("jigggline", this.anchorToCursor(anchor).toString());
+      const originalBlock = getNearestAncestorBlock(navHelper);
       if (navHelper.navigateToNextCursorPosition()) {
-        navHelper.navigateToPrecedingCursorPosition();
+        // console.log("jigggline#", navHelper.cursor.toString());
+        const newBlock = getNearestAncestorBlock(navHelper);
+        if (originalBlock !== newBlock) {
+          // console.log(NodeAssociatedData.getId(originalBlock!), NodeAssociatedData.getId(newBlock!));
+
+          navHelper.navigateToPrecedingCursorPosition();
+          // console.log("bail jigggline#", navHelper.cursor.toString());
+        } else {
+          navHelper.navigateToPrecedingCursorPosition();
+          // console.log("jigggline##", navHelper.cursor.toString());
+          const newerBlock = getNearestAncestorBlock(navHelper);
+          if (newBlock !== newerBlock) {
+            navHelper.navigateToNextCursorPosition();
+            // console.log("bail jigggline##", navHelper.cursor.toString());
+          }
+        }
       }
+
       const info = this.cursorNavigatorToAnchorPosition(navHelper);
       if (!info) {
         return;
       }
-      castDraft(currentAnchor).nodeId = info.nodeId;
-      castDraft(currentAnchor).orientation = info.orientation;
-      castDraft(currentAnchor).graphemeIndex = info.graphemeIndex;
+
+      this.editorState.updateAnchor(anchor.id, info.nodeId, info.orientation, info.graphemeIndex);
     };
 
     if (all) {
-      for (const interactor of this.editorState.getAllInteractors()) {
-        if (!interactor) {
-          continue;
-        }
-        updateAnchor(interactor, InteractorAnchorType.Main);
-        interactor.selectionAnchor && updateAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+      for (const a of this.editorState.getAllAnchors()) {
+        // console.log("updating anchor in jiggle: ", this.anchorToCursor(a).toString());
+        updateAnchor(a);
       }
     } else {
       if (!this.updatedInteractors) {
@@ -201,10 +214,22 @@ export class EditorInteractorService {
         if (!interactor) {
           continue;
         }
-        updateAnchor(interactor, InteractorAnchorType.Main);
-        interactor.selectionAnchor && updateAnchor(interactor, InteractorAnchorType.SelectionAnchor);
+        let anchor = this.editorState.getInteractorAnchor(id, InteractorAnchorType.Main);
+        if (anchor) {
+          updateAnchor(anchor);
+        }
+        anchor = interactor.selectionAnchor
+          ? this.editorState.getInteractorAnchor(id, InteractorAnchorType.SelectionAnchor)
+          : undefined;
+        if (anchor) {
+          updateAnchor(anchor);
+        }
       }
     }
+
+    // for (const a of this.editorState.getAllAnchors()) {
+    //   console.log(this.anchorToCursor(a.id).toString());
+    // }
   }
 
   private determineCursorPositionAfterDeletion(
@@ -351,24 +376,41 @@ export class EditorInteractorService {
     this.updatedInteractors.add(interactor.id);
   };
 
+  private handleNodesJoined = ({ destination }: NodesJoinedEventPayload) => {
+    if (NodeUtils.isBlock(destination.tip.node)) {
+      this.needJiggle = "all";
+    } else {
+      if (this.needJiggle !== "all") {
+        this.needJiggle = true;
+      }
+    }
+  };
+
   private handleOperationHasCompleted = (newState: EditorState) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.editorState = newState as any; // null;
     this.updatedInteractors = null;
+    this.needJiggle = false;
   };
 
   private handleOperationHasRun = () => {
-    if (this.updatedInteractors) {
+    if (this.updatedInteractors || this.needJiggle) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       // Then take care of status and cursor position changes by just doing the
       // simplest thing possible and resorting the ordered iterators.
       // this.editorState?.interactorOrdering.sort(this.comparator);
       this.dedupe();
 
-      for (const id of this.updatedInteractors) {
-        if (this.editorState?.focusedInteractorId === id && this.editorState?.getInteractor(id) === undefined) {
-          this.editorState.focusedInteractorId = undefined;
+      if (this.updatedInteractors) {
+        for (const id of this.updatedInteractors) {
+          if (this.editorState?.focusedInteractorId === id && this.editorState?.getInteractor(id) === undefined) {
+            this.editorState.focusedInteractorId = undefined;
+          }
         }
+      }
+
+      if (this.needJiggle) {
+        this.jiggleInteractors(true); //this.updatedInteractorsNeedJiggle === "all");
       }
     }
   };

@@ -12,6 +12,11 @@ export interface AnchorsOrphanedEventPayload {
   readonly deletionAdditionalContext?: NodeEditAdditionalContext;
 }
 
+export interface NodesJoinedEventPayload {
+  readonly destination: ReadonlyNodeNavigator;
+  readonly source: ReadonlyNodeNavigator;
+}
+
 export interface WorkingDocumentEvents {
   /**
    * This event is fired when an anchor is orphaned due to a node deletion.
@@ -24,9 +29,11 @@ export interface WorkingDocumentEvents {
    * anchors is updated, or it or one of its anchors is deleted.
    */
   interactorUpdated: EventChannel<Interactor>;
+  nodesJoined: EventChannel<NodesJoinedEventPayload>;
 }
 
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
   public readonly anchorsOrphaned = new EventEmitter<AnchorsOrphanedEventPayload>();
   public readonly interactorUpdated = new EventEmitter<Interactor>();
+  public readonly nodesJoined = new EventEmitter<NodesJoinedEventPayload>();
 }

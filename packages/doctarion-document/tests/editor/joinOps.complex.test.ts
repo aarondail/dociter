@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CursorOrientation } from "../../src/cursor";
-import { Editor, FlowDirection, OPS, TargetInteractors } from "../../src/editor";
+import { Editor, OPS, TargetInteractors } from "../../src/editor";
 import { HeaderLevel } from "../../src/models";
-import { InteractorStatus } from "../../src/working-document";
+import { FlowDirection, InteractorStatus } from "../../src/working-document";
 import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, paragraph } from "../utils";
 
 const { Before, On, After } = CursorOrientation;

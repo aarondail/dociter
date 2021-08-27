@@ -4,14 +4,14 @@ import { immerable } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
-import { FlowDirection } from "../editor";
-import { Document, Node, NodeUtils, ObjectNode, Text } from "../models";
+import { Block, Document, InlineText, Node, NodeUtils, ObjectNode, Text } from "../models";
 
 import { Anchor, AnchorId, AnchorOrientation, AnchorPosition } from "./anchor";
 import { NodeDeletionAnchorMarker } from "./anchorMarkers";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorAnchorType, InteractorId, InteractorStatus } from "./interactor";
+import { FlowDirection } from "./misc";
 import { NodeAssociatedData, NodeId } from "./nodeAssociatedData";
 
 export interface NodeEditAdditionalContext {
@@ -184,7 +184,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.processMarkedAnchorsRelatedToNodeDeletion(anchorMarker, nav, additionalContext);
   }
 
-  public deleteNodeByPath(path: PathString | Path, additionalContext?: NodeEditAdditionalContext): void {
+  public deleteNodeAtPath(path: PathString | Path, additionalContext?: NodeEditAdditionalContext): void {
     const nav = new NodeNavigator(this.document);
     nav.navigateTo(path);
     const anchorMarker = new NodeDeletionAnchorMarker(this as ReadonlyWorkingDocument);
@@ -211,7 +211,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // This is probably a very inefficient way to deal with text.. and everything
     for (const chain of lodash.reverse(chainsToDelete)) {
       if (!nav.navigateTo(chain.path)) {
-        throw new WorkingDocumentError("Could not navigate to path " + chain.path.toString() + " for deletion.");
+        throw new WorkingDocumentError("Could not navigate to path " + chain.path.toString() + " for deletion");
       }
       // console.log("DELETING", chain.path.toString());
       this.deleteNodeAtNodeNavigator(nav, anchorMarker);
@@ -250,6 +250,128 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return anchorId ? this.getAnchor(anchorId) : undefined;
   }
 
+  public joinBlocksAtPath(path: Path | PathString, direction: FlowDirection): void {
+    const sourceNav = new NodeNavigator(this.document);
+    if (!sourceNav.navigateTo(path) || !NodeUtils.isBlock(sourceNav.tip.node)) {
+      throw new WorkingDocumentError("Path is invalid or doesn't point to an block");
+    }
+
+    const destinationNav = sourceNav.clone();
+    if (
+      !(direction === FlowDirection.Backward
+        ? destinationNav.navigateToPrecedingSibling()
+        : destinationNav.navigateToNextSibling()) ||
+      !NodeUtils.isBlock(destinationNav.tip.node)
+    ) {
+      throw new WorkingDocumentError("Could not find sibling block to join to");
+    }
+
+    const destinationBlock = destinationNav.tip.node;
+    const sourceBlock = sourceNav.tip.node;
+    const destinationOriginalChildCount = destinationBlock.children.length;
+    const sourceOriginalChildCount = sourceBlock.children.length;
+
+    // Move children from one inline to the next
+    this.moveChildren<Block>(sourceBlock, destinationBlock, direction === FlowDirection.Forward, false);
+
+    this.adjustAnchorPositionsAfterBlockJoin(
+      direction,
+      sourceBlock,
+      sourceOriginalChildCount,
+      destinationBlock,
+      destinationOriginalChildCount
+    );
+
+    this.eventEmitters.nodesJoined.emit({ destination: destinationNav, source: sourceNav });
+
+    // Merge "boundary" InlineTexts if possible
+    const boundaryInlineChildNav = destinationNav.clone();
+    if (
+      boundaryInlineChildNav.navigateToChild(
+        direction === FlowDirection.Backward ? destinationOriginalChildCount - 1 : sourceOriginalChildCount - 1
+      ) &&
+      NodeUtils.isInlineText(boundaryInlineChildNav.tip.node)
+    ) {
+      const otherBoundaryInlineChildNav = boundaryInlineChildNav.clone();
+      if (
+        otherBoundaryInlineChildNav.navigateToNextSibling() &&
+        NodeUtils.isInlineText(otherBoundaryInlineChildNav.tip.node)
+      ) {
+        if (
+          NodeUtils.getChildren(boundaryInlineChildNav.tip.node)?.length === 0 &&
+          (NodeUtils.getChildren(otherBoundaryInlineChildNav.tip.node)?.length || 0) > 0
+        ) {
+          this.joinInlineTextAtPath(otherBoundaryInlineChildNav.path, FlowDirection.Backward, {
+            onlyIfModifiersAreCompatible: true,
+          });
+        } else {
+          this.joinInlineTextAtPath(boundaryInlineChildNav.path, FlowDirection.Forward, {
+            onlyIfModifiersAreCompatible: true,
+          });
+        }
+      }
+    }
+
+    this.deleteNodeAtPath(sourceNav.path, { flow: direction });
+  }
+
+  public joinInlineTextAtPath(
+    path: Path | PathString,
+    direction: FlowDirection,
+    options?: { readonly onlyIfModifiersAreCompatible?: boolean }
+  ): void {
+    const sourceNav = new NodeNavigator(this.document);
+    if (!sourceNav.navigateTo(path) || !(sourceNav.tip.node instanceof InlineText)) {
+      throw new WorkingDocumentError("Path is invalid or doesn't point to an InlineText");
+    }
+
+    const destinationNav = sourceNav.clone();
+    if (
+      !(direction === FlowDirection.Backward
+        ? destinationNav.navigateToPrecedingSibling()
+        : destinationNav.navigateToNextSibling()) ||
+      !(destinationNav.tip.node instanceof InlineText)
+    ) {
+      throw new WorkingDocumentError("Could not find sibling InlineText to join to");
+    }
+
+    const destinationInlineText = destinationNav.tip.node;
+    const sourceInlineText = sourceNav.tip.node;
+    const destinationOriginalChildCount = destinationInlineText.children.length;
+    const sourceOriginalChildCount = sourceInlineText.children.length;
+
+    if (
+      options?.onlyIfModifiersAreCompatible &&
+      !(
+        destinationOriginalChildCount === 0 ||
+        sourceOriginalChildCount === 0 ||
+        lodash.isEqual(destinationInlineText.modifiers, sourceInlineText.modifiers)
+      )
+    ) {
+      return;
+    }
+
+    // Move children from one inline to the next
+    this.moveChildren(sourceInlineText, destinationInlineText, direction === FlowDirection.Forward, true);
+
+    // Adjust modifiers in edge case of an empty inline text
+    if (destinationOriginalChildCount === 0) {
+      immer.castDraft(destinationInlineText).modifiers = sourceInlineText.modifiers;
+    }
+
+    this.adjustAnchorPositionsAfterInlineTextJoin(
+      direction,
+      sourceInlineText,
+      sourceOriginalChildCount,
+      destinationInlineText,
+      destinationOriginalChildCount
+    );
+
+    this.eventEmitters.nodesJoined.emit({ destination: destinationNav, source: sourceNav });
+
+    this.deleteNodeAtPath(sourceNav.path);
+  }
+
   public lookupChainTo(nodeId: NodeId): Chain | undefined {
     return this.createNodeNavigatorTo(nodeId)?.chain;
   }
@@ -274,21 +396,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
 
     immer.castDraft(anchor).nodeId = nodeId;
-    // if (updates.nodeId) {
-    //   const nodeId = updates.nodeId; // typeof updates.node === "string" ? updates.node : NodeAssociatedData.getId(updates.node);
-    //   if (!nodeId) {
-    //     return undefined;
-    //   }
-    //   const newNode = this.nodeParentIdMap[nodeId];
-    //   if (!newNode) {
-    //     return undefined;
-    //   }
-    //   const oldNode = this.nodeParentIdMap[anchor.nodeId];
-    //   if (oldNode) {
-    //     NodeAssociatedData.removeAnchorFromNode(oldNode, anchor.id);
-    //   }
-    //   NodeAssociatedData.addAnchorToNode(newNode, anchor.id);
-    // }
     immer.castDraft(anchor).orientation = orientation;
     immer.castDraft(anchor).graphemeIndex = graphemeIndex;
 
@@ -387,6 +494,120 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters.interactorUpdated.emit(interactor);
   }
 
+  private adjustAnchorPositionsAfterBlockJoin(
+    direction: FlowDirection,
+    source: Block,
+    sourceOriginalChildCount: number,
+    destination: Block,
+    destinationOriginalChildCount: number
+  ) {
+    const destinationId = NodeAssociatedData.getId(destination);
+    const sourceId = NodeAssociatedData.getId(source);
+
+    if (!destinationId || !sourceId) {
+      return;
+    }
+
+    for (const a of this.getAllAnchors()) {
+      if (direction === FlowDirection.Backward) {
+        // Source
+        // if (a.nodeId === sourceId) {
+        //   if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
+        //     this.updateAnchor(a.id, destinationId, AnchorOrientation.After, undefined);
+        //   }
+        // }
+      } else {
+        // Destination
+        if (a.nodeId === destinationId) {
+          if (destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
+            this.updateAnchor(a.id, a.nodeId, AnchorOrientation.After, a.graphemeIndex);
+          }
+        }
+        // Source
+        // else if (a.nodeId === sourceId) {
+        //   if (a.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
+        //     this.updateAnchor(a.id, destinationId, AnchorOrientation.Before, undefined);
+        //   }
+        // }
+      }
+    }
+  }
+
+  private adjustAnchorPositionsAfterInlineTextJoin(
+    direction: FlowDirection,
+    source: InlineText,
+    sourceOriginalChildCount: number,
+    destination: InlineText,
+    destinationOriginalChildCount: number
+  ) {
+    const destinationId = NodeAssociatedData.getId(destination);
+    const sourceId = NodeAssociatedData.getId(source);
+
+    if (!destinationId || !sourceId) {
+      return;
+    }
+
+    const caseBackwardsDestination = (anchor: Anchor) => {
+      if (anchor.nodeId === destinationId && destinationOriginalChildCount === 0 && sourceOriginalChildCount > 0) {
+        this.updateAnchor(anchor.id, anchor.nodeId, AnchorOrientation.Before, 0);
+      }
+    };
+
+    const caseForwardDestination = (anchor: Anchor) => {
+      if (anchor.nodeId === destinationId) {
+        if (anchor.graphemeIndex !== undefined) {
+          this.updateAnchor(
+            anchor.id,
+            anchor.nodeId,
+            anchor.orientation,
+            sourceOriginalChildCount + anchor.graphemeIndex
+          );
+        }
+      }
+    };
+
+    const caseBackwardSource = (anchor: Anchor) => {
+      if (anchor.nodeId === sourceId) {
+        if (anchor.graphemeIndex !== undefined) {
+          this.updateAnchor(
+            anchor.id,
+            destinationId,
+            anchor.orientation,
+            destinationOriginalChildCount + anchor.graphemeIndex
+          );
+        } else if (destinationOriginalChildCount > 0) {
+          this.updateAnchor(
+            anchor.id,
+            destinationId,
+            // TODO technically ... orientation may have a different preference but then again that could change after re-layout...
+            AnchorOrientation.After,
+            destinationOriginalChildCount - 1
+          );
+        }
+      }
+    };
+
+    const caseForwardSource = (anchor: Anchor) => {
+      if (anchor.nodeId === sourceId) {
+        if (anchor.graphemeIndex === undefined && destinationOriginalChildCount > 0) {
+          this.updateAnchor(anchor.id, destinationId, AnchorOrientation.Before, 0);
+        } else {
+          this.updateAnchor(anchor.id, destinationId, anchor.orientation, anchor.graphemeIndex);
+        }
+      }
+    };
+
+    for (const a of this.getAllAnchors()) {
+      if (direction === FlowDirection.Backward) {
+        caseBackwardsDestination(a);
+        caseBackwardSource(a);
+      } else {
+        caseForwardDestination(a);
+        caseForwardSource(a);
+      }
+    }
+  }
+
   private createNodeNavigatorTo(nodeId: NodeId, graphemeIndex?: number): NodeNavigator | undefined {
     const idChain = [];
     let currentId: string | undefined = nodeId;
@@ -415,13 +636,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
 
       if (!nav.navigateToChild(index)) {
-        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator.");
+        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator");
       }
     }
 
     if (graphemeIndex !== undefined) {
       if (!nav.navigateToChild(graphemeIndex)) {
-        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator.");
+        throw new WorkingDocumentError("Could not navigate to child while constructing a NodeNavigator");
       }
     }
 
@@ -468,6 +689,35 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
+  private moveChildren<T extends ObjectNode>(
+    source: T extends Block ? Block : InlineText,
+    destination: T extends Block ? Block : InlineText,
+    prependChildren?: boolean,
+    childrenAreAllGraphemes?: boolean
+  ) {
+    if (childrenAreAllGraphemes) {
+      if (!prependChildren) {
+        immer.castDraft(destination).children = [...destination.children, ...source.children];
+      } else {
+        immer.castDraft(destination).children = [...source.children, ...destination.children];
+      }
+    } else {
+      const destKids = immer.castDraft(destination.children);
+      if (prependChildren) {
+        for (const child of lodash.reverse(source.children)) {
+          destKids.unshift(child);
+          this.processNodeMoved(child, destination);
+        }
+      } else {
+        for (const child of source.children) {
+          destKids.push(child);
+          this.processNodeMoved(child, destination);
+        }
+      }
+    }
+    immer.castDraft(source).children = [];
+  }
+
   private processMarkedAnchorsRelatedToNodeDeletion(
     anchorMarker: NodeDeletionAnchorMarker,
     deletionTarget: NodeNavigator | [NodeNavigator, NodeNavigator],
@@ -496,7 +746,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
+  // TODO should be private
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  public processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
     const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
@@ -506,7 +758,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return nodeId;
   }
 
-  private processNodeDeleted(node: NodeId | ObjectNode): void {
+  // TODO should be private
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  public processNodeDeleted(node: NodeId | ObjectNode): void {
     const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
     if (id) {
       delete this.nodeParentIdMap[id];
