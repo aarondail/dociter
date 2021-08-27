@@ -19,7 +19,7 @@ describe("delete selection", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
     editor.execute(OPS.jump({ to: { path: "3/1/2", orientation: After }, select: true }));
-    editor.execute(OPS.deleteAt({}));
+    editor.execute(OPS.delete({}));
     // Arguably this should be inside the URL_LINK
     expect(debugState(editor)).toMatchInlineSnapshot(`
       "
@@ -37,7 +37,7 @@ describe("delete selection", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "3/1/2", orientation: After } }));
     editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After }, select: true }));
-    editor.execute(OPS.deleteAt({}));
+    editor.execute(OPS.delete({}));
     expect(debugState(editor)).toMatchInlineSnapshot(`
       "
       CURSOR: 0/0/0 |>

@@ -1,17 +1,15 @@
 // -----------------------------------------------------------------------------
 // Editor Services provide functionality that support operations and clients of
-// the Editor. They can have their own mutable state (albeit there is a
-// limitation that it cannot participate in undo and redo), and they can affect
-// and access the EditorState.
+// the Editor.
 // -----------------------------------------------------------------------------
 
 import { Draft } from "immer";
 
-import { NodeLayoutReporter } from "../../cursor";
-import { EditorOperationCommand } from "../operation";
-import { EditorState } from "../state";
+import { NodeLayoutReporter } from "../cursor";
 
 import { EditorInteractorService } from "./interactorService";
+import { EditorOperationCommand } from "./operation";
+import { EditorState } from "./state";
 
 /**
  * These are all the services available to `EditorOperation` functions.

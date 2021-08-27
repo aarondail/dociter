@@ -4,7 +4,7 @@ import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation } from "../cursor";
 import { Document, InlineContainingNode, InlineText, InlineUrlLink, NodeUtils, ParagraphBlock, Text } from "../models";
 
-import { deleteAt } from "./deletionOps";
+import { delete_ } from "./deletionOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { getCursorNavigatorAndValidate, ifLet } from "./utils";
@@ -15,7 +15,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
   const graphemes = typeof payload === "string" ? Text.fromString(payload) : payload;
 
   if (state.getAllInteractors()[0].isSelection) {
-    services.execute(state, deleteAt({ target: { interactorId: state.getAllInteractors()[0].id } }));
+    services.execute(state, delete_({ target: { interactorId: state.getAllInteractors()[0].id } }));
   }
 
   let nav = getCursorNavigatorAndValidate(state, services, 0);
@@ -116,7 +116,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
 
 export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink", (state, services, payload): void => {
   if (state.getAllInteractors()[0].isSelection) {
-    services.execute(state, deleteAt({ target: { interactorId: state.getAllInteractors()[0].id } }));
+    services.execute(state, delete_({ target: { interactorId: state.getAllInteractors()[0].id } }));
   }
   state.updateInteractor(state.getAllInteractors()[0].id, {
     lineMovementHorizontalVisualPosition: undefined,

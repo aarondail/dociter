@@ -15,33 +15,33 @@ const testDoc1 = doc(
   paragraph(inlineText("CC"), inlineUrlLink("g.com", "GOOGLE"), inlineText("DD"))
 );
 
-describe("deleteAt for a single interactor", () => {
+describe("delete for a single interactor", () => {
   describe("backwards", () => {
     it("basically works", () => {
       const editor = new Editor({ document: testDoc1 });
       // Jump to L in the "GOOGLE" text of the url link
       // Note the cursor would be at: GOOG|LE
       editor.execute(OPS.jump({ to: { path: "3/1/3", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/2 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOLE"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/1 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOLE"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/0 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GLE"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
 
       // This should be a no-op
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 3/1/0
 SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
@@ -50,30 +50,30 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "LE"`);
     it("stops at the beginning of the doc", () => {
       let editor = new Editor({ document: testDoc1 });
       //       editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: After } }));
-      //       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      //       editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       //       expect(debugState(editor)).toEqual(`
       // CURSOR: <| 0/0/0
       // SLICE:  HEADER ONE > TEXT {} > "1"`);
 
       //       // This is a no-op
-      //       editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      //       editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       //       expect(debugState(editor)).toEqual(`
       // CURSOR: <| 0/0/0
       // SLICE:  HEADER ONE > TEXT {} > "1"`);
 
       editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "H"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0
 SLICE:  HEADER ONE`);
 
       // This is not a no-op and deletes the empty paragraph we were at
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0/0
 SLICE:  PARAGRAPH > TEXT {} > "MM"`);
@@ -82,23 +82,23 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
     it("delete removes empty InlineText", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/3/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/3/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "A"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/2/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "NN"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "MM"`);
@@ -112,7 +112,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
       // This should be a no-op
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 1/0/0
 SLICE:  PARAGRAPH > TEXT {} > "MM"`);
@@ -121,7 +121,7 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
     it("does move through an InlineText with the proper options set", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -135,7 +135,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "MM"`);
@@ -152,7 +152,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -167,12 +167,12 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/0", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -188,14 +188,14 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/0", orientation: On } }));
       // This deletes the empty inline url link
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       // But should leave the cursor on the paragraph
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
       // This should delete the paragraph
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       // Moving the cursor to the header
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
@@ -211,7 +211,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -229,7 +229,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       );
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
@@ -244,7 +244,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
@@ -260,7 +260,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "", orientation: On } }));
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
 
       // Make sure there is nothing to the right
       editor.resetHistory();
@@ -275,7 +275,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
 CURSOR: 0/1
 SLICE:  PARAGRAPH > EMOJI tree`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
@@ -291,19 +291,19 @@ PARAGRAPH > TEXT {} > "CD"`);
         ),
       });
       editor.execute(OPS.jump({ to: { path: "0/2/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/1
 SLICE:  PARAGRAPH > EMOJI b`);
 
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0
 SLICE:  PARAGRAPH > EMOJI a`);
 
       editor.execute(OPS.jump({ to: { path: "0/4", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/3
 SLICE:  PARAGRAPH > EMOJI c`);
@@ -314,11 +314,11 @@ SLICE:  PARAGRAPH > EMOJI c`);
         document: doc(paragraph(inlineText("AB"), inlineEmoji("turtle"), inlineEmoji("tree"), inlineText("CD"))),
       });
       editor.execute(OPS.jump({ to: { path: "0/2", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/1
 SLICE:  PARAGRAPH > EMOJI turtle`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
@@ -327,21 +327,21 @@ SLICE:  PARAGRAPH > TEXT {} > "AB"`);
     it("will delete inline emoji indirectly when cursor is adjacent with proper options", () => {
       let editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineText("AB"))) });
       editor.execute(OPS.jump({ to: { path: "0/1/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0/0
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
 
       editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineEmoji("second"))) });
       editor.execute(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0
 SLICE:  PARAGRAPH > EMOJI second`);
 
       editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineUrlLink("G.com", "GOOGLE"))) });
       editor.execute(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0
 SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
@@ -356,13 +356,13 @@ SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
 
       // The deletions in here should all be no-ops
       editor.execute(OPS.jump({ to: { path: "0/3", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/3 |>
 SLICE:  PARAGRAPH > EMOJI end`);
 
       editor.execute(OPS.jump({ to: { path: "0/1", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0 |>
 SLICE:  PARAGRAPH > EMOJI turtle`);
@@ -377,7 +377,7 @@ PARAGRAPH > EMOJI end`);
     it("joins blocks with appropriate options", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1MM"`);
@@ -390,7 +390,7 @@ HEADER ONE > TEXT {BOLD} > "BB"`);
 
       editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/4/1 |>
 SLICE:  PARAGRAPH > TEXT {BOLD} > "BB"`);
@@ -409,41 +409,41 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       // Jump to L in the "GOOGLE" text of the url link
       // Note the cursor would be at: GOOG|LE
       editor.execute(OPS.jump({ to: { path: "3/1/3", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGE"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       // This should be a no-op
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/3 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "GOOG"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
     });
 
     it("stops at the end of the doc", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "3/2/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/2/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "D"`);
       // This is a no-op
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 3/2/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "D"`);
 
       editor = new Editor({ document: doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("A"))) });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       // This is not a no-op and deletes the empty paragraph we were at
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -452,13 +452,13 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
     it("does not delete through InlineText", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: CursorOrientation.After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
 
       // This should be a no-op
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -473,7 +473,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
     it("does move through an InlineText with the proper options set", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 1/0/0
 SLICE:  PARAGRAPH > TEXT {} > "MM"`);
@@ -482,13 +482,13 @@ SLICE:  PARAGRAPH > TEXT {} > "MM"`);
     it("deletes through InlineText and removes empty InlineText with proper options set", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: CursorOrientation.After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
 
       // This looks like a no-op but its not
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -498,7 +498,7 @@ PARAGRAPH > TEXT {} > "NN"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -507,7 +507,7 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "N"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -515,7 +515,7 @@ SLICE:  PARAGRAPH > TEXT {} > "M"`);
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -524,17 +524,17 @@ PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {} > "A"
 PARAGRAPH > TEXT {BOLD} > "BB"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
 
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"
 PARAGRAPH > TEXT {BOLD} > "B"`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "M"`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineTextDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "M"`);
@@ -550,7 +550,7 @@ PARAGRAPH > TEXT {} > "M"`);
 CURSOR: 1/1
 SLICE:  PARAGRAPH > TEXT {} > ""`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       // This isn't on the NN InlineText because we prefer after affinity to before generally
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/1 |>
@@ -568,7 +568,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph());
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -583,12 +583,12 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("")));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/0", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -604,14 +604,14 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/0", orientation: On } }));
       // This deletes the empty inline url link
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       // But should leave the cursor on the paragraph
       expect(debugState(editor)).toEqual(`
 CURSOR: 1
 SLICE:  PARAGRAPH`);
 
       // This should delete the paragraph
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       // Moving the cursor to the header
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
@@ -627,7 +627,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), header(HeaderLevel.Two));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  HEADER ONE > TEXT {} > "H1"`);
@@ -645,7 +645,7 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
       );
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
@@ -660,7 +660,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
       const d = doc(header(HeaderLevel.One, inlineText("H1")), paragraph(inlineText("ASD"), inlineText("")));
       const editor = new Editor({ document: d });
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
@@ -674,7 +674,7 @@ SLICE:  PARAGRAPH > TEXT {} > "ASD"`);
     it("will delete inline emoji directly", () => {
       const editor = new Editor({ document: doc(paragraph(inlineText("AB"), inlineEmoji("tree"), inlineText("CD"))) });
       editor.execute(OPS.jump({ to: { path: "0/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
@@ -697,19 +697,19 @@ PARAGRAPH > TEXT {} > "CD"`);
         ),
       });
       editor.execute(OPS.jump({ to: { path: "0/2/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/3
 SLICE:  PARAGRAPH > EMOJI c`);
 
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/1
 SLICE:  PARAGRAPH > EMOJI b`);
 
       editor.execute(OPS.jump({ to: { path: "0/4", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/5
 SLICE:  PARAGRAPH > EMOJI d`);
@@ -720,11 +720,11 @@ SLICE:  PARAGRAPH > EMOJI d`);
         document: doc(paragraph(inlineText("AB"), inlineEmoji("turtle"), inlineEmoji("tree"), inlineText("CD"))),
       });
       editor.execute(OPS.jump({ to: { path: "0/1", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/1
 SLICE:  PARAGRAPH > EMOJI tree`);
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
@@ -733,7 +733,7 @@ SLICE:  PARAGRAPH > TEXT {} > "AB"`);
     it("will delete inline emoji indirectly when cursor is adjacent with proper options", () => {
       let editor = new Editor({ document: doc(paragraph(inlineText("AB"), inlineEmoji("first"))) });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "AB"`);
@@ -742,14 +742,14 @@ PARAGRAPH > TEXT {} > "AB"`);
 
       editor = new Editor({ document: doc(paragraph(inlineEmoji("first"), inlineEmoji("second"))) });
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0 |>
 SLICE:  PARAGRAPH > EMOJI first`);
 
       editor = new Editor({ document: doc(paragraph(inlineUrlLink("G.com", "GOOGLE"), inlineEmoji("first"))) });
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowAdjacentInlineEmojiDeletion: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0 |>
 SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
@@ -766,13 +766,13 @@ PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
 
       // The deletions in here should all be no-ops
       editor.execute(OPS.jump({ to: { path: "0/0", orientation: Before } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 0/0
 SLICE:  PARAGRAPH > EMOJI turtle`);
 
       editor.execute(OPS.jump({ to: { path: "0/2", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/2 |>
 SLICE:  PARAGRAPH > URL_LINK G.com > "GOOGLE"`);
@@ -787,7 +787,7 @@ PARAGRAPH > EMOJI end`);
     it("joins blocks with appropriate options", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/1 |>
 SLICE:  PARAGRAPH > TEXT {} > "H1MM"`);
@@ -800,7 +800,7 @@ PARAGRAPH > TEXT {BOLD} > "BB"`);
 
       editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
-      editor.execute(OPS.deleteAt({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
+      editor.execute(OPS.delete({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
       expect(debugState(editor)).toEqual(`
 CURSOR: <| 2/0/0
 SLICE:  PARAGRAPH > TEXT {} > "CC"`);

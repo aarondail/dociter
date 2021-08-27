@@ -1,8 +1,8 @@
 import { Draft } from "immer";
 
-import { NodeNavigator, Path, PathPart, ReadonlyNodeNavigator } from "../../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter } from "../../cursor";
-import { InlineEmoji, NodeUtils } from "../../models";
+import { NodeNavigator, Path, PathPart, ReadonlyNodeNavigator } from "../basic-traversal";
+import { Cursor, CursorNavigator, CursorOrientation, NodeLayoutReporter } from "../cursor";
+import { InlineEmoji, NodeUtils } from "../models";
 import {
   Anchor,
   AnchorId,
@@ -15,11 +15,12 @@ import {
   InteractorId,
   NodeAssociatedData,
   NodesJoinedEventPayload,
-} from "../../working-document";
-import { EditorEvents } from "../events";
-import { EditorOperationError, EditorOperationErrorCode } from "../operationError";
-import { EditorState } from "../state";
-import { InteractorInputPosition, getNearestAncestorBlock } from "../utils";
+} from "../working-document";
+
+import { EditorEvents } from "./events";
+import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
+import { EditorState } from "./state";
+import { InteractorInputPosition, getNearestAncestorBlock } from "./utils";
 
 export class EditorInteractorService {
   private anchorsNeedJiggle?: undefined | "updatedInteractors" | "all";

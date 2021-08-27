@@ -10,7 +10,7 @@ import { createCoreOperation } from "./operation";
 import { TargetPayload } from "./payloads";
 import { getRangeForSelection, selectTargets } from "./utils";
 
-interface DeleteAtOptions {
+interface DeleteOptions {
   /**
    * By default when an interactor is positioned around
    * an InlineEmoji the deletion will be a no-op because the deletion
@@ -40,19 +40,17 @@ interface DeleteAtOptions {
    */
   readonly allowJoiningBlocksInBoundaryCases: boolean;
   readonly direction: FlowDirection;
-  readonly dontThrowOnSelectionInteractors: boolean;
 }
 
-export type DeleteAtPayload = TargetPayload & Partial<DeleteAtOptions>;
+export type DeletePayload = TargetPayload & Partial<DeleteOptions>;
 
-export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state, services, payload) => {
-  const options: DeleteAtOptions = {
+export const delete_ = createCoreOperation<DeletePayload>("delete", (state, services, payload) => {
+  const options: DeleteOptions = {
     allowAdjacentInlineEmojiDeletion: payload.allowAdjacentInlineEmojiDeletion ?? false,
     allowAdjacentInlineTextDeletion: payload.allowAdjacentInlineTextDeletion ?? false,
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     allowJoiningBlocksInBoundaryCases: payload.allowJoiningBlocksInBoundaryCases ?? false,
     direction: payload.direction ?? FlowDirection.Backward,
-    dontThrowOnSelectionInteractors: payload.dontThrowOnSelectionInteractors ?? false,
   };
 
   const targets = selectTargets(state, services, payload.target);
@@ -110,7 +108,7 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
  */
 function findNodeRelativeToCursorForDeletion(
   navigator: ReadonlyCursorNavigator,
-  options: DeleteAtOptions
+  options: DeleteOptions
 ):
   | { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator; readonly joinInstead?: boolean }
   | undefined {

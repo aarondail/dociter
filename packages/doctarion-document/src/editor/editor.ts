@@ -8,9 +8,10 @@ import { Anchor, AnchorId } from "../working-document";
 
 import { EditorEventEmitter, EditorEvents } from "./events";
 import { addInteractor } from "./interactorOps";
+import { EditorInteractorService } from "./interactorService";
 import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorInteractorService, EditorOperationServices, EditorProvidableServices } from "./services";
+import { EditorOperationServices, EditorProvidableServices } from "./services";
 import { EditorState, ReadonlyEditorState } from "./state";
 
 export interface EditorConfig {
