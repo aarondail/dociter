@@ -1,4 +1,6 @@
 
+TODO rewrite to include info about anchors.
+
 Placing a cursor (aka caret) in the document, and moving it, is hard.
 
 ## High Level Concepts

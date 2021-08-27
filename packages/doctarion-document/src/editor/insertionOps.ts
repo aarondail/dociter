@@ -81,7 +81,7 @@ export const insertText = createCoreOperation<string | Text>("insert/text", (sta
         // refreshNavigator(nav);
         const oldNav = nav;
         nav = new CursorNavigator(state.document, services.layout);
-        nav.navigateToUnchecked(oldNav.cursor);
+        nav.navigateFreeformTo(oldNav.cursor);
         nav.navigateToLastDescendantCursorPosition();
         state.updateInteractor(state.getAllInteractors()[0].id, {
           to: services.interactors.cursorNavigatorToAnchorPosition(nav),
@@ -217,7 +217,7 @@ export const insertUrlLink = createCoreOperation<InlineUrlLink>("insert/urlLink"
     // Update the cursor
     destinationNavigator.navigateToChild(destinationInsertIndex);
     const updatedCursorNav = new CursorNavigator(state.document, services.layout);
-    updatedCursorNav.navigateToUnchecked(destinationNavigator.path, CursorOrientation.Before);
+    updatedCursorNav.navigateFreeformTo(destinationNavigator.path, CursorOrientation.Before);
     updatedCursorNav.navigateToLastDescendantCursorPosition();
 
     state.updateInteractor(state.getAllInteractors()[0].id, {

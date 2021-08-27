@@ -144,8 +144,8 @@ function findNodeRelativeToCursorForDeletion(
     if ((isBack && index === -1) || (!isBack && index === parent.node.children.length)) {
       const navPrime = navigator.clone();
       const parentHasPrecedingOrFollowingSibling =
-        navPrime.navigateToParentUnchecked() &&
-        (isBack ? navPrime.navigateToPrecedingSiblingUnchecked() : navPrime.navigateToNextSiblingUnchecked());
+        navPrime.navigateFreeformToParent() &&
+        (isBack ? navPrime.navigateFreeformToPrecedingSibling() : navPrime.navigateFreeformToNextSibling());
 
       // In the code here, we just handle the case where we are deleting
       // backwards (or forwards) from one InlineText to another inside the
@@ -158,9 +158,9 @@ function findNodeRelativeToCursorForDeletion(
       ) {
         isBack ? navPrime.navigateToLastDescendantCursorPosition() : navPrime.navigateToFirstDescendantCursorPosition();
         if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
-          navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+          navPrime.changeCursorOrientationFreeform(CursorOrientation.After);
         } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
-          navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
+          navPrime.changeCursorOrientationFreeform(CursorOrientation.Before);
         }
         return findNodeRelativeToCursorForDeletion(navPrime, options);
       }
@@ -174,9 +174,9 @@ function findNodeRelativeToCursorForDeletion(
       ) {
         isBack ? navPrime.navigateToLastDescendantCursorPosition() : navPrime.navigateToFirstDescendantCursorPosition();
         if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
-          navPrime.changeCursorOrientationUnchecked(CursorOrientation.After);
+          navPrime.changeCursorOrientationFreeform(CursorOrientation.After);
         } else if (!isBack && navPrime.cursor.orientation === CursorOrientation.After) {
-          navPrime.changeCursorOrientationUnchecked(CursorOrientation.Before);
+          navPrime.changeCursorOrientationFreeform(CursorOrientation.Before);
         }
         return findNodeRelativeToCursorForDeletion(navPrime, options);
       }

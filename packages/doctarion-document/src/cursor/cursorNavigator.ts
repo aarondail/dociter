@@ -55,7 +55,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return new Cursor(this.nodeNavigator.path, this.currentOrientation);
   }
 
-  public changeCursorOrientationUnchecked(orientation: CursorOrientation): void {
+  public changeCursorOrientationFreeform(orientation: CursorOrientation): void {
     this.currentOrientation = orientation;
   }
 
@@ -64,6 +64,70 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     navigator.currentOrientation = this.currentOrientation;
     navigator.nodeNavigator = this.nodeNavigator.clone();
     return navigator;
+  }
+
+  public navigateFreeformTo(cursor: Cursor): boolean;
+  public navigateFreeformTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  public navigateFreeformTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
+    if (typeof cursorOrPath === "string") {
+      return this.navigateFreeformTo(
+        Path.parse(cursorOrPath),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        maybeOrientation as any
+      );
+    }
+
+    let path: Path;
+    let orientation: CursorOrientation;
+    if ((cursorOrPath as Path).parts?.length >= 0) {
+      path = cursorOrPath as Path;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      orientation = maybeOrientation || CursorOrientation.On;
+    } else {
+      path = (cursorOrPath as Cursor).path;
+      orientation = (cursorOrPath as Cursor).orientation;
+    }
+
+    const n = new NodeNavigator(this.document);
+    if (!n.navigateTo(path)) {
+      return false;
+    }
+    this.nodeNavigator = n;
+    this.currentOrientation = orientation;
+    return true;
+  }
+
+  public navigateFreeformToDocumentNode(): boolean {
+    if (this.nodeNavigator.navigateToDocumentNode()) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
+  }
+
+  public navigateFreeformToNextSibling(): boolean {
+    if (this.nodeNavigator.navigateToNextSibling()) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
+  }
+
+  public navigateFreeformToParent(): boolean {
+    if (this.nodeNavigator.navigateToParent()) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
+  }
+
+  public navigateFreeformToPrecedingSibling(): boolean {
+    if (this.nodeNavigator.navigateToPrecedingSibling()) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -76,7 +140,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
   public navigateTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     const temp = this.clone();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!temp.navigateToUnchecked(cursorOrPath, maybeOrientation || CursorOrientation.On)) {
+    if (!temp.navigateFreeformTo(cursorOrPath, maybeOrientation || CursorOrientation.On)) {
       return false;
     }
 
@@ -105,14 +169,6 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     }
 
     return true;
-  }
-
-  public navigateToDocumentNodeUnchecked(): boolean {
-    if (this.nodeNavigator.navigateToDocumentNode()) {
-      this.currentOrientation = CursorOrientation.On;
-      return true;
-    }
-    return false;
   }
 
   public navigateToFirstDescendantCursorPosition(): boolean {
@@ -229,22 +285,6 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return false;
   }
 
-  public navigateToNextSiblingUnchecked(): boolean {
-    if (this.nodeNavigator.navigateToNextSibling()) {
-      this.currentOrientation = CursorOrientation.On;
-      return true;
-    }
-    return false;
-  }
-
-  public navigateToParentUnchecked(): boolean {
-    if (this.nodeNavigator.navigateToParent()) {
-      this.currentOrientation = CursorOrientation.On;
-      return true;
-    }
-    return false;
-  }
-
   /**
    * This method along with its counterparts navigateToNextCursorPosition
    * are in some ways the core functionality of the navigator. For determining
@@ -314,14 +354,6 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return false;
   }
 
-  public navigateToPrecedingSiblingUnchecked(): boolean {
-    if (this.nodeNavigator.navigateToPrecedingSibling()) {
-      this.currentOrientation = CursorOrientation.On;
-      return true;
-    }
-    return false;
-  }
-
   public navigateToRelativeSibling(offset: number, orientation: CursorOrientation): boolean {
     const clone = this.clone();
     if (clone.nodeNavigator.navigateToRelativeSibling(offset)) {
@@ -340,38 +372,6 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       this.nodeNavigator = clone.nodeNavigator;
     }
     return false;
-  }
-
-  public navigateToUnchecked(cursor: Cursor): boolean;
-  public navigateToUnchecked(path: PathString | Path, orientation?: CursorOrientation): boolean;
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  public navigateToUnchecked(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
-    if (typeof cursorOrPath === "string") {
-      return this.navigateToUnchecked(
-        Path.parse(cursorOrPath),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        maybeOrientation as any
-      );
-    }
-
-    let path: Path;
-    let orientation: CursorOrientation;
-    if ((cursorOrPath as Path).parts?.length >= 0) {
-      path = cursorOrPath as Path;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      orientation = maybeOrientation || CursorOrientation.On;
-    } else {
-      path = (cursorOrPath as Cursor).path;
-      orientation = (cursorOrPath as Cursor).orientation;
-    }
-
-    const n = new NodeNavigator(this.document);
-    if (!n.navigateTo(path)) {
-      return false;
-    }
-    this.nodeNavigator = n;
-    this.currentOrientation = orientation;
-    return true;
   }
 
   public toNodeNavigator(): NodeNavigator {

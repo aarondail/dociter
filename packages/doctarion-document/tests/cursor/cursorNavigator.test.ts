@@ -779,7 +779,7 @@ describe("navigateToPrecedingCursorPosition", () => {
 describe("navigateToLastDescendantCursorPosition", () => {
   it("should handle empty insertion points", () => {
     const nav = new CursorNavigator(doc(paragraph(inlineText(""))), undefined);
-    nav.navigateToUnchecked("0/0", CursorOrientation.After);
+    nav.navigateFreeformTo("0/0", CursorOrientation.After);
     nav.navigateToLastDescendantCursorPosition();
     expect(debugCursorNavigator(nav)).toEqual("0/0");
   });

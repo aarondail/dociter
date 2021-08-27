@@ -167,7 +167,7 @@ export class EditorInteractorService {
     const isBack = direction === undefined || direction === FlowDirection.Backward;
 
     const n = new CursorNavigator(this.editorState.document, this.layout);
-    if (n.navigateToUnchecked(originalPositionAndNode.path, CursorOrientation.On)) {
+    if (n.navigateFreeformTo(originalPositionAndNode.path, CursorOrientation.On)) {
       if (NodeUtils.isGrapheme(originalNode)) {
         if (n.parent?.node === originalParent) {
           const currentIndex = n.tip.pathPart?.index;
@@ -187,7 +187,7 @@ export class EditorInteractorService {
         }
         // OK we were able to navigate to the same cursor location but a different
         // node or parent node
-        n.navigateToParentUnchecked();
+        n.navigateFreeformToParent();
       } else if (originalNode instanceof InlineEmoji) {
         if (n.parent?.node === originalPositionAndNode.parent?.node) {
           const currentIndex = n.tip.pathPart?.index;
@@ -217,14 +217,10 @@ export class EditorInteractorService {
         }
         // OK we were able to navigate to the same cursor location but a different
         // node or parent node
-        n.navigateToParentUnchecked();
+        n.navigateFreeformToParent();
       }
-      if (n.navigateToPrecedingSiblingUnchecked()) {
-        if (
-          direction === FlowDirection.Forward &&
-          NodeUtils.isBlock(n.tip.node) &&
-          n.navigateToNextSiblingUnchecked()
-        ) {
+      if (n.navigateFreeformToPrecedingSibling()) {
+        if (direction === FlowDirection.Forward && NodeUtils.isBlock(n.tip.node) && n.navigateFreeformToNextSibling()) {
           n.navigateToFirstDescendantCursorPosition();
         } else {
           n.navigateToLastDescendantCursorPosition();
@@ -235,17 +231,17 @@ export class EditorInteractorService {
     } else {
       // Try one level higher as a fallback
       const p = originalPositionAndNode.path.withoutTip();
-      if (n.navigateToUnchecked(new Cursor(p, CursorOrientation.On))) {
+      if (n.navigateFreeformTo(new Cursor(p, CursorOrientation.On))) {
         n.navigateToLastDescendantCursorPosition();
       } else {
         // OK try one more level higher again
         const p2 = originalPositionAndNode.path.withoutTip().withoutTip();
-        if (n.navigateToUnchecked(new Cursor(p2, CursorOrientation.On))) {
+        if (n.navigateFreeformTo(new Cursor(p2, CursorOrientation.On))) {
           // Not sure this is really right...
           n.navigateToLastDescendantCursorPosition();
         } else {
           // Not sure this is really right...
-          if (!n.navigateToDocumentNodeUnchecked() || !n.navigateToFirstDescendantCursorPosition()) {
+          if (!n.navigateFreeformToDocumentNode() || !n.navigateToFirstDescendantCursorPosition()) {
             throw new Error("Could not refresh navigator is not a valid cursor");
           }
         }
