@@ -169,10 +169,7 @@ export type SelectTargetsResult =
       navigators: [CursorNavigator, CursorNavigator];
       isMainCursorFirst: boolean;
     };
-/**
- * The returned interactors (if there are interactors) are in the exact same
- * order as they appear in the interactors.ordered list.
- */
+
 export function selectTargets(
   state: Draft<EditorState>,
   services: EditorOperationServices,

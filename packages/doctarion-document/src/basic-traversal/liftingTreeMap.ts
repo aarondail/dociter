@@ -1,3 +1,11 @@
+// -----------------------------------------------------------------------------
+// I am no longer really sure we need this class.
+// I thought we did, so that when executing an operation affecting multiple
+// interactors we would want to intelligently eliminate overlapping interactors
+// and stuff. Now I'm not sure, I removed this from the deletionOps and nothing
+// broke, but maybe I need a specific test (maybe I have one?).
+// -----------------------------------------------------------------------------
+
 import { SimpleComparison } from "../miscUtils";
 
 import { Path } from "./path";

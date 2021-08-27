@@ -23,10 +23,6 @@ export type OperationTarget =
   | { readonly interactorId: InteractorId }
   | { readonly interactorIds: readonly InteractorId[] };
 
-/**
- * Note this always returns the targeted interactor ids in the order they are
- * found in `interactors.ordered`.
- */
 export function getTargetedInteractorIds(
   // identifier: OperationInteractorTarget,
   target: OperationTarget,
