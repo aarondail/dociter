@@ -21,7 +21,6 @@ export interface NodeEditAdditionalContext {
 export interface ReadonlyWorkingDocument {
   readonly document: Document;
 
-  debug(): void;
   getAllAnchors(): readonly Anchor[];
   getAllInteractors(): readonly Interactor[];
   getAnchor(anchorId: AnchorId): Anchor | undefined;
@@ -46,7 +45,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   // private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
   private readonly nodeParentIdMap: { [id: string /* NodeId */]: NodeId | undefined };
 
-  public constructor(document: Document, private readonly idGenerator: FriendlyIdGenerator) {
+  public constructor(
+    document: Document,
+    private readonly idGenerator: FriendlyIdGenerator = new FriendlyIdGenerator()
+  ) {
     this.document = lodash.cloneDeep(document);
     this.anchors = {};
     this.interactors = {};
@@ -110,37 +112,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.updateInteractor(id, { to: at, ...otherOptions });
     this.eventEmitters.interactorUpdated.emit(newInteractor);
     return newInteractor;
-  }
-
-  // TODO cleanup
-  public debug(): void {
-    const p = (s2: string, ind: number) => {
-      let s = "";
-      for (let i = 0; i < ind; i++) {
-        s += " ";
-      }
-      s += s2;
-      s += "\n";
-      return s;
-    };
-
-    const debugPrime = (node: ObjectNode, ind: number) => {
-      let s = "";
-      s += p(`<${NodeAssociatedData.getId(node)} parent=${NodeAssociatedData.getParentId(node)}>`, ind);
-      if (NodeUtils.isTextContainer(node)) {
-        s += p('"' + Text.toString(node.children) + '"', ind + 2);
-      } else {
-        for (const k of NodeUtils.getChildren(node) || []) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          s += debugPrime(k as any, ind + 2);
-        }
-      }
-      s += p(`</${NodeAssociatedData.getId(node)}>`, ind);
-      return s;
-    };
-
-    console.log(debugPrime(this.document, 0));
-    // console.log(JSON.stringify(this.nodeParentIdMap, undefined, 4));
   }
 
   public deleteAnchor(anchor: Anchor | AnchorId): void {

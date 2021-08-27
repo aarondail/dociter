@@ -1,6 +1,6 @@
 import lodash from "lodash";
 
-import { NodeNavigator, Path, PathString } from "../basic-traversal";
+import { NodeNavigator } from "../basic-traversal";
 import { CursorNavigator, CursorOrientation, ReadonlyCursorNavigator } from "../cursor";
 import { InlineEmoji, InlineText, NodeUtils } from "../models";
 import { FlowDirection } from "../working-document";
@@ -104,16 +104,6 @@ export const deleteAt = createCoreOperation<DeleteAtPayload>("delete/at", (state
     }
   }
 });
-
-/**
- * Note that the direction in the payload is just used for cursor placement after the deletion.
- */
-export const deletePrimitive = createCoreOperation<{ path: Path | PathString; direction?: FlowDirection }>(
-  "delete/primitive",
-  (state, services, payload) => {
-    state.deleteNodeAtPath(payload.path, { flow: payload.direction });
-  }
-);
 
 /**
  * This function identifies the proper node to delete based on the passed in

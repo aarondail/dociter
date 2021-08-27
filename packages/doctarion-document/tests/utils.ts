@@ -16,6 +16,7 @@ import {
   InlineUrlLink,
   Node,
   NodeUtils,
+  ObjectNode,
   ParagraphBlock,
   Text,
   TextModifiers,
@@ -26,6 +27,7 @@ import {
   InteractorAnchorType,
   InteractorId,
   InteractorStatus,
+  NodeAssociatedData,
   ReadonlyWorkingDocument,
 } from "../src/working-document";
 
@@ -344,3 +346,47 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
     debugBlockSimple,
   };
 })();
+
+export function nodeToXml(node: ObjectNode, includeIds?: boolean): string {
+  const p = (s2: string, ind: number) => {
+    let s = "";
+    for (let i = 0; i < ind; i++) {
+      s += " ";
+    }
+    s += s2;
+    s += "\n";
+    return s;
+  };
+
+  const debugPrime = (node: ObjectNode, ind: number) => {
+    let s = "";
+    if (includeIds) {
+      s += p(`<${NodeAssociatedData.getId(node)} parent=${NodeAssociatedData.getParentId(node)}>`, ind);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      if (NodeUtils.isTextContainer(node)) {
+        s += p(`<${node.kind}>${Text.toString(node.children)}</${node.kind}`, ind);
+        return s;
+      } else {
+        s += p(`<${node.kind}>`, ind);
+      }
+    }
+    if (NodeUtils.isTextContainer(node)) {
+      s += p(Text.toString(node.children), ind + 2);
+    } else {
+      for (const k of NodeUtils.getChildren(node) || []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        s += debugPrime(k as any, ind + 2);
+      }
+    }
+    if (includeIds) {
+      s += p(`</${NodeAssociatedData.getId(node)}>`, ind);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      s += p(`</${node.kind}>`, ind);
+    }
+    return s;
+  };
+
+  return debugPrime(node, 0);
+}
