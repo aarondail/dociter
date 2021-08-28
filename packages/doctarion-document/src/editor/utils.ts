@@ -13,28 +13,6 @@ import { OperationTarget, getTargetedInteractorIds } from "./target";
 
 export type InteractorInputPosition = Cursor | { path: Path | PathString; orientation: CursorOrientation };
 
-// TODO delete this?
-export function getCursorNavigatorAndValidate(
-  state: Draft<EditorState>,
-  services: EditorOperationServices,
-  // TODO change back
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interactorId: number // InteractorId
-): CursorNavigator {
-  const nav = new CursorNavigator(state.document, services.layout);
-  const interactor = state.getAllInteractors()[0];
-  if (!interactor) {
-    throw new EditorOperationError(EditorOperationErrorCode.InvalidArgument, "no interactor found with the given id");
-  } else {
-    const anchor = state.getAnchor(interactor.mainAnchor);
-    const cursor = anchor && services.interactors.anchorToCursor(anchor);
-    if (!cursor || !nav.navigateTo(cursor)) {
-      throw new EditorOperationError(EditorOperationErrorCode.InvalidCursorPosition);
-    }
-  }
-  return nav;
-}
-
 /**
  * Simple create a CursorNavigator and navigate it to the proper place for an
  * Interactor.
@@ -135,13 +113,6 @@ export function getRangeForSelection(
   }
 
   return new Range(fromPath, toPath);
-}
-
-export function ifLet<C, T>(a: C | undefined, callback: (a: C) => T): T | undefined {
-  if (a !== undefined) {
-    return callback(a);
-  }
-  return undefined;
 }
 
 export function getNearestAncestorBlock(navigator: NodeNavigator | CursorNavigator): Block | undefined {

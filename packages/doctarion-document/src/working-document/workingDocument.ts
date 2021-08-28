@@ -231,26 +231,26 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return anchorId ? this.getAnchor(anchorId) : undefined;
   }
 
-  public insertBlock(node: NodeId | BlockContainingNode, index: number, block: Block): void {
+  public insertBlock(node: NodeId | BlockContainingNode, index: number, block: Block): NodeId {
     const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
     if (!resolvedNode || !NodeUtils.isBlockContainer(resolvedNode)) {
       throw new WorkingDocumentError("Cannot insert block into a node that isn't a block container");
     }
 
-    this.processNodeCreated(resolvedNode, block);
-
+    const nodeId = this.processNodeCreated(block, resolvedNode);
     immer.castDraft(resolvedNode.children).splice(index, 0, immer.castDraft(block));
+    return nodeId;
   }
 
-  public insertInline(node: NodeId | InlineContainingNode, index: number, inline: Inline): void {
+  public insertInline(node: NodeId | InlineContainingNode, index: number, inline: Inline): NodeId {
     const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
     if (!resolvedNode || !NodeUtils.isInlineContainer(resolvedNode)) {
       throw new WorkingDocumentError("Cannot insert inline into a node that isn't an inline container");
     }
 
-    this.processNodeCreated(resolvedNode, inline);
-
+    const nodeId = this.processNodeCreated(inline, resolvedNode);
     immer.castDraft(resolvedNode.children).splice(index, 0, immer.castDraft(inline));
+    return nodeId;
   }
 
   public insertText(node: NodeId | TextContainingNode, graphemeIndex: number, text: Text): void {
@@ -800,7 +800,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
+  private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
     const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));

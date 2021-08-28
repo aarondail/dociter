@@ -98,6 +98,14 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return true;
   }
 
+  public navigateFreeformToChild(index: number): boolean {
+    if (this.nodeNavigator.navigateToChild(index)) {
+      this.currentOrientation = CursorOrientation.On;
+      return true;
+    }
+    return false;
+  }
+
   public navigateFreeformToDocumentNode(): boolean {
     if (this.nodeNavigator.navigateToDocumentNode()) {
       this.currentOrientation = CursorOrientation.On;

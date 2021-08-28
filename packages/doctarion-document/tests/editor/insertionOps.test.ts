@@ -19,9 +19,11 @@ const testDoc1 = doc(
 describe("insertText", () => {
   it("inserts into the beginning of inline text", () => {
     const editor = new Editor({ document: testDoc1 });
-    // Note the cursor orientation is before the charater
+    // Note the cursor orientation is before the character
     editor.execute(OPS.jump({ to: { path: "0/0/0", orientation: Before } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "QH1"`);
@@ -30,12 +32,16 @@ SLICE:  HEADER ONE > TEXT {} > "QH1"`);
   it("inserts into the middle of inline text", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "1/0/1", orientation: After } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMQM"`);
 
-    editor.execute(OPS.insertText("R"));
+    editor.execute(
+      OPS.insertText({ text: "R", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/3 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMQRM"`);
@@ -44,7 +50,9 @@ SLICE:  PARAGRAPH > TEXT {} > "MMQRM"`);
     editor.execute(OPS.moveBack({ target: TargetInteractors.Focused }));
     editor.execute(OPS.moveForward({ target: TargetInteractors.Focused }));
     // Cursor should now be at MMNQ|RM
-    editor.execute(OPS.insertText("S"));
+    editor.execute(
+      OPS.insertText({ text: "S", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/0/3 |>
 SLICE:  PARAGRAPH > TEXT {} > "MMQSRM"`);
@@ -53,7 +61,9 @@ SLICE:  PARAGRAPH > TEXT {} > "MMQSRM"`);
   it("inserts into an empty paragraph successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 2/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "Q"`);
@@ -62,7 +72,9 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   it("inserts into an empty header successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "5", orientation: On } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 5/0/0 |>
 SLICE:  HEADER ONE > TEXT {} > "Q"`);
@@ -71,7 +83,9 @@ SLICE:  HEADER ONE > TEXT {} > "Q"`);
   it("inserts into an empty inline text", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/1/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "Q"`);
@@ -80,7 +94,9 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
   it("inserts into an empty inline url link successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "3/1", orientation: On } }));
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 3/1/0 |>
 SLICE:  PARAGRAPH > URL_LINK g.com > "Q"`);
@@ -88,7 +104,9 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "Q"`);
 
   it("inserts into an empty document successfully", () => {
     const editor = new Editor({ document: doc(paragraph()) });
-    editor.execute(OPS.insertText("Q"));
+    editor.execute(
+      OPS.insertText({ text: "Q", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 0/0/0 |>
 SLICE:  PARAGRAPH > TEXT {} > "Q"`);
@@ -98,7 +116,9 @@ SLICE:  PARAGRAPH > TEXT {} > "Q"`);
     const editor = new Editor({ document: testDoc1 });
     // Jump to second N in the "NNN" inline text
     editor.execute(OPS.jump({ to: { path: "1/2/1", orientation: After } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 1/2/4 |>
 SLICE:  PARAGRAPH > TEXT {} > "NNQSTN"`);
@@ -107,7 +127,9 @@ SLICE:  PARAGRAPH > TEXT {} > "NNQSTN"`);
   it("inserts between inline url links successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "4/0", orientation: After } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 4/1/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);
@@ -116,7 +138,9 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   it("inserts between inline url link and the beginning of a paragraph successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "4/0", orientation: Before } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 4/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);
@@ -125,7 +149,9 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   it("inserts between inline url link and the end of a paragraph successfully successfully", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "4/1", orientation: After } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).toEqual(`
 CURSOR: 4/2/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);
@@ -134,7 +160,9 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   it("does not insert new text between two inline texts", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "1/0", orientation: After } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).not.toEqual(`
 CURSOR: 1/1/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);
@@ -143,7 +171,9 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   it("does not insert new text before an inline text", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "0/0", orientation: Before } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).not.toEqual(`
 CURSOR: 0/0/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);
@@ -152,7 +182,9 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
   it("does not insert new text after an inline text", () => {
     const editor = new Editor({ document: testDoc1 });
     editor.execute(OPS.jump({ to: { path: "0/0", orientation: After } }));
-    editor.execute(OPS.insertText("QST"));
+    editor.execute(
+      OPS.insertText({ text: "QST", target: TargetInteractors.Focused, allowCreationOfNewInlineTextAndParagrahs: true })
+    );
     expect(debugState(editor)).not.toEqual(`
 CURSOR: 0/1/2 |>
 SLICE:  PARAGRAPH > TEXT {} > "QST"`);

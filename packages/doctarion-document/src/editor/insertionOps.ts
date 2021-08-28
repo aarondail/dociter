@@ -1,124 +1,153 @@
-import * as immer from "immer";
+import lodash from "lodash";
 
-import { NodeNavigator } from "../basic-traversal";
-import { CursorNavigator, CursorOrientation } from "../cursor";
-import {
-  Document,
-  InlineContainingNode,
-  InlineText,
-  InlineUrlLink,
-  NodeUtils,
-  ParagraphBlock,
-  Text,
-} from "../document-model";
+import { CursorOrientation } from "../cursor";
+import { Document, InlineText, NodeUtils, ParagraphBlock, Text } from "../document-model";
 
 import { delete_ } from "./deletionOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { getCursorNavigatorAndValidate, ifLet } from "./utils";
+import { TargetPayload } from "./payloads";
+import { selectTargets } from "./utils";
 
-const castDraft = immer.castDraft;
+interface InsertTextOptions {
+  readonly allowCreationOfNewInlineTextAndParagrahs?: boolean;
 
-export const insertText = createCoreOperation<string | Text>("insert/text", (state, services, payload): void => {
-  const graphemes = typeof payload === "string" ? Text.fromString(payload) : payload;
+  // treat other orientation on positions like replacements
 
-  if (state.getAllInteractors()[0].isSelection) {
-    services.execute(state, delete_({ target: { interactorId: state.getAllInteractors()[0].id } }));
+  readonly text: string | Text;
   }
 
-  let nav = getCursorNavigatorAndValidate(state, services, 0);
-  const node = castDraft(nav.tip.node);
+export type InsertTextPayload = TargetPayload & InsertTextOptions;
 
+export const insertText = createCoreOperation<InsertTextPayload>("insert/text", (state, services, payload) => {
+  const graphemes = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
+
+  let targets = selectTargets(state, services, payload.target);
+
+  // Delete selection first
+  let anySelections = false;
+  for (const target of lodash.reverse(targets)) {
+    if (target.isSelection) {
+      anySelections = true;
+      // Delete a selection (this will turn it into a non-selection)
+      services.execute(
+        state,
+        delete_({
+          target: { interactorId: target.interactor.id },
+        })
+      );
+    }
+  }
+
+  targets = anySelections ? selectTargets(state, services, payload.target) : targets;
+
+  for (const target of lodash.reverse(targets)) {
+    if (target.isSelection) {
+      throw new EditorOperationError(EditorOperationErrorCode.UnexpectedState);
+    }
+    const node = target.navigator.tip.node;
+
+    // Text in a text container
   if (NodeUtils.isGrapheme(node)) {
-    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-      if (!NodeUtils.isTextContainer(parent.node)) {
+      if (!target.navigator.parent || !NodeUtils.isTextContainer(target.navigator.parent.node)) {
         throw new Error("Found a grapheme whole parent that apparently does not have text which should be impossible");
       }
 
-      const offset = nav.cursor.orientation === CursorOrientation.Before ? 0 : 1;
+      const offset = target.navigator.cursor.orientation === CursorOrientation.Before ? 0 : 1;
+      state.insertText(target.navigator.parent.node, target.navigator.tip.pathPart.index + offset, graphemes);
 
-      castDraft(parent.node.text).splice(tip.pathPart.index + offset, 0, ...graphemes);
+      // Insert text will update anchors on this node but if our orientation is
+      // after it won't actually update the main anchor for the interactor in
+      // this target
+      if (target.navigator.cursor.orientation === CursorOrientation.After) {
       for (let i = 0; i < graphemes.length; i++) {
-        nav.navigateToNextCursorPosition();
+          target.navigator.navigateToNextCursorPosition();
+      }
+        state.updateInteractor(target.interactor.id, {
+          to: services.interactors.cursorNavigatorToAnchorPosition(target.navigator),
+        lineMovementHorizontalVisualPosition: undefined,
+      });
+      } else {
+        state.updateInteractor(target.interactor.id, { lineMovementHorizontalVisualPosition: undefined });
+      }
+      return;
+    }
+
+    if (!payload.allowCreationOfNewInlineTextAndParagrahs) {
+      continue;
+    }
+
+    if (target.navigator.cursor.orientation === CursorOrientation.On) {
+      // Insertion points
+      if (NodeUtils.getChildren(node)?.length === 0) {
+    if (NodeUtils.isTextContainer(node)) {
+          // Empty inline text or inline url link
+          state.insertText(node, 0, graphemes);
+          target.navigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          state.updateInteractor(target.interactor.id, {
+            to: services.interactors.cursorNavigatorToAnchorPosition(target.navigator),
+            lineMovementHorizontalVisualPosition: undefined,
+      });
+          return;
+    } else if (NodeUtils.isInlineContainer(node)) {
+          // Empty block that contains inlines
+      const newInline = new InlineText(graphemes);
+          state.insertInline(node, 0, newInline);
+
+          // Move into the InlineText
+          target.navigator.navigateToLastDescendantCursorPosition();
+          state.updateInteractor(target.interactor.id, {
+            to: services.interactors.cursorNavigatorToAnchorPosition(target.navigator),
+            lineMovementHorizontalVisualPosition: undefined,
+      });
+          return;
+    } else if (node instanceof Document) {
+          // Empty document
+          const newParagraph = new ParagraphBlock();
+          const newParagraphId = state.insertBlock(node, 0, newParagraph);
+      const newInline = new InlineText(graphemes);
+          state.insertInline(newParagraphId, 0, newInline);
+
+          target.navigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          state.updateInteractor(target.interactor.id, {
+            to: services.interactors.cursorNavigatorToAnchorPosition(target.navigator),
+        lineMovementHorizontalVisualPosition: undefined,
+      });
+          return;
+        }
+      }
+      // Something other than an insertion point but when the cursor position is on? Maybe treat like a selection?
+
+      throw new EditorOperationError(
+        EditorOperationErrorCode.InvalidCursorPosition,
+        "Cannot insert text at this position"
+      );
+    } else {
+      if (target.navigator.parent && NodeUtils.isInlineContainer(target.navigator.parent.node)) {
+        const index =
+          target.navigator.tip.pathPart.index +
+          (target.navigator.cursor.orientation === CursorOrientation.Before ? 0 : 1);
+
+        const newInline = new InlineText(graphemes);
+        state.insertInline(target.navigator.parent.node, index, newInline);
+
+        // Move into the InlineText
+        target.navigator.navigateFreeformToParent();
+        target.navigator.navigateFreeformToChild(index);
+        target.navigator.navigateToLastDescendantCursorPosition();
+
+        state.updateInteractor(target.interactor.id, {
+          to: services.interactors.cursorNavigatorToAnchorPosition(target.navigator),
+          lineMovementHorizontalVisualPosition: undefined,
+        });
+        return;
       }
 
-      state.updateInteractor(state.getAllInteractors()[0].id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-        selectTo: undefined,
-        lineMovementHorizontalVisualPosition: undefined,
-      });
-    });
-  } else if (NodeUtils.getChildren(node)?.length === 0) {
-    if (NodeUtils.isTextContainer(node)) {
-      castDraft(node.text).push(...graphemes);
-      nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      state.updateInteractor(state.getAllInteractors()[0].id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-      });
-    } else if (NodeUtils.isInlineContainer(node)) {
-      const newInline = new InlineText(graphemes);
-      castDraft(node.children).push(castDraft(newInline));
-      state.processNodeCreated(newInline, node);
-      nav.navigateToLastDescendantCursorPosition(); // Move into the InlineContent
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      state.updateInteractor(state.getAllInteractors()[0].id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-      });
-    } else if (node instanceof Document) {
-      const newInline = new InlineText(graphemes);
-      const newParagraph = new ParagraphBlock(newInline);
-      state.processNodeCreated(newParagraph, node);
-      state.processNodeCreated(newInline, newParagraph);
-      castDraft(node.children).push(castDraft(newParagraph));
-      nav.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
-      state.updateInteractor(state.getAllInteractors()[0].id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-        selectTo: undefined,
-        lineMovementHorizontalVisualPosition: undefined,
-      });
-    } else {
-      throw new Error("Cursor is on an empty insertion point where there is no way to insert text somehow");
-    }
-  } else if (nav.cursor.orientation === CursorOrientation.Before) {
-    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-      if (NodeUtils.isInlineContainer(parent.node)) {
-        const newInline = new InlineText(graphemes);
-        castDraft(parent.node.children).splice(tip.pathPart.index, 0, castDraft(newInline));
-        state.processNodeCreated(newInline, parent.node);
-        // refreshNavigator(nav);
-        const oldNav = nav;
-        nav = new CursorNavigator(state.document, services.layout);
-        nav.navigateFreeformTo(oldNav.cursor);
-        nav.navigateToLastDescendantCursorPosition();
-        state.updateInteractor(state.getAllInteractors()[0].id, {
-          to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-          selectTo: undefined,
-          lineMovementHorizontalVisualPosition: undefined,
-        });
-      } else {
-        throw new Error("Cursor is on an in-between insertion point where there is no way to insert text somehow");
+      throw new EditorOperationError(
+        EditorOperationErrorCode.InvalidCursorPosition,
+        "Cannot insert text at this position"
+      );
       }
-    });
-  } else if (nav.cursor.orientation === CursorOrientation.After) {
-    ifLet(nav.chain.getParentAndTipIfPossible(), ([parent, tip]) => {
-      if (NodeUtils.isInlineContainer(parent.node)) {
-        const newInline = new InlineText(graphemes);
-        castDraft(parent.node.children).splice(tip.pathPart.index + 1, 0, castDraft(newInline));
-        state.processNodeCreated(newInline, parent.node);
-        nav.navigateToNextSiblingLastDescendantCursorPosition();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        state.updateInteractor(state.getAllInteractors()[0].id, {
-          to: services.interactors.cursorNavigatorToAnchorPosition(nav),
-          selectTo: undefined,
-          lineMovementHorizontalVisualPosition: undefined,
-        });
-      } else {
-        throw new Error("Cursor is on an in-between insertion point where there is no way to insert text somehow");
-      }
-    });
-  } else {
-    throw new Error("Cursor is at a position where text cannot be inserted");
   }
 });
 
