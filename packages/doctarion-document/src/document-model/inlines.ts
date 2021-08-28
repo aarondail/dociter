@@ -12,7 +12,7 @@ import { Text } from "./text";
 export abstract class TextContainingNode extends ObjectNode {
   public abstract children: Text;
   public abstract kind: NodeKind.InlineText | NodeKind.InlineUrlLink;
-  public abstract layoutType: NodeLayoutType.Inline = NodeLayoutType.Inline;
+  public layoutType: NodeLayoutType.Inline = NodeLayoutType.Inline;
   /**
    * Alias for children.
    */

@@ -18,6 +18,7 @@ export interface NodesJoinedEventPayload {
 }
 
 export interface WorkingDocumentEvents {
+  anchorUpdated: EventEmitter<Anchor>;
   /**
    * This event is fired when an anchor is orphaned due to a node deletion.
    * Orphaned, meaning the node the anchor is on, or one of its parent nodes was
@@ -33,6 +34,7 @@ export interface WorkingDocumentEvents {
 }
 
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
+  public readonly anchorUpdated = new EventEmitter<Anchor>();
   public readonly anchorsOrphaned = new EventEmitter<AnchorsOrphanedEventPayload>();
   public readonly interactorUpdated = new EventEmitter<Interactor>();
   public readonly nodesJoined = new EventEmitter<NodesJoinedEventPayload>();

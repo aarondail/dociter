@@ -4,7 +4,19 @@ import { immerable } from "immer";
 import lodash from "lodash";
 
 import { Chain, NodeNavigator, Path, PathString, Range } from "../basic-traversal";
-import { Block, Document, InlineText, Node, NodeUtils, ObjectNode } from "../document-model";
+import {
+  Block,
+  BlockContainingNode,
+  Document,
+  Inline,
+  InlineContainingNode,
+  InlineText,
+  Node,
+  NodeUtils,
+  ObjectNode,
+  Text,
+  TextContainingNode,
+} from "../document-model";
 
 import { Anchor, AnchorId, AnchorOrientation, AnchorPosition } from "./anchor";
 import { NodeDeletionAnchorMarker } from "./anchorMarkers";
@@ -184,9 +196,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (!nav.navigateTo(chain.path)) {
         throw new WorkingDocumentError("Could not navigate to path " + chain.path.toString() + " for deletion");
       }
-      // console.log("DELETING", chain.path.toString());
       this.deleteNodeAtNodeNavigator(nav, anchorMarker);
-      // this.debug();
     }
 
     this.processMarkedAnchorsRelatedToNodeDeletion(anchorMarker, [fromNav, toNav], additionalContext);
@@ -219,6 +229,40 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     const anchorId = interactor.getAnchor(anchorType);
     return anchorId ? this.getAnchor(anchorId) : undefined;
+  }
+
+  public insertBlock(node: NodeId | BlockContainingNode, index: number, block: Block): void {
+    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+    if (!resolvedNode || !NodeUtils.isBlockContainer(resolvedNode)) {
+      throw new WorkingDocumentError("Cannot insert block into a node that isn't a block container");
+    }
+
+    this.processNodeCreated(resolvedNode, block);
+
+    immer.castDraft(resolvedNode.children).splice(index, 0, immer.castDraft(block));
+  }
+
+  public insertInline(node: NodeId | InlineContainingNode, index: number, inline: Inline): void {
+    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+    if (!resolvedNode || !NodeUtils.isInlineContainer(resolvedNode)) {
+      throw new WorkingDocumentError("Cannot insert inline into a node that isn't an inline container");
+    }
+
+    this.processNodeCreated(resolvedNode, inline);
+
+    immer.castDraft(resolvedNode.children).splice(index, 0, immer.castDraft(inline));
+  }
+
+  public insertText(node: NodeId | TextContainingNode, graphemeIndex: number, text: Text): void {
+    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+    if (!resolvedNode || !NodeUtils.isTextContainer(resolvedNode)) {
+      throw new WorkingDocumentError("Cannot insert text into a node that isn't a text container");
+    }
+
+    immer.castDraft(resolvedNode.text).splice(graphemeIndex, 0, ...text);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.adjustAnchorPositionsAfterTextInsertion(NodeAssociatedData.getId(resolvedNode)!, graphemeIndex, text.length);
   }
 
   public joinBlocksAtPath(path: Path | PathString, direction: FlowDirection): void {
@@ -339,18 +383,52 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public updateAnchor(
     id: AnchorId,
+    updates: {
+      readonly nodeId?: NodeId;
+      readonly orientation?: AnchorOrientation;
+      readonly graphemeIndex?: number | undefined;
+    }
+  ): void;
+  public updateAnchor(
+    id: AnchorId,
     nodeId: NodeId,
     orientation: AnchorOrientation,
     graphemeIndex: number | undefined
+  ): void;
+  updateAnchor(
+    id: AnchorId,
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+    nodeIdOrUpdates: any,
+    orientation?: AnchorOrientation,
+    graphemeIndex?: number | undefined
   ): void {
     const anchor = this.anchors[id];
     if (!anchor) {
       return;
     }
 
-    immer.castDraft(anchor).nodeId = nodeId;
-    immer.castDraft(anchor).orientation = orientation;
-    immer.castDraft(anchor).graphemeIndex = graphemeIndex;
+    if (typeof nodeIdOrUpdates === "string") {
+      immer.castDraft(anchor).nodeId = nodeIdOrUpdates;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      immer.castDraft(anchor).orientation = orientation!;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
+      immer.castDraft(anchor).graphemeIndex = graphemeIndex!;
+    } else {
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+      const updates = nodeIdOrUpdates;
+      if (updates.nodeId) {
+        immer.castDraft(anchor).nodeId = updates.nodeId;
+      }
+      if (updates.orientation) {
+        immer.castDraft(anchor).orientation = updates.orientation;
+      }
+      if (updates.graphemeIndex !== undefined) {
+        immer.castDraft(anchor).graphemeIndex = updates.graphemeIndex;
+      }
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+    }
+
+    this.eventEmitters.anchorUpdated.emit(anchor);
 
     if (anchor.relatedInteractorId) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -360,7 +438,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public updateInteractor(
     id: InteractorId,
-    options: {
+    updates: {
       to?: AnchorPosition;
       selectTo?: AnchorPosition | "main";
       status?: InteractorStatus;
@@ -373,20 +451,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Could not find interactor");
     }
 
-    if ("lineMovementHorizontalVisualPosition" in options) {
-      interactor.lineMovementHorizontalVisualPosition = options.lineMovementHorizontalVisualPosition;
+    if ("lineMovementHorizontalVisualPosition" in updates) {
+      interactor.lineMovementHorizontalVisualPosition = updates.lineMovementHorizontalVisualPosition;
     }
 
-    if ("selectTo" in options) {
-      if (options.selectTo) {
+    if ("selectTo" in updates) {
+      if (updates.selectTo) {
         let anchorInfo: AnchorPosition | undefined;
-        if (options.selectTo === "main") {
+        if (updates.selectTo === "main") {
           anchorInfo = this.getAnchor(interactor.mainAnchor);
           if (!anchorInfo) {
             throw new WorkingDocumentError("Interactor is missing main anchor");
           }
         } else {
-          anchorInfo = options.selectTo;
+          anchorInfo = updates.selectTo;
         }
         if (interactor.selectionAnchor) {
           const anchor = this.getAnchor(interactor.selectionAnchor);
@@ -414,8 +492,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
     }
 
-    if (options.to) {
-      const anchorInfo = options.to;
+    if (updates.to) {
+      const anchorInfo = updates.to;
       if (interactor.mainAnchor) {
         const mainAnchor = this.getAnchor(interactor.mainAnchor);
         if (!mainAnchor) {
@@ -436,12 +514,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
     }
 
-    if ("name" in options) {
-      interactor.name = options.name;
+    if ("name" in updates) {
+      interactor.name = updates.name;
     }
 
-    if (options.status) {
-      interactor.status = options.status;
+    if (updates.status) {
+      interactor.status = updates.status;
     }
 
     this.eventEmitters.interactorUpdated.emit(interactor);
@@ -546,6 +624,16 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       } else {
         caseForwardDestination(a);
         caseForwardSource(a);
+      }
+    }
+  }
+
+  private adjustAnchorPositionsAfterTextInsertion(nodeId: NodeId, insertionIndex: number, insertionCount: number) {
+    for (const anchor of this.getAllAnchors()) {
+      if (anchor.nodeId === nodeId) {
+        if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= insertionIndex) {
+          this.updateAnchor(anchor.id, { graphemeIndex: anchor.graphemeIndex + insertionCount });
+        }
       }
     }
   }
@@ -712,9 +800,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  // TODO should be private
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  public processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
+  private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
     const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
@@ -724,9 +810,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return nodeId;
   }
 
-  // TODO should be private
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  public processNodeDeleted(node: NodeId | ObjectNode): void {
+  private processNodeDeleted(node: NodeId | ObjectNode): void {
     const id = typeof node === "string" ? node : NodeAssociatedData.getId(node);
     if (id) {
       delete this.nodeParentIdMap[id];

@@ -4,7 +4,7 @@ import { NodeKind, NodeLayoutType, ObjectNode } from "./node";
 export abstract class InlineContainingNode extends ObjectNode {
   public abstract children: readonly Inline[];
   public abstract kind: NodeKind.ParagraphBlock | NodeKind.HeaderBlock;
-  public abstract layoutType: NodeLayoutType.Block = NodeLayoutType.Block;
+  public layoutType: NodeLayoutType.Block = NodeLayoutType.Block;
 }
 
 export enum HeaderLevel {
