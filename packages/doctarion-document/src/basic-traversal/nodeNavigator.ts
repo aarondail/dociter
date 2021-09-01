@@ -7,6 +7,7 @@ import { PathPart } from "./pathPart";
 
 export interface ReadonlyNodeNavigator {
   readonly chain: Chain;
+  readonly grandParent: ChainLink | undefined;
   readonly parent: ChainLink | undefined;
   readonly tip: ChainLink;
   readonly path: Path;
@@ -47,6 +48,10 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
 
   public get chain(): Chain {
     return this.currentChain;
+  }
+
+  public get grandParent(): ChainLink | undefined {
+    return this.currentChain.grandParent;
   }
 
   public get parent(): ChainLink | undefined {

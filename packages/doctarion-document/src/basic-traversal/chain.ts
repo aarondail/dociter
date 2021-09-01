@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as IterTools from "iter-tools";
 
 import { Document, Node } from "../document-model";
@@ -16,6 +17,14 @@ export class Chain {
   public readonly links: readonly ChainLink[];
   public constructor(...links: readonly ChainLink[]) {
     this.links = links;
+  }
+
+  public get grandParent(): ChainLink | undefined {
+    const len = this.links.length;
+    if (len < 3) {
+      return undefined;
+    }
+    return this.links[len - 3];
   }
 
   public get length(): number {
@@ -74,7 +83,7 @@ export class Chain {
     if (len < 3) {
       return undefined;
     }
-    return [this.links[len - 3], this.links[len - 2], this.links[len - 1]];
+    return [this.links[len - 3]!, this.links[len - 2]!, this.links[len - 1]!];
   }
 
   public getParentAndTipIfPossible(): [ChainLink, ChainLink] | undefined {
@@ -82,7 +91,7 @@ export class Chain {
     if (len < 2) {
       return undefined;
     }
-    return [this.links[len - 2], this.links[len - 1]];
+    return [this.links[len - 2]!, this.links[len - 1]!];
   }
 
   /**
@@ -100,19 +109,31 @@ export class Chain {
     return new Chain(...result);
   }
 
-  public searchBackwards(predicate: (node: Node) => boolean): Node | undefined {
+  public searchBackwards(predicate: (node: Node) => boolean): ChainLink | undefined {
     for (let i = this.links.length - 1; i >= 0; i--) {
-      if (predicate(this.links[i].node)) {
-        return this.links[i].node;
+      const link = this.links[i]!;
+      if (predicate(link.node)) {
+        return link;
       }
     }
     return undefined;
   }
 
-  public searchForwards(predicate: (node: Node) => boolean): Node | undefined {
+  public searchBackwardsForSubChain(nodePredicate: (node: Node) => boolean): readonly ChainLink[] | undefined {
+    for (let i = this.links.length - 1; i >= 0; i--) {
+      const link = this.links[i]!;
+      if (nodePredicate(link.node)) {
+        return this.links.slice(i);
+      }
+    }
+    return undefined;
+  }
+
+  public searchForwards(predicate: (node: Node) => boolean): ChainLink | undefined {
     for (let i = 0; i < this.links.length; i++) {
-      if (predicate(this.links[i].node)) {
-        return this.links[i].node;
+      const link = this.links[i]!;
+      if (predicate(link.node)) {
+        return link;
       }
     }
     return undefined;

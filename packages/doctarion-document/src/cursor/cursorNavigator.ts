@@ -7,6 +7,7 @@ import { NodeLayoutReporter } from "./layoutReporter";
 
 export interface ReadonlyCursorNavigator {
   readonly chain: Chain;
+  readonly grandParent: ChainLink | undefined;
   readonly parent: ChainLink | undefined;
   readonly tip: ChainLink;
   readonly cursor: Cursor;
@@ -41,6 +42,10 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public get chain(): Chain {
     return this.nodeNavigator.chain;
+  }
+
+  public get grandParent(): ChainLink | undefined {
+    return this.nodeNavigator.grandParent;
   }
 
   public get parent(): ChainLink | undefined {
