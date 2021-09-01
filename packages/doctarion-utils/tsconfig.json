@@ -14,7 +14,6 @@
     "moduleResolution": "node",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
   "include": [ "src/**/*", "tests/**/*" ]
