@@ -62,5 +62,6 @@ module.exports = {
       "warn",
       { allowNumber: true, allowNullish: true, allowAny: true, allowBoolean: true },
     ],
+    "@typescript-eslint/restrict-plus-operands": ["off"],
   },
 };

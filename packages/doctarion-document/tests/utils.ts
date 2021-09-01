@@ -285,12 +285,7 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
     return editor.state
       .getAllInteractors()
       .map((i, index) => {
-        return debugEditorStateForInteractor(
-          editor,
-          i,
-          // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-          "\nINTR. " + (i.name ? i.name : "#" + (index + 1))
-        );
+        return debugEditorStateForInteractor(editor, i, "\nINTR. " + (i.name ? i.name : "#" + (index + 1)));
       })
       .join("\n");
   };
@@ -310,10 +305,8 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       editor.anchorToCursor(editor.state.getAnchor(i!.selectionAnchor)!);
     if (selectionAnchorCursor) {
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      const path1 = "" + mainCursor.path?.parts[0].index;
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, @typescript-eslint/no-non-null-assertion
-      const path2 = "" + selectionAnchorCursor.path?.parts[0].index;
+      const path1 = "" + mainCursor.path?.parts[0]?.index;
+      const path2 = "" + selectionAnchorCursor.path?.parts[0]?.index;
       return (
         "\nMAIN CURSOR:" +
         debugBlockSimple(editor.state.document, path1) +
@@ -321,8 +314,7 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
         debugBlockSimple(editor.state.document, path2)
       );
     } else {
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-      const path = "" + mainCursor.path?.parts[0].index;
+      const path = "" + mainCursor.path?.parts[0]?.index;
       return debugBlockSimple(editor.state.document, path);
     }
   };
