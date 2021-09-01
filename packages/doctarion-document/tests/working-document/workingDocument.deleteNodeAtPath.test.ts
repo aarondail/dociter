@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HeaderLevel } from "../../src/document-model";
 import { WorkingDocument } from "../../src/working-document";
 import { doc, header, inlineText, inlineUrlLink, nodeToXml, paragraph } from "../utils";
@@ -13,7 +14,7 @@ describe("WorkingDocument.deleteNodeAtPath", () => {
   it("basically works", () => {
     const wd = new WorkingDocument(testDoc1);
     wd.deleteNodeAtPath("0/0/1");
-    expect(nodeToXml(wd.document.children[0])).toMatchInlineSnapshot(`
+    expect(nodeToXml(wd.document.children[0]!)).toMatchInlineSnapshot(`
       "<HEADER>
         <TEXT>H</TEXT
       </HEADER>
@@ -23,7 +24,7 @@ describe("WorkingDocument.deleteNodeAtPath", () => {
     wd.deleteNodeAtPath("1/1");
     wd.deleteNodeAtPath("1/1/0");
     wd.deleteNodeAtPath("1/3");
-    expect(nodeToXml(wd.document.children[1])).toMatchInlineSnapshot(`
+    expect(nodeToXml(wd.document.children[1]!)).toMatchInlineSnapshot(`
       "<PARAGRAPH>
         <TEXT>MM</TEXT
         <TEXT>N</TEXT
@@ -34,7 +35,7 @@ describe("WorkingDocument.deleteNodeAtPath", () => {
 
     wd.deleteNodeAtPath("2");
     wd.deleteNodeAtPath("2/1/3");
-    expect(nodeToXml(wd.document.children[2])).toMatchInlineSnapshot(`
+    expect(nodeToXml(wd.document.children[2]!)).toMatchInlineSnapshot(`
       "<PARAGRAPH>
         <TEXT>CC</TEXT
         <URL_LINK>GOOLE</URL_LINK
