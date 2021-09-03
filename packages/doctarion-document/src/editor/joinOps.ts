@@ -65,7 +65,8 @@ export const joinBlocks = createCoreOperation<JoinBlocksPayload>("join/blocks", 
   }
 
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
-    const sourceNav = elements[0].block;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const sourceNav = elements[0]!.block;
     const destinationNode =
       direction === FlowDirection.Backward ? sourceNav.precedingSiblingNode : sourceNav.nextSiblingNode;
     if (!destinationNode || !NodeUtils.isBlock(destinationNode)) {
@@ -136,7 +137,8 @@ export const joinInlineText = createCoreOperation<JoinBlocksPayload>("join/inlin
   }
 
   for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
-    const nav = elements[0].inlineText;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const nav = elements[0]!.inlineText;
     if (
       !((direction === FlowDirection.Backward ? nav.precedingSiblingNode : nav.nextSiblingNode) instanceof InlineText)
     ) {

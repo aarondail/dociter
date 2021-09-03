@@ -1,10 +1,11 @@
 import { Draft } from "immer";
+import lodash from "lodash";
 
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
 import { Block, Node, NodeUtils } from "../document-model";
 import { SimpleComparison } from "../miscUtils";
-import { Interactor, InteractorId, WorkingDocument } from "../working-document";
+import { FlowDirection, Interactor, InteractorId, WorkingDocument } from "../working-document";
 
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { EditorOperationServices } from "./services";
@@ -117,7 +118,46 @@ export function getRangeForSelection(
 
 export function getNearestAncestorBlock(navigator: NodeNavigator | CursorNavigator): Block | undefined {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  return navigator.chain.searchBackwards(NodeUtils.isBlock) as Block | undefined;
+  return navigator.chain.searchBackwards(NodeUtils.isBlock)?.node as Block | undefined;
+}
+
+export function isNavigatorAtEdgeOfTextContainer(navigator: CursorNavigator, direction: FlowDirection): boolean {
+  const parent = navigator.chain.parent?.node;
+  if (parent && NodeUtils.isTextContainer(parent)) {
+    const index = navigator.tip.pathPart.index;
+    if (
+      index === 0 &&
+      (navigator.cursor.orientation === CursorOrientation.Before ||
+        (navigator.cursor.orientation === CursorOrientation.On && direction === FlowDirection.Backward))
+    ) {
+      return true;
+    }
+    if (
+      index == parent.children.length - 1 &&
+      (navigator.cursor.orientation === CursorOrientation.After ||
+        (navigator.cursor.orientation === CursorOrientation.On && direction === FlowDirection.Forward))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isNavigatorAtEdgeOfBlock(navigator: CursorNavigator, direction: FlowDirection): boolean {
+  const block = getNearestAncestorBlock(navigator);
+  if (!block) {
+    return false;
+  }
+  const nav2 = navigator.clone();
+  if (
+    (direction === FlowDirection.Backward && !nav2.navigateToPrecedingCursorPosition()) ||
+    (direction === FlowDirection.Forward && !nav2.navigateToNextCursorPosition())
+  ) {
+    return true;
+  }
+
+  const newBlockMaybe = getNearestAncestorBlock(nav2);
+  return block !== newBlockMaybe;
 }
 
 export function navigateToAncestorMatchingPredicate(
@@ -144,9 +184,10 @@ export type SelectTargetsResult =
 export function selectTargets(
   state: Draft<EditorState>,
   services: EditorOperationServices,
-  target: OperationTarget
+  target: OperationTarget,
+  ordered?: boolean
 ): SelectTargetsResult[] {
-  const result: SelectTargetsResult[] = [];
+  const result: (SelectTargetsResult & { firstCursor: Cursor | undefined })[] = [];
 
   const recordResult = (t: InteractorId) => {
     const interactor = state.getInteractor(t);
@@ -156,13 +197,32 @@ export function selectTargets(
     if (interactor.isSelection) {
       const r = getBothCursorNavigatorsForSelection(interactor, state, services);
       if (r) {
-        result.push({ isSelection: true, interactor, ...r });
+        result.push({
+          isSelection: true,
+          interactor,
+          ...r,
+          firstCursor: ordered ? (r.isMainCursorFirst ? r.navigators[0].cursor : r.navigators[1].cursor) : undefined,
+        });
       }
     } else {
       const nav = getMainCursorNavigatorFor(interactor, state, services);
-      result.push({ isSelection: false, interactor, navigator: nav });
+      result.push({ isSelection: false, interactor, navigator: nav, firstCursor: ordered ? nav.cursor : undefined });
     }
   };
   getTargetedInteractorIds(target, state).forEach(recordResult);
+  if (ordered && result.length > 1) {
+    result.sort((left, right) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const cmp = left.firstCursor!.compareTo(right.firstCursor!);
+      switch (cmp) {
+        case SimpleComparison.Before:
+          return -1;
+        case SimpleComparison.After:
+          return 1;
+        default:
+          return 0;
+      }
+    });
+  }
   return result;
 }

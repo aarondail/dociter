@@ -234,22 +234,22 @@ describe("WorkingDocument.splitNodeAtPath", () => {
       doc(paragraph(inlineEmoji("tree"), inlineText("ABCDEF"), inlineText("Z", { bold: true })))
     );
 
-    const emojiId = wd.getId(wd.document.children[0].children[0]);
-    const inlineId = wd.getId(wd.document.children[0].children[1]);
+    const emojiId = wd.getId(wd.document.children[0]!.children[0]!);
+    const inlineId = wd.getId(wd.document.children[0]!.children[1]!);
 
-    const emojiAnchor = wd.addAnchor(wd.document.children[0].children[0], AnchorOrientation.On);
-    const textAAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 0);
-    const textCAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 2);
-    const textDAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 3);
-    const textFAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 5);
-    const textAAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 0);
-    const textCAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 2);
-    const textDAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 3);
-    const textFAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 5);
+    const emojiAnchor = wd.addAnchor(wd.document.children[0]!.children[0]!, AnchorOrientation.On);
+    const textAAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 0);
+    const textCAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 2);
+    const textDAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 3);
+    const textFAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 5);
+    const textAAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 0);
+    const textCAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 2);
+    const textDAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 3);
+    const textFAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 5);
 
     wd.splitNodeAtPath("0", [1, 3]);
 
-    const newInlineId = wd.getId(wd.document.children[1].children[0]);
+    const newInlineId = wd.getId(wd.document.children[1]!.children[0]!);
 
     expect(nodeToXml(wd.document.children[0]!)).toMatchInlineSnapshot(`
       "<PARAGRAPH>
@@ -288,20 +288,20 @@ describe("WorkingDocument.splitNodeAtPath", () => {
       doc(paragraph(inlineEmoji("tree"), inlineText("ABCDEF"), inlineText("Z", { bold: true })))
     );
 
-    const inlineId = wd.getId(wd.document.children[0].children[1]);
+    const inlineId = wd.getId(wd.document.children[0]!.children[1]!);
 
-    const textAAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 0);
-    const textCAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 2);
-    const textDAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 3);
-    const textFAnchorBefore = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.Before, 5);
-    const textAAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 0);
-    const textCAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 2);
-    const textDAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 3);
-    const textFAnchorAfter = wd.addAnchor(wd.document.children[0].children[1], AnchorOrientation.After, 5);
+    const textAAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 0);
+    const textCAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 2);
+    const textDAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 3);
+    const textFAnchorBefore = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.Before, 5);
+    const textAAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 0);
+    const textCAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 2);
+    const textDAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 3);
+    const textFAnchorAfter = wd.addAnchor(wd.document.children[0]!.children[1]!, AnchorOrientation.After, 5);
 
     wd.splitNodeAtPath("0/1", [3]);
 
-    const newInlineId = wd.getId(wd.document.children[0].children[2]);
+    const newInlineId = wd.getId(wd.document.children[0]!.children[2]!);
 
     expect(nodeToXml(wd.document.children[0]!)).toMatchInlineSnapshot(`
       "<PARAGRAPH>

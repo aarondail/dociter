@@ -114,7 +114,8 @@ export class Range {
         return false;
       },
       add(chain: Chain) {
-        const l = trackingStack[trackingStack.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const l = trackingStack[trackingStack.length - 1]!;
         l.foundKidChains.push(chain);
       },
     };
