@@ -10,6 +10,7 @@ import {
   Document,
   Inline,
   InlineContainingNode,
+  InlineEmoji,
   InlineText,
   Node,
   NodeUtils,
@@ -231,19 +232,22 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return anchorId ? this.getAnchor(anchorId) : undefined;
   }
 
-  public insertBlock(node: NodeId | BlockContainingNode, index: number, block: Block): NodeId {
-    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+  public insertBlock(parent: NodeId | BlockContainingNode, index: number, block: Block): NodeId {
+    const resolvedNode = typeof parent === "string" ? this.lookupNode(parent) : parent;
     if (!resolvedNode || !NodeUtils.isBlockContainer(resolvedNode)) {
       throw new WorkingDocumentError("Cannot insert block into a node that isn't a block container");
     }
 
     const nodeId = this.processNodeCreated(block, resolvedNode);
+    for (const inline of block.children) {
+      this.processNodeCreated(inline, block);
+    }
     immer.castDraft(resolvedNode.children).splice(index, 0, immer.castDraft(block));
     return nodeId;
   }
 
-  public insertInline(node: NodeId | InlineContainingNode, index: number, inline: Inline): NodeId {
-    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+  public insertInline(parent: NodeId | InlineContainingNode, index: number, inline: Inline): NodeId {
+    const resolvedNode = typeof parent === "string" ? this.lookupNode(parent) : parent;
     if (!resolvedNode || !NodeUtils.isInlineContainer(resolvedNode)) {
       throw new WorkingDocumentError("Cannot insert inline into a node that isn't an inline container");
     }
@@ -253,8 +257,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return nodeId;
   }
 
-  public insertText(node: NodeId | TextContainingNode, graphemeIndex: number, text: Text): void {
-    const resolvedNode = typeof node === "string" ? this.lookupNode(node) : node;
+  public insertText(parent: NodeId | TextContainingNode, graphemeIndex: number, text: Text): void {
+    const resolvedNode = typeof parent === "string" ? this.lookupNode(parent) : parent;
     if (!resolvedNode || !NodeUtils.isTextContainer(resolvedNode)) {
       throw new WorkingDocumentError("Cannot insert text into a node that isn't a text container");
     }
@@ -379,6 +383,140 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public lookupPathTo(nodeId: NodeId): Path | undefined {
     return this.createNodeNavigatorTo(nodeId)?.path;
+  }
+
+  public splitNode(target: NodeId | Inline | Block, splitChildIndices: readonly number[]): void {
+    if (splitChildIndices.length === 0) {
+      throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
+    }
+
+    if (splitChildIndices.every((x) => x === 0)) {
+      // There is no reason to do anything in this case since we'd be creating
+      // an identical node.
+      return;
+    }
+
+    const targetNav = this.createNodeNavigatorTo(
+      typeof target === "string" ? target : NodeAssociatedData.getId(target) || ""
+    );
+    if (!targetNav) {
+      throw new WorkingDocumentError("Could not find target");
+    }
+
+    const resolvedTarget = targetNav.tip.node;
+    if (!NodeUtils.isObject(resolvedTarget)) {
+      throw new WorkingDocumentError("Cannot split a Grapheme");
+    }
+    if (resolvedTarget instanceof InlineEmoji) {
+      throw new WorkingDocumentError("Cannot split an InlineEmoji");
+    }
+    if (resolvedTarget instanceof Document) {
+      throw new WorkingDocumentError("Cannot split the Document ");
+    }
+
+    const targetIndexInParent = targetNav.tip.pathPart.index;
+    const targetParent = targetNav.parent?.node;
+    if (!targetParent || !NodeUtils.isObject(targetParent) || !targetParent.children) {
+      throw new WorkingDocumentError("Cannot split a node because it has no parent (somehow)");
+    }
+
+    const tipNav = targetNav.clone();
+    for (const index of splitChildIndices) {
+      if (!tipNav.navigateToChild(index)) {
+        throw new WorkingDocumentError("Could not navigate to descendant of target");
+      }
+    }
+
+    // The tip of the split must not have children
+    if ((NodeUtils.getChildren(tipNav.tip.node)?.length || 0) !== 0) {
+      throw new WorkingDocumentError("Split impossible due to children remaining at the end of the indices");
+    }
+
+    // Create a split destination for the target, and add it into the parent
+    const newSplitRoot: ObjectNode = NodeUtils.cloneWithoutContents(resolvedTarget);
+    immer.castDraft(targetParent.children).splice(targetIndexInParent + 1, 0, immer.castDraft(newSplitRoot));
+    this.processNodeCreated(newSplitRoot, targetParent);
+
+    // Now go through the indices and split them
+    let currentSplitSource: ObjectNode = resolvedTarget;
+    let currentSplitDest = newSplitRoot;
+    for (const splitIndex of splitChildIndices) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const current = currentSplitSource.children![splitIndex]!;
+      if (NodeUtils.isGrapheme(current)) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const textLeft = currentSplitSource.children!.slice(0, splitIndex);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const textRight = currentSplitSource.children!.slice(splitIndex);
+        immer.castDraft(currentSplitSource).children = immer.castDraft(textLeft);
+        immer.castDraft(currentSplitDest).children = immer.castDraft(textRight);
+
+        this.adjustAnchorPositionsAfterTextContainingNodeSplit(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          NodeAssociatedData.getId(currentSplitSource)!,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          NodeAssociatedData.getId(currentSplitDest)!,
+          splitIndex
+        );
+
+        if (splitIndex === 0) {
+          // In this case, don't leave the empty source just delete it
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.deleteNode(NodeAssociatedData.getId(currentSplitSource)!);
+        }
+      } else if (current instanceof InlineEmoji) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const splitOutKids = immer
+          .castDraft(currentSplitSource)
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          .children!.splice(splitIndex, currentSplitSource.children!.length - splitIndex);
+        for (const kid of splitOutKids) {
+          this.processNodeMoved(kid, currentSplitDest);
+        }
+        immer.castDraft(currentSplitDest).children = splitOutKids;
+      } else {
+        // Split the kids of the CURRENT SPLIT SOURCE, after the CURRENT node
+        // (which will become the current split source and be modified in the
+        // next loop)...
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const splitOutKids = immer
+          .castDraft(currentSplitSource)
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          .children!.splice(splitIndex + 1, currentSplitSource.children!.length - splitIndex);
+        for (const kid of splitOutKids) {
+          this.processNodeMoved(kid, currentSplitDest);
+        }
+        currentSplitDest.children = splitOutKids;
+
+        if ((current.children?.length || 0) === 0) {
+          // In this case, don't leave the empty source just delete it
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          this.deleteNode(NodeAssociatedData.getId(current)!);
+        }
+
+        const newSplitNode: ObjectNode = NodeUtils.cloneWithoutContents(current);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        splitOutKids.unshift(newSplitNode as any);
+        this.processNodeCreated(newSplitNode, currentSplitDest);
+        currentSplitDest = newSplitNode;
+        currentSplitSource = current;
+      }
+    }
+  }
+
+  public splitNodeAtPath(path: Path | PathString, splitChildIndices: readonly number[]): void {
+    const nav = new NodeNavigator(this.document);
+    if (!nav.navigateTo(path)) {
+      throw new WorkingDocumentError("Cannot navigate to path");
+    }
+    if (NodeUtils.isGrapheme(nav.tip.node)) {
+      throw new WorkingDocumentError("Cannot split a Grapheme");
+    }
+    const nodeId = this.getId(nav.tip.node);
+    if (!nodeId) {
+      throw new WorkingDocumentError("Cannot get id to node at path");
+    }
+    this.splitNode(nodeId, splitChildIndices);
   }
 
   public updateAnchor(
@@ -624,6 +762,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       } else {
         caseForwardDestination(a);
         caseForwardSource(a);
+      }
+    }
+  }
+
+  private adjustAnchorPositionsAfterTextContainingNodeSplit(
+    sourceId: NodeId,
+    targetId: NodeId,
+    graphemeSplitIndex: number
+  ) {
+    for (const anchor of this.getAllAnchors()) {
+      if (anchor.nodeId === sourceId) {
+        if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= graphemeSplitIndex) {
+          this.updateAnchor(anchor.id, { nodeId: targetId, graphemeIndex: anchor.graphemeIndex - graphemeSplitIndex });
+        }
       }
     }
   }

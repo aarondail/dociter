@@ -5,6 +5,22 @@ import { Inline, InlineEmoji, InlineText, InlineUrlLink, TextContainingNode } fr
 import { Node, NodeKind, ObjectNode } from "./node";
 
 export const NodeUtils = {
+  cloneWithoutContents(node: ObjectNode): ObjectNode {
+    if (node instanceof Document) {
+      return new Document(node.title);
+    } else if (node instanceof HeaderBlock) {
+      return new HeaderBlock(node.level);
+    } else if (node instanceof ParagraphBlock) {
+      return new ParagraphBlock();
+    } else if (node instanceof InlineText) {
+      return new InlineText([], node.modifiers);
+    } else if (node instanceof InlineUrlLink) {
+      return new InlineUrlLink(node.url, []);
+    } else if (node instanceof InlineEmoji) {
+      return new InlineEmoji(node.emojiId);
+    }
+    throw new Error("Unknown node type, cannot clone");
+  },
   /**
    * Helper that makes it easier to work with Nodes which may have a children
    * property, or, in the case of Grapheme's do not.

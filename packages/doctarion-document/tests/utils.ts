@@ -56,34 +56,34 @@ export const debugCursorNavigator2 = (nav: CursorNavigator): string => {
   return debugCursorNavigator(nav) + " :: " + (NodeUtils.isGrapheme(n) ? n : DebugEditorHelpers.debugSoloNode(n));
 };
 
+const modifiersToString = (m?: Partial<TextModifiers>) => {
+  if (!m) {
+    return "";
+  }
+  const result = [];
+  if (m.bold) {
+    result.push("BOLD");
+  }
+  if (m.italic) {
+    result.push("ITALIC");
+  }
+  if (m.underline) {
+    result.push("UNDERLINE");
+  }
+  if (m.strikethrough) {
+    result.push("STRIKETHROUGH");
+  }
+  if (m.backgroundColor) {
+    result.push("BG COLOR: " + m.backgroundColor);
+  }
+  if (m.foregroundColor) {
+    result.push("FG COLOR: " + m.foregroundColor);
+  }
+  return result.join(",");
+};
+
 export const DebugEditorHelpers = (() => {
   const debugSoloNode = (node: Node): string => {
-    const modifiersToString = (m?: Partial<TextModifiers>) => {
-      if (!m) {
-        return "";
-      }
-      const result = [];
-      if (m.bold) {
-        result.push("BOLD");
-      }
-      if (m.italic) {
-        result.push("ITALIC");
-      }
-      if (m.underline) {
-        result.push("UNDERLINE");
-      }
-      if (m.strikethrough) {
-        result.push("STRIKETHROUGH");
-      }
-      if (m.backgroundColor) {
-        result.push("BG COLOR: " + m.backgroundColor);
-      }
-      if (m.foregroundColor) {
-        result.push("FG COLOR: " + m.foregroundColor);
-      }
-      return result.join(",");
-    };
-
     const d = NodeUtils.switch(node, {
       onDocument: () => "!DOCUMENT!",
       onHeaderBlock: ({ level }) => `HEADER ${level}`,
@@ -357,8 +357,22 @@ export function nodeToXml(node: ObjectNode, includeIds?: boolean): string {
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       if (NodeUtils.isTextContainer(node)) {
-        s += p(`<${node.kind}>${Text.toString(node.children)}</${node.kind}`, ind);
+        const mm = (n: InlineText) => {
+          if (n.modifiers) {
+            return " " + modifiersToString(n.modifiers);
+          }
+          return "";
+        };
+
+        s += p(
+          `<${node.kind}` +
+            (node instanceof InlineUrlLink ? " " + node.url : node instanceof InlineText ? mm(node) : "") +
+            `>${Text.toString(node.children)}</${node.kind}>`,
+          ind
+        );
         return s;
+      } else if (node instanceof InlineEmoji) {
+        s += p(`<${node.kind} ${node.emojiId} />`, ind);
       } else {
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         s += p(`<${node.kind}>`, ind);
@@ -374,6 +388,8 @@ export function nodeToXml(node: ObjectNode, includeIds?: boolean): string {
     }
     if (includeIds) {
       s += p(`</${NodeAssociatedData.getId(node)}>`, ind);
+    } else if (node instanceof InlineEmoji) {
+      // No-op
     } else {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       s += p(`</${node.kind}>`, ind);
