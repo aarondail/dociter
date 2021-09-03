@@ -10,6 +10,7 @@ import {
   AnchorPosition,
   AnchorsOrphanedEventPayload,
   FlowDirection,
+  Interactor,
   InteractorId,
   NodeAssociatedData,
   NodesJoinedEventPayload,
@@ -36,6 +37,7 @@ export class EditorInteractorService {
     this.editorEvents.operationHasRun.addListener(this.handleOperationHasRun);
     this.editorState.events.anchorsOrphaned.addListener(this.handleAnchorsOrphaned);
     this.editorState.events.anchorUpdated.addListener(this.handleAnchorUpdated);
+    this.editorState.events.interactorUpdated.addListener(this.handleInteractorUpdated);
     this.editorState.events.nodesJoined.addListener(this.handleNodesJoined);
   }
 
@@ -247,7 +249,7 @@ export class EditorInteractorService {
     return n;
   }
 
-  private handleAnchorUpdated = (interactor: Anchor) => {
+  private handleAnchorUpdated = (anchor: Anchor) => {
     if (!this.editorState) {
       return;
     }
@@ -256,7 +258,7 @@ export class EditorInteractorService {
       this.updatedAnchors = new Set();
     }
 
-    this.updatedAnchors.add(interactor.id);
+    this.updatedAnchors.add(anchor.id);
 
     this.anchorsNeedJiggle = "updatedAnchors";
   };
@@ -293,6 +295,22 @@ export class EditorInteractorService {
         anchorPosition.graphemeIndex
       );
     }
+  };
+
+  private handleInteractorUpdated = (interactor: Interactor) => {
+    if (!this.editorState) {
+      return;
+    }
+
+    if (!this.updatedAnchors) {
+      this.updatedAnchors = new Set();
+    }
+
+    // TODO should probably track updated interactors in their own set, since
+    // this is needed only for deduplication (and maybe resetting the focused
+    // interactor id), not jiggling
+    this.updatedAnchors.add(interactor.mainAnchor);
+    interactor.selectionAnchor && this.updatedAnchors.add(interactor.selectionAnchor);
   };
 
   private handleNodesJoined = ({ destination }: NodesJoinedEventPayload) => {

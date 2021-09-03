@@ -22,7 +22,8 @@ export interface WorkingDocumentEvents {
   /**
    * This event is fired when an anchor is orphaned due to a node deletion.
    * Orphaned, meaning the node the anchor is on, or one of its parent nodes was
-   * deleted.
+   * deleted. Note this does not mean the anchor is automatically deleted,
+   * because it is not!
    */
   anchorsOrphaned: EventChannel<AnchorsOrphanedEventPayload>;
   /**

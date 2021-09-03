@@ -177,7 +177,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public deleteNodesInRange(range: Range, additionalContext?: NodeEditAdditionalContext): void {
-    // console.log(range.from.toString(), range.to.toString());
     const chainsToDelete = range.getChainsCoveringRange(this.document);
     if (chainsToDelete.length === 0) {
       return;
@@ -560,7 +559,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (updates.orientation) {
         immer.castDraft(anchor).orientation = updates.orientation;
       }
-      if (updates.graphemeIndex !== undefined) {
+      if ("graphemeIndex" in updates) {
         immer.castDraft(anchor).graphemeIndex = updates.graphemeIndex;
       }
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
@@ -637,9 +636,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         if (!mainAnchor) {
           throw new WorkingDocumentError("Interactor is missing main anchor in WorkingDocument");
         }
-        immer.castDraft(mainAnchor).nodeId = anchorInfo.nodeId;
-        immer.castDraft(mainAnchor).orientation = anchorInfo.orientation;
-        immer.castDraft(mainAnchor).graphemeIndex = anchorInfo.graphemeIndex;
+
+        this.updateAnchor(interactor.mainAnchor, anchorInfo);
       } else {
         const mainAnchor = this.addAnchor(
           anchorInfo.nodeId,
