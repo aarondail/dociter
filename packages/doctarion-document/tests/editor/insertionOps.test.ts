@@ -1,8 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CursorOrientation } from "../../src/cursor";
 import { HeaderLevel } from "../../src/document-model";
-import { Editor, EditorOperationError, OPS, TargetInteractors } from "../../src/editor";
-import { DebugEditorHelpers, doc, header, inlineText, inlineUrlLink, nodeToXml, paragraph } from "../utils";
+import { Editor, OPS, TargetInteractors } from "../../src/editor";
+import {
+  DebugEditorHelpers,
+  doc,
+  header,
+  inlineEmoji,
+  inlineText,
+  inlineUrlLink,
+  nodeToXml,
+  paragraph,
+} from "../utils";
 
 const { Before, On, After } = CursorOrientation;
 const debugState = DebugEditorHelpers.debugEditorStateSimple;
@@ -272,7 +281,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
     it("into an empty paragraph", () => {
       const editor = new Editor({ document: doc(paragraph()) });
       editor.execute(OPS.jump({ to: { path: "0", orientation: On } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(nodeToXml(editor.state.document.children[0]!)).toMatchInlineSnapshot(`
               "<PARAGRAPH>
                 <URL_LINK test.com>ABC</URL_LINK>
@@ -280,7 +289,7 @@ SLICE:  PARAGRAPH > TEXT {} > "QST"`);
               "
           `);
       expect(debugState(editor)).toEqual(`
-CURSOR: 0/0/2 |>
+CURSOR: 0/0 |>
 SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     });
 
@@ -291,7 +300,7 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     it("before an inline url link", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "4/0", orientation: Before } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
 
       expect(debugState(editor)).toEqual(`
 CURSOR: 4/0/2 |>
@@ -307,7 +316,7 @@ PARAGRAPH > URL_LINK f.com > "FF"`);
     it("between inline url links", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "4/1", orientation: Before } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
 
       expect(debugState(editor)).toEqual(`
 CURSOR: 4/1/2 |>
@@ -323,7 +332,7 @@ PARAGRAPH > URL_LINK f.com > "FF"`);
     it("after inline url links", () => {
       let editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "4/0", orientation: After } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
 
       expect(debugState(editor)).toEqual(`
 CURSOR: 4/1/2 |>
@@ -337,7 +346,7 @@ PARAGRAPH > URL_LINK f.com > "FF"`);
 
       editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "4/1", orientation: After } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
 
       expect(debugState(editor)).toEqual(`
 CURSOR: 4/2/2 |>
@@ -358,7 +367,7 @@ PARAGRAPH > URL_LINK test.com > "ABC"`);
       const editor = new Editor({ document: testDoc1 });
       // This is putting the cursor in the middle of the NNN inline text
       editor.execute(OPS.jump({ to: { path: "1/2/1", orientation: Before } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "MMM"
 PARAGRAPH > TEXT {} > ""
@@ -374,7 +383,7 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
       const editor = new Editor({ document: testDoc1 });
       // This is putting the cursor in the middle of the NNN inline text
       editor.execute(OPS.jump({ to: { path: "1/2/1", orientation: After } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(debugState(editor)).toEqual(`
 CURSOR: 1/3/2 |>
 SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
@@ -390,7 +399,7 @@ PARAGRAPH > TEXT {} > "N"`);
     it("at the beginning of an inline text", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > URL_LINK test.com > "ABC"
 PARAGRAPH > TEXT {} > "MMM"
@@ -404,7 +413,7 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     it("at the end of an inline text", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/2/2", orientation: After } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "MMM"
 PARAGRAPH > TEXT {} > ""
@@ -418,7 +427,7 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     it("should insert between two inline texts", () => {
       const editor = new Editor({ document: doc(paragraph(inlineText("AA"), inlineText("BB"))) });
       editor.execute(OPS.jump({ to: { path: "0/0/1", orientation: After } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
       expect(debugCurrentBlock(editor)).toEqual(`
 PARAGRAPH > TEXT {} > "AA"
 PARAGRAPH > URL_LINK test.com > "ABC"
@@ -431,21 +440,167 @@ SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
     it("around an inline inline text when the orientation is on link", () => {
       const editor = new Editor({ document: testDoc1 });
       editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
-      editor.execute(OPS.insert({ inlines: [inlineUrlLink("test.com", "ABC")] }));
+      editor.execute(OPS.insert({ inline: inlineUrlLink("test.com", "ABC") }));
 
       expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
         "<PARAGRAPH>
           <TEXT>MMM</TEXT>
-          <URL_LINK test.com>ABC</URL_LINK>
           <TEXT></TEXT>
+          <URL_LINK test.com>ABC</URL_LINK>
           <TEXT>NNN</TEXT>
         </PARAGRAPH>
         "
       `);
 
       expect(debugState(editor)).toEqual(`
-CURSOR: 1/1/2 |>
+CURSOR: 1/2/2 |>
 SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
+    });
+  });
+
+  describe("should insert emoji", () => {
+    it("before the beginning of an inline text", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: Before } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
+              "<PARAGRAPH>
+                <EMOJI tree />
+                <TEXT>MMM</TEXT>
+                <TEXT></TEXT>
+                <TEXT>NNN</TEXT>
+              </PARAGRAPH>
+              "
+          `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/0
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("after the end of an inline text", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/2/2", orientation: After } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
+              "<PARAGRAPH>
+                <TEXT>MMM</TEXT>
+                <TEXT></TEXT>
+                <TEXT>NNN</TEXT>
+                <EMOJI tree />
+              </PARAGRAPH>
+              "
+          `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/3
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("in the middle inline text", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/0/0", orientation: After } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
+              "<PARAGRAPH>
+                <TEXT>M</TEXT>
+                <EMOJI tree />
+                <TEXT>MM</TEXT>
+                <TEXT></TEXT>
+                <TEXT>NNN</TEXT>
+              </PARAGRAPH>
+              "
+          `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/1
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("into an empty inline text", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/1", orientation: On } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
+              "<PARAGRAPH>
+                <TEXT>MMM</TEXT>
+                <TEXT></TEXT>
+                <EMOJI tree />
+                <TEXT>NNN</TEXT>
+              </PARAGRAPH>
+              "
+          `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/2
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("around another emoji", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "1/0/2", orientation: After } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree2") }));
+      expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
+              "<PARAGRAPH>
+                <TEXT>MMM</TEXT>
+                <EMOJI tree />
+                <EMOJI tree2 />
+                <TEXT></TEXT>
+                <TEXT>NNN</TEXT>
+              </PARAGRAPH>
+              "
+          `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 1/2
+SLICE:  PARAGRAPH > EMOJI tree2`);
+    });
+
+    it("into the middle of a url link (splitting it (for now))", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "4/0/0", orientation: After } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[4]!)).toMatchInlineSnapshot(`
+        "<PARAGRAPH>
+          <URL_LINK e.com>E</URL_LINK>
+          <EMOJI tree />
+          <URL_LINK e.com>E</URL_LINK>
+          <URL_LINK f.com>FF</URL_LINK>
+        </PARAGRAPH>
+        "
+      `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 4/1
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("between two url links", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "4/0", orientation: After } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[4]!)).toMatchInlineSnapshot(`
+        "<PARAGRAPH>
+          <URL_LINK e.com>EE</URL_LINK>
+          <EMOJI tree />
+          <URL_LINK f.com>FF</URL_LINK>
+        </PARAGRAPH>
+        "
+      `);
+      expect(debugState(editor)).toEqual(`
+CURSOR: 4/1
+SLICE:  PARAGRAPH > EMOJI tree`);
+    });
+
+    it("into a empty paragraph", () => {
+      const editor = new Editor({ document: testDoc1 });
+      editor.execute(OPS.jump({ to: { path: "2", orientation: On } }));
+      editor.execute(OPS.insert({ inline: inlineEmoji("tree") }));
+      expect(nodeToXml(editor.state.document.children[2]!)).toMatchInlineSnapshot(`
+        "<PARAGRAPH>
+          <EMOJI tree />
+        </PARAGRAPH>
+        "
+      `);
+      // Should this be on the emoji? It is in other cases...?
+      expect(debugState(editor)).toEqual(`
+CURSOR: 2/0 |>
+SLICE:  PARAGRAPH > EMOJI tree`);
     });
   });
 });
