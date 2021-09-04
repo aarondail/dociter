@@ -119,11 +119,13 @@ export class Chain {
     return undefined;
   }
 
-  public searchBackwardsForSubChain(nodePredicate: (node: Node) => boolean): readonly ChainLink[] | undefined {
+  public searchBackwardsAndSplit(
+    nodePredicate: (node: Node) => boolean
+  ): readonly [readonly ChainLink[], readonly ChainLink[]] | undefined {
     for (let i = this.links.length - 1; i >= 0; i--) {
       const link = this.links[i]!;
       if (nodePredicate(link.node)) {
-        return this.links.slice(i);
+        return [this.links.slice(0, i + 1), this.links.slice(i + 1)];
       }
     }
     return undefined;

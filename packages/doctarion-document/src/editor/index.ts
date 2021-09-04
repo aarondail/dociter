@@ -12,6 +12,7 @@ import { delete_ } from "./deletionOps";
 import * as InsertionOps from "./insertionOps";
 import * as InteractorOps from "./interactorOps";
 import * as JoinOps from "./joinOps";
+import * as SplitOps from "./splitOps";
 
 export const OPS = {
   ...CursorOps,
@@ -19,4 +20,5 @@ export const OPS = {
   ...InsertionOps,
   ...InteractorOps,
   ...JoinOps,
+  ...SplitOps,
 };
