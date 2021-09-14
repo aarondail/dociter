@@ -1,3 +1,5 @@
+import { Nullable } from "../miscUtils";
+
 export enum TextStyleSemanticPurpose {
   Quote,
   Emphasis,
@@ -10,11 +12,13 @@ export enum TextStyleSemanticPurpose {
 
 // TODO maybe make class?
 export interface TextStyle {
-  readonly bold?: boolean;
-  readonly italic?: boolean;
-  readonly underline?: boolean;
-  readonly strikeThrough?: boolean;
-  readonly purpose?: TextStyleSemanticPurpose;
-  readonly foregroundColor?: string;
-  readonly backgroundColor?: string;
+  readonly bold: boolean;
+  readonly italic: boolean;
+  readonly underline: boolean;
+  readonly strikeThrough: boolean;
+  readonly purpose: TextStyleSemanticPurpose;
+  readonly foregroundColor: string;
+  readonly backgroundColor: string;
 }
+
+export type TextStyleModifier = Partial<Nullable<TextStyle>>;

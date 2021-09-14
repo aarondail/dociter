@@ -4,4 +4,5 @@ export * from "./emoji";
 export * from "./fancyText";
 export * from "./grapheme";
 export * from "./textStyle";
+export * from "./textStyleStrip";
 export * from "./text";
