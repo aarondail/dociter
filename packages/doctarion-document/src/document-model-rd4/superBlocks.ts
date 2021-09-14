@@ -27,7 +27,7 @@ export class ListItem extends Intermediate {
 export const ListItemType: NodeType = ListItem;
 
 export class List extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Specialized;
+  public static readonly childrenType = NodeChildrenType.Intermediates;
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "List";
   public static readonly specializedChildType = ListItemType;
@@ -60,7 +60,7 @@ export class GridCell extends Intermediate {
 export const GridCellType: NodeType = GridCell;
 
 export class Grid extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Specialized;
+  public static readonly childrenType = NodeChildrenType.Intermediates;
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Grid";
   public static readonly specializedChildType = GridCellType;
@@ -97,7 +97,7 @@ export class Column extends Intermediate {
 export const ColumnType: NodeType = Column;
 
 export class Columns extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Specialized;
+  public static readonly childrenType = NodeChildrenType.Intermediates;
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Columns";
   public static readonly specializedChildType = ColumnType;

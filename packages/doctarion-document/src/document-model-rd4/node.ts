@@ -22,7 +22,7 @@ export enum NodeChildrenType {
   FancyText = "FANCY_TEXT",
   Inlines = "INLINES",
   Blocks = "BLOCKS",
-  Specialized = "SPECIALIZED",
+  Intermediates = "INTERMEDIATES",
   BlocksAndSuperBlocks = "BLOCKS_AND_SUPER_BLOCKS",
 }
 
@@ -31,7 +31,7 @@ export interface NodeType {
   readonly childrenType: NodeChildrenType;
   readonly facets: FacetMap;
   readonly nodeName: string;
-  readonly specializedChildType?: NodeType;
+  readonly specificIntermediateChildType?: NodeType;
 }
 
 export abstract class Node {
