@@ -37,7 +37,7 @@ export interface NodeType {
 export abstract class Node {
   // Thinking about this
   // public abstract anchors: ReadonlySet<Anchor>;
-  public abstract children?: readonly Node[] | readonly Text[] | readonly FancyText[];
+  public abstract children?: readonly Node[] | Text | FancyText;
   public abstract nodeType: NodeType;
 }
 
