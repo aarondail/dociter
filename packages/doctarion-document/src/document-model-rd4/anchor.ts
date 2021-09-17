@@ -15,7 +15,7 @@ export class Anchor {
   public constructor(
     public readonly node: Node,
     public readonly orientation: AnchorOrientation,
-    public readonly textContentIndex?: number
+    public readonly graphemeIndex?: number
   ) {}
 }
 
