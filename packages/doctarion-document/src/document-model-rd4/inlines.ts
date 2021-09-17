@@ -12,9 +12,9 @@ export class Span extends Inline {
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Span";
 
-  public readonly children: readonly FancyText[];
+  public readonly children: FancyText;
 
-  public constructor(text: readonly FancyText[] | readonly Text[], public readonly styles?: TextStyleStrip) {
+  public constructor(text: FancyText | Text, public readonly styles?: TextStyleStrip) {
     super();
     this.children = text;
   }
@@ -31,13 +31,9 @@ export class Hyperlink extends Inline {
   public static readonly facets = new FacetMap(Facet.string("url"));
   public static readonly nodeName = "Hyperlink";
 
-  public readonly children: readonly FancyText[];
+  public readonly children: FancyText;
 
-  public constructor(
-    public readonly url: Span,
-    text: readonly FancyText[] | readonly Text[],
-    public readonly styles?: TextStyleStrip
-  ) {
+  public constructor(public readonly url: string, text: FancyText | Text, public readonly styles?: TextStyleStrip) {
     super();
     this.children = text;
   }
@@ -72,9 +68,9 @@ export class Todo extends Inline {
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Todo";
 
-  public readonly children: readonly FancyText[];
+  public readonly children: FancyText;
 
-  public constructor(text: readonly FancyText[] | readonly Text[], public readonly styles?: TextStyleStrip) {
+  public constructor(text: FancyText | Text, public readonly styles?: TextStyleStrip) {
     super();
     this.children = text;
   }
@@ -91,9 +87,9 @@ export class Tag extends Inline {
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Tag";
 
-  public readonly children: readonly FancyText[];
+  public readonly children: FancyText;
 
-  public constructor(text: readonly FancyText[] | readonly Text[]) {
+  public constructor(text: FancyText | Text) {
     super();
     this.children = text;
   }

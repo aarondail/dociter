@@ -107,7 +107,7 @@ export class Media extends Block {
   }
 }
 
-export const ImageType: NodeType = Media;
+export const MediaType: NodeType = Media;
 
 export class CodeBlock extends ContentBlock {
   public static readonly facetTypes = FacetMap.extend(ContentBlock.facets, Facet.string("language"));

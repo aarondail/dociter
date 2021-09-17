@@ -40,31 +40,3 @@ export abstract class Node {
   public abstract children?: readonly Node[] | Text | FancyText;
   public abstract nodeType: NodeType;
 }
-
-// TODO readonly/writable
-
-// export class WorkingNode<T> extends T {
-//   id;
-//   parent;
-//   version;
-//   events: {
-//     childAdded: () => void;
-//     childRemoved: () => void;
-//     childReordered: () => void;
-//     textUpdated: () => void;
-//   };
-//   theNode;
-// }
-
-// export class WorkingNode {
-//   id;
-//   parent;
-//   version;
-//   events: {
-//     childAdded: () => void;
-//     childRemoved: () => void;
-//     childReordered: () => void;
-//     textUpdated: () => void;
-//   };
-//   theNode;
-// }
