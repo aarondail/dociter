@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  Anchor,
+  AnchorRange,
   AutoFlowColumns,
   BlockQuote,
   CodeBlock,
   Column,
   Columns,
   Comment,
+  Document,
   EntityRef,
   ExtendedComment,
   Floater,
@@ -27,15 +30,24 @@ import {
   Todo,
 } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
+import { FancyText, Text } from "../text-model-rd4";
 
-import { WorkingAnchor } from "./anchor";
+import { ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 
 export type NodeId = string;
 
 export interface WorkingNode extends Node {
   id: NodeId;
-  anchors: WorkingAnchor[];
+  attachedAnchors: WorkingAnchor[];
   parent?: WorkingNode;
+  children?: WorkingNode[] | Text | FancyText;
+}
+
+export interface ReadonlyWorkingNode extends Node {
+  readonly id: NodeId;
+  readonly attachedAnchors: readonly ReadonlyWorkingAnchor[];
+  readonly parent?: ReadonlyWorkingNode;
+  readonly children?: readonly ReadonlyWorkingNode[] | Text | FancyText;
 }
 
 type NodePropertyToWorkingNodeProperty<T> = T extends number
@@ -46,7 +58,11 @@ type NodePropertyToWorkingNodeProperty<T> = T extends number
   ? Array<NodePropertyToWorkingNodeProperty<U>>
   : T extends Node
   ? NodeToWorkingNode<T>
-  : T;
+  : T extends AnchorRange
+  ? WorkingAnchorRange
+  : T extends Anchor
+  ? WorkingAnchor
+  : never; // T;
 
 type NodeToWorkingNode<Type extends Node> = WorkingNode &
   {
@@ -58,14 +74,14 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
 ): new (id: NodeId, ...args: ConstructorParameters<Ctor>) => NodeToWorkingNode<Cls> {
   //@ts-ignore-next-line
   const newClass = class extends ctor {
-    public anchors: WorkingAnchor[];
+    public attachedAnchors: WorkingAnchor[];
     public id: NodeId;
     public parent?: WorkingNode;
 
     public constructor(id: NodeId, ...args: any[]) {
       super(...args);
       this.id = id;
-      this.anchors = [];
+      this.attachedAnchors = [];
     }
 
     // get asReadonly(): ReadonlyWorkingSpan {
@@ -149,7 +165,13 @@ export type ReadonlyWorkingBlockQuote = DeepReadonly<WorkingBlockQuote>;
 export type ReadonlyWorkingHero = DeepReadonly<WorkingHero>;
 export type ReadonlyWorkingMedia = DeepReadonly<WorkingMedia>;
 
-// DOCUMENT is defined in its own file
+// DOCUMENT
+
+export const WorkingDocumentRootNode = CreateWorkingNode<Document, typeof Document>(Document);
+
+export type WorkingDocumentRootNode = InstanceType<typeof WorkingDocumentRootNode>;
+
+export type ReadonlyWorkingDocumentRootNode = DeepReadonly<WorkingDocumentRootNode>;
 
 // INLINES
 

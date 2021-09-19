@@ -3,8 +3,6 @@ import { Facet, FacetMap } from "./facets";
 import { Inline } from "./inlines";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
-export type AnnotationAnchors = Anchor | AnchorRange;
-
 /**
  * Annotations appear with content in blocks (and such), rather than off "to the side",
  */
@@ -28,7 +26,7 @@ export class Floater extends Annotation {
 
   public constructor(
     public readonly children: readonly Inline[],
-    public readonly anchors: AnnotationAnchors,
+    public readonly anchors: Anchor | AnchorRange,
     public readonly placement: FloaterPlacement
   ) {
     super();

@@ -1,4 +1,4 @@
-import { Anchor, AnchorOrientation } from "../document-model-rd4";
+import { Anchor, AnchorOrientation, AnchorRange } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
 
 import { InteractorId } from "./interactor";
@@ -34,3 +34,9 @@ export type ReadonlyWorkingAnchor = DeepReadonly<WorkingAnchor>;
 //   readonly node: ReadonlyWorkingNode;
 //   readonly relatedInteractorId?: InteractorId;
 // }
+
+export class WorkingAnchorRange implements AnchorRange {
+  public constructor(public anterior: WorkingAnchor, public posterior: WorkingAnchor) {}
+}
+
+export type ReadonlyWorkingAnchorRange = DeepReadonly<WorkingAnchorRange>;
