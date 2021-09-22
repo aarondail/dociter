@@ -32,20 +32,20 @@ import {
 import { DeepReadonly } from "../miscUtils";
 import { FancyText, Text } from "../text-model-rd4";
 
-import { ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorId, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 
 export type NodeId = string;
 
 export interface WorkingNode extends Node {
   id: NodeId;
-  attachedAnchors: WorkingAnchor[];
+  attachedAnchors: Map<AnchorId, WorkingAnchor>;
   parent?: WorkingNode;
   children?: WorkingNode[] | Text | FancyText;
 }
 
 export interface ReadonlyWorkingNode extends Node {
   readonly id: NodeId;
-  readonly attachedAnchors: readonly ReadonlyWorkingAnchor[];
+  readonly attachedAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly parent?: ReadonlyWorkingNode;
   readonly children?: readonly ReadonlyWorkingNode[] | Text | FancyText;
 }
@@ -74,14 +74,14 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
 ): new (id: NodeId, ...args: ConstructorParameters<Ctor>) => NodeToWorkingNode<Cls> {
   //@ts-ignore-next-line
   const newClass = class extends ctor {
-    public attachedAnchors: WorkingAnchor[];
+    public attachedAnchors: Map<AnchorId, WorkingAnchor>;
     public id: NodeId;
     public parent?: WorkingNode;
 
     public constructor(id: NodeId, ...args: any[]) {
       super(...args);
       this.id = id;
-      this.attachedAnchors = [];
+      this.attachedAnchors = new Map();
     }
 
     // get asReadonly(): ReadonlyWorkingSpan {

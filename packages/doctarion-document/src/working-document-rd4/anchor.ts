@@ -1,16 +1,17 @@
 import { Anchor, AnchorOrientation, AnchorRange } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
 
-import { InteractorId } from "./interactor";
-import { WorkingNode } from "./nodes";
+import { Interactor, InteractorId, ReadonlyInteractor } from "./interactor";
+import { NodeId, ReadonlyWorkingNode, WorkingNode } from "./nodes";
 
 export type AnchorId = string;
 
-// export interface AnchorPosition {
-//   readonly node: WorkingNode;
-//   readonly orientation: AnchorOrientation;
-//   readonly graphemeIndex?: number;
-// }
+export interface AnchorPayload {
+  readonly node: NodeId | WorkingNode;
+  readonly orientation: AnchorOrientation;
+  readonly graphemeIndex?: number;
+  readonly name?: string;
+}
 
 export class WorkingAnchor extends Anchor {
   // implements AnchorPosition {
@@ -20,23 +21,26 @@ export class WorkingAnchor extends Anchor {
     public orientation: AnchorOrientation,
     public graphemeIndex?: number,
     public name?: string,
-    public relatedInteractorId?: InteractorId
+    public relatedInteractor?: Interactor
   ) {
     super(node, orientation, graphemeIndex);
   }
 }
 
-export type ReadonlyWorkingAnchor = DeepReadonly<WorkingAnchor>;
-
-// export interface ReadonlyWorkingAnchor extends Anchor {
-//   readonly id: AnchorId;
-//   readonly name?: string;
-//   readonly node: ReadonlyWorkingNode;
-//   readonly relatedInteractorId?: InteractorId;
-// }
+export interface ReadonlyWorkingAnchor extends Anchor {
+  readonly id: AnchorId;
+  readonly node: ReadonlyWorkingNode;
+  readonly orientation: AnchorOrientation;
+  readonly graphemeIndex?: number;
+  readonly name?: string;
+  readonly relatedInteractor?: ReadonlyInteractor;
+}
 
 export class WorkingAnchorRange implements AnchorRange {
   public constructor(public anterior: WorkingAnchor, public posterior: WorkingAnchor) {}
 }
 
-export type ReadonlyWorkingAnchorRange = DeepReadonly<WorkingAnchorRange>;
+export interface ReadonlyWorkingAnchorRange {
+  readonly anterior: ReadonlyWorkingAnchor;
+  readonly posterior: ReadonlyWorkingAnchor;
+}

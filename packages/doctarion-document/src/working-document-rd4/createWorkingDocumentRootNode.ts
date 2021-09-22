@@ -36,9 +36,10 @@ import {
   Todo,
 } from "../document-model-rd4";
 
-import { WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorId, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import {
+  NodeId,
   WorkingAutoFlowColumns,
   WorkingBlockQuote,
   WorkingCodeBlock,
@@ -69,19 +70,20 @@ import {
 export function createWorkingDocumentRootNode(
   idGenerator: FriendlyIdGenerator,
   root: Document
-): WorkingDocumentRootNode {
+): { root: WorkingDocumentRootNode; nodes: Map<NodeId, WorkingNode>; anchors: Map<AnchorId, WorkingAnchor> } {
   const nodeToWorkingNodeMap: Map<Node, WorkingNode> = new Map();
-  const newAnchorsWithImproperTargets: WorkingAnchor[] = [];
+  const newAnchors: Map<AnchorId, WorkingAnchor> = new Map();
+  const newNodes: Map<NodeId, WorkingNode> = new Map();
 
   const mapPropertyValue = (value: any, container: WorkingNode): any => {
     if (value instanceof Anchor) {
       const anchor = anchorToWorkingAnchors(idGenerator, value, container);
-      newAnchorsWithImproperTargets.push(anchor);
+      newAnchors.set(anchor.id, anchor);
       return anchor;
     } else if (value instanceof AnchorRange) {
       const anchors = anchorRangeToWorkingAnchors(idGenerator, value, container);
-      newAnchorsWithImproperTargets.push(anchors.anterior);
-      newAnchorsWithImproperTargets.push(anchors.posterior);
+      newAnchors.set(anchors.anterior.id, anchors.anterior);
+      newAnchors.set(anchors.posterior.id, anchors.posterior);
       return anchors;
     } else if (value instanceof Node) {
       const n = mapNode(value);
@@ -101,6 +103,7 @@ export function createWorkingDocumentRootNode(
     const { ctor, name } = getWorkingNodeConstructorCorrespondingToNodeInstance(node);
     const id = idGenerator.generateId(name);
     const newNode = new ctor(id);
+    newNodes.set(id, newNode);
     nodeToWorkingNodeMap.set(node, newNode);
 
     const nodeAsAny = node as any;
@@ -114,7 +117,7 @@ export function createWorkingDocumentRootNode(
 
   const newRoot = mapNode(root);
 
-  for (const workingAnchor of newAnchorsWithImproperTargets) {
+  for (const workingAnchor of newAnchors.values()) {
     const oldNode: Node = workingAnchor.node;
     const newNode = nodeToWorkingNodeMap.get(oldNode);
     if (!newNode) {
@@ -124,7 +127,7 @@ export function createWorkingDocumentRootNode(
     newNode.attachedAnchors.push(workingAnchor);
   }
 
-  return newRoot as WorkingDocumentRootNode;
+  return { root: newRoot as WorkingDocumentRootNode, nodes: newNodes, anchors: newAnchors };
 }
 
 function anchorToWorkingAnchors(
