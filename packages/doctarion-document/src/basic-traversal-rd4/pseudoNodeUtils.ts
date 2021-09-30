@@ -28,7 +28,7 @@ export const PseudoNodeUtils = {
     return undefined;
   },
 
-  isText(node: PseudoNode): node is FancyGrapheme {
+  isGrapheme(node: PseudoNode): node is FancyGrapheme {
     return !(node instanceof Node);
   },
 

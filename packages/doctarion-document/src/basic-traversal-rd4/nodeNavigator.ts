@@ -346,29 +346,6 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
     return true;
   }
 
-  /**
-   * This calls the callback for each node that is a descendant of the current
-   * node the navigator is pointing at.
-   *
-   * This does not modify the state of the navigator.
-   */
-  public traverseDescendants(
-    callback: (node: PseudoNode, parent?: PseudoNode) => void,
-    options?: { skipText: boolean }
-  ): void {
-    const n = this.clone();
-    const ancestor = n.tip.node;
-    while (n.navigateForwardsByDfs() && n.chain.contains(ancestor)) {
-      if (options?.skipText && PseudoNodeUtils.isText(n.tip.node)) {
-        // Skip all graphemes
-        n.navigateToParent();
-        n.navigateToLastChild();
-      } else {
-        callback(n.tip.node, n.parent?.node);
-      }
-    }
-  }
-
   private navigateToChildPrime(children: readonly PseudoNode[] | undefined, index: number): boolean {
     const child = children?.[index];
     if (child) {

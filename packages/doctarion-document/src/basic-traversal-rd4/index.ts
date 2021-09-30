@@ -5,4 +5,4 @@ export * from "./nodeNavigator";
 export * from "./path";
 export * from "./pathPart";
 export * from "./pseudoNode";
-// export * from "./range";
+export * from "./range";
