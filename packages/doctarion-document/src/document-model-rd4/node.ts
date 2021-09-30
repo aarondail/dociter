@@ -2,6 +2,7 @@ import lodash from "lodash";
 
 import { FancyText, Text } from "../text-model-rd4";
 
+import { Anchor, AnchorRange } from "./anchor";
 import { Facet, FacetMap, FacetType } from "./facets";
 
 export enum NodeCategory {
@@ -101,4 +102,31 @@ export class NodeType {
 export abstract class Node {
   public abstract children?: readonly Node[] | Text | FancyText;
   public abstract nodeType: NodeType;
+
+  getAllFacetAnchors(): readonly [Facet, Anchor | AnchorRange][] {
+    const result: [Facet, Anchor | AnchorRange][] = [];
+    for (const facet of this.nodeType.getFacetsThatAreAnchors()) {
+      const value = this.resolveFacet(facet) as Anchor | AnchorRange;
+      if (value) {
+        result.push([facet, value]);
+      }
+    }
+    return result;
+  }
+
+  getAllFacetNodes(): readonly [Facet, readonly Node[]][] {
+    const result: [Facet, readonly Node[]][] = [];
+    for (const facet of this.nodeType.getFacetsThatAreNodeArrays()) {
+      const array = this.resolveFacet(facet) as readonly Node[];
+      if (array) {
+        result.push([facet, array]);
+      }
+    }
+    return result;
+  }
+
+  resolveFacet(facet: Facet): unknown | undefined {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    return (this as any)[facet.name];
+  }
 }

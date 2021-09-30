@@ -1,21 +1,21 @@
-import { Block } from "./blocks";
+import { BlockNode } from "./blocks";
 import { FacetMap } from "./facets";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 import { SuperBlock } from "./superBlocks";
 
-export class Document extends Node {
-  public static readonly category = NodeCategory.SuperBlock;
-  public static readonly childrenType = NodeChildrenType.BlocksAndSuperBlocks;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Document";
+export const DocumentType = new NodeType(
+  "Document",
+  NodeCategory.SuperBlock,
+  NodeChildrenType.BlocksAndSuperBlocks,
+  FacetMap.empty
+);
 
-  public constructor(public readonly children: readonly (Block | SuperBlock)[]) {
+export class Document extends Node {
+  public constructor(public readonly children: readonly (BlockNode | SuperBlock)[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return Document;
+    return DocumentType;
   }
 }
-
-export const DocumentType: NodeType = Document;
