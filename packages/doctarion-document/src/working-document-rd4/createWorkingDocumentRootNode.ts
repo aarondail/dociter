@@ -6,6 +6,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
+import { PathPart } from "../basic-traversal-rd4";
 import {
   Anchor,
   AnchorRange,
@@ -75,7 +76,7 @@ export function createWorkingDocumentRootNode(
   const newAnchors: Map<AnchorId, WorkingAnchor> = new Map();
   const newNodes: Map<NodeId, WorkingNode> = new Map();
 
-  const mapPropertyValue = (value: any, container: WorkingNode): any => {
+  const mapPropertyValue = (value: any, container: WorkingNode, propertyName: string, index?: number): any => {
     if (value instanceof Anchor) {
       const anchor = anchorToWorkingAnchors(idGenerator, value, container);
       newAnchors.set(anchor.id, anchor);
@@ -88,9 +89,16 @@ export function createWorkingDocumentRootNode(
     } else if (value instanceof Node) {
       const n = mapNode(value);
       n.parent = container;
+      n.pathPartFromParent =
+        propertyName === "children"
+          ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            new PathPart(index!)
+          : index === undefined
+          ? new PathPart(propertyName)
+          : new PathPart(propertyName, index);
       return n;
     } else if (Array.isArray(value)) {
-      return value.map((v) => mapPropertyValue(v, container));
+      return value.map((v, idx) => mapPropertyValue(v, container, propertyName, idx));
     } else {
       // This could DEFINITELY do the wrong thing but hopefully the fact
       // that our WorkingXyz types use NodePropertyToWorkingNodeProperty
@@ -109,7 +117,7 @@ export function createWorkingDocumentRootNode(
     const nodeAsAny = node as any;
     for (const key of Object.getOwnPropertyNames(nodeAsAny)) {
       const value = nodeAsAny[key];
-      newNode[key] = mapPropertyValue(value, newNode);
+      newNode[key] = mapPropertyValue(value, newNode, key);
     }
 
     return newNode;
@@ -124,7 +132,7 @@ export function createWorkingDocumentRootNode(
       throw new WorkingDocumentError("Could not find WorkingNode to assign to new WorkingAnchor.");
     }
     workingAnchor.node = newNode;
-    newNode.attachedAnchors.push(workingAnchor);
+    newNode.attachedAnchors.set(workingAnchor.id, workingAnchor);
   }
 
   return { root: newRoot as WorkingDocumentRootNode, nodes: newNodes, anchors: newAnchors };
