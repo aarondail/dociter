@@ -53,3 +53,15 @@ export function enumWithMethods<
 ): NoConflict<Origin, "T"> & NoConflict<Methods, keyof Origin | "T"> & { T: PropsUnion<Origin> } {
   return { ...origin, ...methods, T: (null as unknown) as PropsUnion<Origin> };
 }
+
+export const SetUtils = {
+  union<T>(a: Set<T>, b: Set<T>): Set<T> {
+    return new Set([...a, ...b]);
+  },
+  intersection<T>(a: Set<T>, b: Set<T>): Set<T> {
+    return new Set([...a].filter((x) => b.has(x)));
+  },
+  difference<T>(a: Set<T>, b: Set<T>): Set<T> {
+    return new Set([...a].filter((x) => !b.has(x)));
+  },
+};
