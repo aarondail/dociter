@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { PathPart } from "../basic-traversal-rd4";
 import {
   Anchor,
   AnchorRange,
@@ -30,7 +31,7 @@ import {
   Todo,
 } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
-import { FancyText, Text } from "../text-model-rd4";
+import { FancyGrapheme, FancyText, Grapheme, Text } from "../text-model-rd4";
 
 import { AnchorId, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 
@@ -40,7 +41,8 @@ export interface WorkingNode extends Node {
   id: NodeId;
   attachedAnchors: Map<AnchorId, WorkingAnchor>;
   parent?: WorkingNode;
-  children?: WorkingNode[] | Text | FancyText;
+  pathPartFromParent?: PathPart;
+  children?: WorkingNode[] | Grapheme[] | FancyGrapheme[];
 }
 
 export interface ReadonlyWorkingNode extends Node {
