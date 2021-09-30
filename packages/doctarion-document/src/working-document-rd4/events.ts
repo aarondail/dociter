@@ -6,8 +6,8 @@ import { ReadonlyWorkingAnchor } from "./anchor";
 import { ReadonlyInteractor } from "./interactor";
 // import { NodeEditAdditionalContext } from "./workingDocument";
 
-export interface AnchorsOrphanedEventPayload {
-  readonly anchors: readonly ReadonlyWorkingAnchor[];
+export interface AnchorOrphanedEventPayload {
+  readonly anchor: ReadonlyWorkingAnchor;
   readonly deletionTarget: ReadonlyNodeNavigator | [ReadonlyNodeNavigator, ReadonlyNodeNavigator];
   // readonly deletionAdditionalContext?: NodeEditAdditionalContext;
 }
@@ -27,7 +27,7 @@ export interface WorkingDocumentEvents {
    * deleted. Note this does not mean the anchor is automatically deleted,
    * because it is not!
    */
-  anchorsOrphaned: EventChannel<AnchorsOrphanedEventPayload>;
+  anchorOrphaned: EventChannel<AnchorOrphanedEventPayload>;
   interactorAdded: EventChannel<ReadonlyInteractor>;
   interactorDeleted: EventChannel<ReadonlyInteractor>;
   /**
@@ -41,9 +41,8 @@ export interface WorkingDocumentEvents {
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
   public readonly anchorAdded = new EventEmitter<ReadonlyWorkingAnchor>();
   public readonly anchorDeleted = new EventEmitter<ReadonlyWorkingAnchor>();
+  public readonly anchorOrphaned = new EventEmitter<AnchorOrphanedEventPayload>();
   public readonly anchorUpdated = new EventEmitter<ReadonlyWorkingAnchor>();
-
-  public readonly anchorsOrphaned = new EventEmitter<AnchorsOrphanedEventPayload>();
 
   public readonly interactorAdded = new EventEmitter<ReadonlyInteractor>();
   public readonly interactorDeleted = new EventEmitter<ReadonlyInteractor>();
