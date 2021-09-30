@@ -32,8 +32,8 @@ export const Utils = {
       if (anchorOrRange instanceof WorkingAnchor) {
         yield anchorOrRange;
       } else if (anchorOrRange instanceof WorkingAnchorRange) {
-        yield anchorOrRange.anterior;
-        yield anchorOrRange.posterior;
+        yield anchorOrRange.from;
+        yield anchorOrRange.to;
       }
     }
   },

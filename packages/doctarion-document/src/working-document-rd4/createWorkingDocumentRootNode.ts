@@ -83,8 +83,8 @@ export function createWorkingDocumentRootNode(
       return anchor;
     } else if (value instanceof AnchorRange) {
       const anchors = anchorRangeToWorkingAnchors(idGenerator, value, container);
-      newAnchors.set(anchors.anterior.id, anchors.anterior);
-      newAnchors.set(anchors.posterior.id, anchors.posterior);
+      newAnchors.set(anchors.from.id, anchors.from);
+      newAnchors.set(anchors.to.id, anchors.to);
       return anchors;
     } else if (value instanceof Node) {
       const n = mapNode(value);
@@ -159,8 +159,8 @@ function anchorRangeToWorkingAnchors(
   newWorkingNode: WorkingNode
 ): WorkingAnchorRange {
   return new WorkingAnchorRange(
-    anchorToWorkingAnchors(idGenerator, anchors.anterior, newWorkingNode),
-    anchorToWorkingAnchors(idGenerator, anchors.posterior, newWorkingNode)
+    anchorToWorkingAnchors(idGenerator, anchors.from, newWorkingNode),
+    anchorToWorkingAnchors(idGenerator, anchors.to, newWorkingNode)
   );
 }
 

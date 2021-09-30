@@ -37,10 +37,10 @@ export interface ReadonlyWorkingAnchor extends Anchor {
 }
 
 export class WorkingAnchorRange implements AnchorRange {
-  public constructor(public anterior: WorkingAnchor, public posterior: WorkingAnchor) {}
+  public constructor(public from: WorkingAnchor, public to: WorkingAnchor) {}
 }
 
 export interface ReadonlyWorkingAnchorRange {
-  readonly anterior: ReadonlyWorkingAnchor;
-  readonly posterior: ReadonlyWorkingAnchor;
+  readonly from: ReadonlyWorkingAnchor;
+  readonly to: ReadonlyWorkingAnchor;
 }

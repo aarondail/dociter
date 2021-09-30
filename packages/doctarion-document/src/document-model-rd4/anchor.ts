@@ -20,5 +20,5 @@ export class Anchor {
 }
 
 export class AnchorRange {
-  public constructor(public readonly anterior: Anchor, public readonly posterior: Anchor) {}
+  public constructor(public readonly from: Anchor, public readonly to: Anchor) {}
 }
