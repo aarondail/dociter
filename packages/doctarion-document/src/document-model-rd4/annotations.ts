@@ -6,24 +6,21 @@ import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 /**
  * Annotations appear with content in blocks (and such), rather than off "to the side",
  */
-export abstract class Annotation extends Node {
-  public static readonly category = NodeCategory.Annotation;
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.Inlines;
-}
+export abstract class Annotation extends Node {}
 
 export enum FloaterPlacement {
   Above = "ABOVE",
   Below = "BELOW",
 }
 
+export const FloaterType: NodeType = new NodeType(
+  "Floater",
+  NodeCategory.Annotation,
+  NodeChildrenType.Inlines,
+  new FacetMap(Facet.anchorOrAnchorRange("anchors"), Facet.enum("placement", Object.values(FloaterPlacement)))
+);
+
 export class Floater extends Annotation {
-  public static readonly facets = new FacetMap(
-    Facet.anchorOrAnchorRange("anchors"),
-    Facet.enum("placement", Object.values(FloaterPlacement))
-  );
-
-  public static readonly nodeName = "Floater";
-
   public constructor(
     public readonly children: readonly Inline[],
     public readonly anchors: Anchor | AnchorRange,
@@ -33,38 +30,39 @@ export class Floater extends Annotation {
   }
 
   public get nodeType(): NodeType {
-    return Floater;
+    return FloaterType;
   }
 }
 
-export const FloaterType: NodeType = Floater;
+export const FooterType: NodeType = new NodeType(
+  "Footer",
+  NodeCategory.Annotation,
+  NodeChildrenType.Inlines,
+  new FacetMap(Facet.anchor("anchor"))
+);
 
 export class Footer extends Annotation {
-  public static readonly facets = new FacetMap(Facet.anchor("anchor"));
-  public static readonly nodeName = "Footer";
-
   public constructor(public readonly children: readonly Inline[], public readonly anchor: Anchor) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return Footer;
+    return FooterType;
   }
 }
-
-export const FooterType: NodeType = Footer;
+export const CommentType: NodeType = new NodeType(
+  "Comment",
+  NodeCategory.Annotation,
+  NodeChildrenType.Inlines,
+  new FacetMap(Facet.anchor("anchor"))
+);
 
 export class Comment extends Annotation {
-  public static readonly facets = new FacetMap(Facet.anchor("anchor"));
-  public static readonly nodeName = "Comment";
-
   public constructor(public readonly children: readonly Inline[], public readonly anchor: Anchor) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return Comment;
+    return CommentType;
   }
 }
-
-export const CommentType: NodeType = Comment;

@@ -1,42 +1,43 @@
 import { Anchor } from "./anchor";
-import { Block } from "./blocks";
+import { BlockNode } from "./blocks";
 import { Facet, FacetMap } from "./facets";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
 /**
  * Laterals appear to the side of the main content.
  */
-export abstract class Lateral extends Node {
-  public static readonly category = NodeCategory.Lateral;
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.Blocks;
-}
+export abstract class Lateral extends Node {}
+
+export const SidebarType: NodeType = new NodeType(
+  "Sidebar",
+  NodeCategory.Lateral,
+  NodeChildrenType.Blocks,
+  FacetMap.empty
+);
 
 export class Sidebar extends Lateral {
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Sidebar";
-
-  public constructor(public readonly children: readonly Block[]) {
+  public constructor(public readonly children: readonly BlockNode[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return Sidebar;
+    return SidebarType;
   }
 }
 
-export const SidebarType: NodeType = Sidebar;
+export const ExtendedCommentType: NodeType = new NodeType(
+  "ExtendedComment",
+  NodeCategory.Lateral,
+  NodeChildrenType.Blocks,
+  new FacetMap(Facet.anchor("anchor"))
+);
 
 export class ExtendedComment extends Lateral {
-  public static readonly facets = new FacetMap(Facet.anchor("anchor"));
-  public static readonly nodeName = "ExtendedComment";
-
-  public constructor(public readonly children: readonly Block[], public readonly anchor: Anchor) {
+  public constructor(public readonly children: readonly BlockNode[], public readonly anchor: Anchor) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return ExtendedComment;
+    return ExtendedCommentType;
   }
 }
-
-export const ExtendedCommentType: NodeType = ExtendedComment;

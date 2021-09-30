@@ -1,11 +1,8 @@
-// -----------------------------------------------------------------------------
-// You can think of a document as a tree like structure of Nodes. The Nodes
-// are just the different objects that make up the Document.
-// -----------------------------------------------------------------------------
+import lodash from "lodash";
 
 import { FancyText, Text } from "../text-model-rd4";
 
-import { FacetMap } from "./facets";
+import { Facet, FacetMap, FacetType } from "./facets";
 
 export enum NodeCategory {
   Block = "BLOCK",
@@ -26,12 +23,79 @@ export enum NodeChildrenType {
   BlocksAndSuperBlocks = "BLOCKS_AND_SUPER_BLOCKS",
 }
 
-export interface NodeType {
-  readonly category: NodeCategory;
-  readonly childrenType: NodeChildrenType;
-  readonly facets: FacetMap;
-  readonly nodeName: string;
-  readonly specificIntermediateChildType?: NodeType;
+export class NodeType {
+  public constructor(
+    public readonly nodeName: string,
+    public readonly category: NodeCategory,
+    public readonly childrenType: NodeChildrenType,
+    public readonly facets: FacetMap,
+    public readonly specificIntermediateChildType?: NodeType
+  ) {
+    // eslint-disable @typescript-eslint/unbound-method
+    this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
+    this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
+    this.hasGraphemeChildren = lodash.once(this.hasGraphemeChildren);
+    this.hasNodeChildren = lodash.once(this.hasNodeChildren);
+    // eslint-enable @typescript-eslint/unbound-method
+  }
+
+  // facetsWithIndividualNodes: lodash.memoize((nodeType: NodeType) => {
+  //   const result: Facet = [];
+  //   for (const facet of nodeType.facets) {
+  //     switch (
+  //       facet.type
+  //       // case FacetType.NodeArray:
+  //       //   result.push(facet);
+  //     ) {
+  //     }
+  //   }
+  //   return result;
+  // }),
+
+  public getFacetsThatAreAnchors = (): Facet[] => {
+    const result: Facet[] = [];
+    for (const facet of this.facets) {
+      switch (facet.type) {
+        case FacetType.Anchor:
+        case FacetType.AnchorOrAnchorRange:
+        case FacetType.AnchorRange:
+          result.push(facet);
+      }
+    }
+    return result;
+  };
+
+  public getFacetsThatAreNodeArrays = (): Facet[] => {
+    const result: Facet[] = [];
+    for (const facet of this.facets) {
+      switch (facet.type) {
+        case FacetType.NodeArray:
+          result.push(facet);
+      }
+    }
+    return result;
+  };
+
+  public hasGraphemeChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  public hasNodeChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+      case NodeChildrenType.None:
+        return false;
+      default:
+        return true;
+    }
+  };
 }
 
 export abstract class Node {

@@ -1,6 +1,6 @@
-import { NodeType } from "./node";
+import { NodeCategory } from ".";
 
-export class FacetMap {
+export class FacetMap implements Iterable<Facet> {
   public static readonly empty = new FacetMap();
 
   private readonly facets: Facet[];
@@ -9,9 +9,12 @@ export class FacetMap {
     this.facets = facets;
   }
 
-  public static extend(original: FacetMap, ...newFacets: Facet[]): FacetMap {
-    const oldFacets = original.facets;
-    return new FacetMap(...[...oldFacets, ...newFacets]);
+  public [Symbol.iterator](): Iterator<Facet> {
+    return this.facets[Symbol.iterator]();
+  }
+
+  public extend(other: FacetMap): FacetMap {
+    return new FacetMap(...[...other.facets, ...this.facets]);
   }
 }
 
@@ -33,7 +36,7 @@ export type Facet =
   | { readonly name: string; readonly type: FacetType.Boolean }
   | { readonly name: string; readonly type: FacetType.Enum; readonly options: string[] }
   | { readonly name: string; readonly type: FacetType.EntityId }
-  | { readonly name: string; readonly type: FacetType.NodeArray; readonly nodeType: Partial<NodeType> }
+  | { readonly name: string; readonly type: FacetType.NodeArray; readonly nodeCategory: NodeCategory }
   | { readonly name: string; readonly type: FacetType.String };
 
 export const Facet = {
@@ -55,8 +58,8 @@ export const Facet = {
   entityId(name: string): Facet {
     return { name, type: FacetType.EntityId };
   },
-  nodeArray(name: string, nodeType: Partial<NodeType>): Facet {
-    return { name, type: FacetType.NodeArray, nodeType };
+  nodeArray(name: string, nodeCategory: NodeCategory): Facet {
+    return { name, type: FacetType.NodeArray, nodeCategory };
   },
   string(name: string): Facet {
     return { name, type: FacetType.String };

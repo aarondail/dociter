@@ -1,70 +1,72 @@
-import { Block } from "./blocks";
+import { BlockNode } from "./blocks";
 import { FacetMap } from "./facets";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
-export abstract class Intermediate extends Node {
-  public static readonly category = NodeCategory.Intermediate;
-}
+export abstract class Intermediate extends Node {}
 
-export abstract class SuperBlock extends Node {
-  public static readonly category = NodeCategory.SuperBlock;
-}
+export abstract class SuperBlock extends Node {}
+
+export const ListItemType: NodeType = new NodeType(
+  "ListItem",
+  NodeCategory.Intermediate,
+  NodeChildrenType.BlocksAndSuperBlocks,
+  FacetMap.empty
+);
 
 export class ListItem extends Intermediate {
-  public static readonly childrenType = NodeChildrenType.BlocksAndSuperBlocks;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "ListItem";
-
-  public constructor(public readonly children: readonly (Block | SuperBlock)[]) {
+  public constructor(public readonly children: readonly (BlockNode | SuperBlock)[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return ListItem;
+    return ListItemType;
   }
 }
 
-export const ListItemType: NodeType = ListItem;
+export const ListType: NodeType = new NodeType(
+  "List",
+  NodeCategory.SuperBlock,
+  NodeChildrenType.Intermediates,
+  FacetMap.empty,
+  ListItemType
+);
 
 export class List extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Intermediates;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "List";
-  public static readonly specializedChildType = ListItemType;
-
   public constructor(public readonly children: readonly ListItem[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return List;
+    return ListType;
   }
 }
 
-export const ListType: NodeType = List;
+export const GridCellType: NodeType = new NodeType(
+  "GridCell",
+  NodeCategory.Intermediate,
+  NodeChildrenType.BlocksAndSuperBlocks,
+  FacetMap.empty
+);
 
 export class GridCell extends Intermediate {
-  public static readonly childrenType = NodeChildrenType.BlocksAndSuperBlocks;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "GridCell";
-
-  public constructor(public readonly children: readonly (Block | SuperBlock)[]) {
+  public constructor(public readonly children: readonly (BlockNode | SuperBlock)[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return GridCell;
+    return GridCellType;
   }
 }
 
-export const GridCellType: NodeType = GridCell;
+export const GridType: NodeType = new NodeType(
+  "Grid",
+  NodeCategory.SuperBlock,
+  NodeChildrenType.Intermediates,
+  FacetMap.empty,
+  GridCellType
+);
 
 export class Grid extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Intermediates;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Grid";
-  public static readonly specializedChildType = GridCellType;
-
   public constructor(
     public readonly children: readonly GridCell[],
     public readonly columns: number,
@@ -74,34 +76,40 @@ export class Grid extends SuperBlock {
   }
 
   public get nodeType(): NodeType {
-    return Grid;
+    return GridType;
   }
 }
 
-export const GridType: NodeType = Grid;
+export const ColumnType: NodeType = new NodeType(
+  "Column",
+  NodeCategory.Intermediate,
+  NodeChildrenType.BlocksAndSuperBlocks,
+  FacetMap.empty
+);
 
 export class Column extends Intermediate {
   public static readonly childrenType = NodeChildrenType.BlocksAndSuperBlocks;
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "Column";
 
-  public constructor(public readonly children: readonly (Block | SuperBlock)[]) {
+  public constructor(public readonly children: readonly (BlockNode | SuperBlock)[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return Column;
+    return ColumnType;
   }
 }
 
-export const ColumnType: NodeType = Column;
+export const ColumnsType: NodeType = new NodeType(
+  "Columns",
+  NodeCategory.SuperBlock,
+  NodeChildrenType.Intermediates,
+  FacetMap.empty,
+  ColumnType
+);
 
 export class Columns extends SuperBlock {
-  public static readonly childrenType = NodeChildrenType.Intermediates;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Columns";
-  public static readonly specializedChildType = ColumnType;
-
   public constructor(
     public readonly children: readonly Column[],
     public readonly columns: number,
@@ -111,24 +119,27 @@ export class Columns extends SuperBlock {
   }
 
   public get nodeType(): NodeType {
-    return Columns;
+    return ColumnsType;
   }
 }
 
-export const ColumnsType: NodeType = Columns;
+export const AutoFlowColumnsType: NodeType = new NodeType(
+  "AutoFlowColumns",
+  NodeCategory.Intermediate,
+  NodeChildrenType.BlocksAndSuperBlocks,
+  FacetMap.empty
+);
 
 export class AutoFlowColumns extends SuperBlock {
   public static readonly childrenType = NodeChildrenType.BlocksAndSuperBlocks;
   public static readonly facets = FacetMap.empty;
   public static readonly nodeName = "AutoFlowColumns";
 
-  public constructor(public readonly children: readonly (Block | SuperBlock)[]) {
+  public constructor(public readonly children: readonly (BlockNode | SuperBlock)[]) {
     super();
   }
 
   public get nodeType(): NodeType {
-    return AutoFlowColumns;
+    return AutoFlowColumnsType;
   }
 }
-
-export const AutoFlowColumnsType: NodeType = AutoFlowColumns;

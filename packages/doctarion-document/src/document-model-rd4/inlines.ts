@@ -3,15 +3,11 @@ import { FancyText, Text, TextStyleStrip } from "../text-model-rd4";
 import { Facet, FacetMap } from "./facets";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
-export abstract class Inline extends Node {
-  public static readonly category = NodeCategory.Inline;
-}
+export abstract class Inline extends Node {}
+
+export const SpanType: NodeType = new NodeType("Span", NodeCategory.Inline, NodeChildrenType.FancyText, FacetMap.empty);
 
 export class Span extends Inline {
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.FancyText;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Span";
-
   public readonly children: FancyText;
 
   public constructor(text: FancyText | Text, public readonly styles?: TextStyleStrip) {
@@ -20,17 +16,18 @@ export class Span extends Inline {
   }
 
   public get nodeType(): NodeType {
-    return Span;
+    return SpanType;
   }
 }
 
-export const SpanType: NodeType = Span;
+export const HyperlinkType: NodeType = new NodeType(
+  "Hyperlink",
+  NodeCategory.Inline,
+  NodeChildrenType.FancyText,
+  new FacetMap(Facet.string("url"))
+);
 
 export class Hyperlink extends Inline {
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.FancyText;
-  public static readonly facets = new FacetMap(Facet.string("url"));
-  public static readonly nodeName = "Hyperlink";
-
   public readonly children: FancyText;
 
   public constructor(public readonly url: string, text: FancyText | Text, public readonly styles?: TextStyleStrip) {
@@ -39,17 +36,18 @@ export class Hyperlink extends Inline {
   }
 
   public get nodeType(): NodeType {
-    return Hyperlink;
+    return HyperlinkType;
   }
 }
 
-export const HyperlinkType: NodeType = Hyperlink;
+export const EntityRefType: NodeType = new NodeType(
+  "EntityRef",
+  NodeCategory.Inline,
+  NodeChildrenType.None,
+  new FacetMap(Facet.entityId("entityId"))
+);
 
 export class EntityRef extends Inline {
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.None;
-  public static readonly facets = new FacetMap(Facet.entityId("entityId"));
-  public static readonly nodeName = "EntityRef";
-
   public readonly children: undefined;
 
   public constructor(public readonly entityId: string) {
@@ -57,17 +55,13 @@ export class EntityRef extends Inline {
   }
 
   public get nodeType(): NodeType {
-    return EntityRef;
+    return EntityRefType;
   }
 }
 
-export const EntityRefType: NodeType = EntityRef;
+export const TodoType: NodeType = new NodeType("Todo", NodeCategory.Inline, NodeChildrenType.FancyText, FacetMap.empty);
 
 export class Todo extends Inline {
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.FancyText;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Todo";
-
   public readonly children: FancyText;
 
   public constructor(text: FancyText | Text, public readonly styles?: TextStyleStrip) {
@@ -76,17 +70,13 @@ export class Todo extends Inline {
   }
 
   public get nodeType(): NodeType {
-    return Todo;
+    return TodoType;
   }
 }
 
-export const TodoType: NodeType = Todo;
+export const TagType: NodeType = new NodeType("Tag", NodeCategory.Inline, NodeChildrenType.FancyText, FacetMap.empty);
 
 export class Tag extends Inline {
-  public static readonly childrenType: NodeChildrenType = NodeChildrenType.FancyText;
-  public static readonly facets = FacetMap.empty;
-  public static readonly nodeName = "Tag";
-
   public readonly children: FancyText;
 
   public constructor(text: FancyText | Text) {
@@ -95,8 +85,6 @@ export class Tag extends Inline {
   }
 
   public get nodeType(): NodeType {
-    return Tag;
+    return TagType;
   }
 }
-
-export const TagType: NodeType = Tag;

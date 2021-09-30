@@ -7,3 +7,4 @@ export * from "./inlines";
 export * from "./laterals";
 export * from "./node";
 export * from "./superBlocks";
+export * from "./utils";
