@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import * as IterTools from "iter-tools";
-
 import { Document, Node } from "../document-model";
 
 import { ChainLink } from "./chainLink";
@@ -49,8 +46,7 @@ export class Chain {
   }
 
   public get tip(): ChainLink {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any
-    return IterTools.arrayLast(this.links as any)!;
+    return this.links[this.links.length - 1];
   }
 
   public get tipNode(): Node {
