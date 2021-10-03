@@ -30,13 +30,15 @@ export enum FacetType {
   Enum,
   EntityId,
   NodeArray,
-  String,
+  Text,
+  TextStyleStrip,
 }
 
 export class Facet {
   public constructor(
     public readonly type: FacetType,
     public readonly name: string,
+    public readonly optional: boolean,
     public readonly options?: readonly string[],
     public readonly nodeCategory?: NodeCategory
   ) {}
@@ -51,28 +53,31 @@ export class Facet {
     return this.nodeCategory === nodeType.category;
   };
 
-  public static anchor(name: string): Facet {
-    return new Facet(FacetType.Anchor, name);
+  public static anchor(name: string, optional = false): Facet {
+    return new Facet(FacetType.Anchor, name, optional);
   }
-  public static anchorOrAnchorRange(name: string): Facet {
-    return new Facet(FacetType.AnchorOrAnchorRange, name);
+  public static anchorOrAnchorRange(name: string, optional = false): Facet {
+    return new Facet(FacetType.AnchorOrAnchorRange, name, optional);
   }
-  public static anchorRange(name: string): Facet {
-    return new Facet(FacetType.AnchorRange, name);
+  public static anchorRange(name: string, optional = false): Facet {
+    return new Facet(FacetType.AnchorRange, name, optional);
   }
-  public static boolean(name: string): Facet {
-    return new Facet(FacetType.Boolean, name);
+  public static boolean(name: string, optional = false): Facet {
+    return new Facet(FacetType.Boolean, name, optional);
   }
-  public static entityId(name: string): Facet {
-    return new Facet(FacetType.EntityId, name);
+  public static entityId(name: string, optional = false): Facet {
+    return new Facet(FacetType.EntityId, name, optional);
   }
-  public static enum(name: string, options: string[]): Facet {
-    return new Facet(FacetType.Enum, name, options);
+  public static enum(name: string, options: string[], optional = false): Facet {
+    return new Facet(FacetType.Enum, name, optional, options);
   }
-  public static nodeArray(name: string, nodeCategory: NodeCategory): Facet {
-    return new Facet(FacetType.NodeArray, name, undefined, nodeCategory);
+  public static nodeArray(name: string, nodeCategory: NodeCategory, optional = false): Facet {
+    return new Facet(FacetType.NodeArray, name, optional, undefined, nodeCategory);
   }
-  public static string(name: string): Facet {
-    return new Facet(FacetType.String, name);
+  public static text(name: string, optional = false): Facet {
+    return new Facet(FacetType.Text, name, optional);
+  }
+  public static textStyleStrip(name: string, optional = false): Facet {
+    return new Facet(FacetType.TextStyleStrip, name, optional);
   }
 }

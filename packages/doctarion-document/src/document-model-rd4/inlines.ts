@@ -5,7 +5,12 @@ import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
 export abstract class Inline extends Node {}
 
-export const SpanType: NodeType = new NodeType("Span", NodeCategory.Inline, NodeChildrenType.FancyText, FacetMap.empty);
+export const SpanType: NodeType = new NodeType(
+  "Span",
+  NodeCategory.Inline,
+  NodeChildrenType.FancyText,
+  new FacetMap(Facet.textStyleStrip("styles", true))
+);
 
 export class Span extends Inline {
   public readonly children: FancyText;
@@ -24,13 +29,13 @@ export const HyperlinkType: NodeType = new NodeType(
   "Hyperlink",
   NodeCategory.Inline,
   NodeChildrenType.FancyText,
-  new FacetMap(Facet.string("url"))
+  new FacetMap(Facet.text("url"), Facet.textStyleStrip("styles", true))
 );
 
 export class Hyperlink extends Inline {
   public readonly children: FancyText;
 
-  public constructor(public readonly url: string, text: FancyText | Text, public readonly styles?: TextStyleStrip) {
+  public constructor(public readonly url: Text, text: FancyText | Text, public readonly styles?: TextStyleStrip) {
     super();
     this.children = text;
   }
@@ -59,7 +64,12 @@ export class EntityRef extends Inline {
   }
 }
 
-export const TodoType: NodeType = new NodeType("Todo", NodeCategory.Inline, NodeChildrenType.FancyText, FacetMap.empty);
+export const TodoType: NodeType = new NodeType(
+  "Todo",
+  NodeCategory.Inline,
+  NodeChildrenType.FancyText,
+  new FacetMap(Facet.textStyleStrip("styles", true))
+);
 
 export class Todo extends Inline {
   public readonly children: FancyText;

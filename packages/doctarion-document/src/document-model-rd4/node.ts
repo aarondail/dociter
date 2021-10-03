@@ -1,6 +1,6 @@
 import lodash from "lodash";
 
-import { FancyText, Text } from "../text-model-rd4";
+import { FancyText, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
 import { Facet, FacetMap, FacetType } from "./facets";
@@ -36,6 +36,7 @@ export class NodeType {
     this.canContainChildrenOfType = lodash.once(this.canContainChildrenOfType);
     this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
     this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
+    this.hasFancyGraphemeChildren = lodash.once(this.hasFancyGraphemeChildren);
     this.hasGraphemeChildren = lodash.once(this.hasGraphemeChildren);
     this.hasNodeChildren = lodash.once(this.hasNodeChildren);
     // eslint-enable @typescript-eslint/unbound-method
@@ -57,19 +58,6 @@ export class NodeType {
     }
     return false;
   };
-
-  // facetsWithIndividualNodes: lodash.memoize((nodeType: NodeType) => {
-  //   const result: Facet = [];
-  //   for (const facet of nodeType.facets) {
-  //     switch (
-  //       facet.type
-  //       // case FacetType.NodeArray:
-  //       //   result.push(facet);
-  //     ) {
-  //     }
-  //   }
-  //   return result;
-  // }),
 
   public getFacetsThatAreAnchors = (): Facet[] => {
     const result: Facet[] = [];
@@ -93,6 +81,26 @@ export class NodeType {
       }
     }
     return result;
+  };
+
+  public getFacetsThatAreTextStyleStrips = (): Facet[] => {
+    const result: Facet[] = [];
+    for (const facet of this.facets) {
+      switch (facet.type) {
+        case FacetType.TextStyleStrip:
+          result.push(facet);
+      }
+    }
+    return result;
+  };
+
+  public hasFancyGraphemeChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.FancyText:
+        return true;
+      default:
+        return true;
+    }
   };
 
   public hasGraphemeChildren = (): boolean => {
@@ -138,6 +146,17 @@ export abstract class Node {
       const array = this.getFacetValue(facet) as readonly Node[];
       if (array) {
         result.push([facet, array]);
+      }
+    }
+    return result;
+  }
+
+  getAllFacetTextStyleStrips(): readonly [Facet, TextStyleStrip][] {
+    const result: [Facet, TextStyleStrip][] = [];
+    for (const facet of this.nodeType.getFacetsThatAreTextStyleStrips()) {
+      const value = this.getFacetValue(facet) as TextStyleStrip;
+      if (value) {
+        result.push([facet, value]);
       }
     }
     return result;

@@ -112,13 +112,13 @@ export class Media extends BlockNode {
 export const CodeBlockType: NodeType = new BlockNodeType(
   "CodeBlock",
   NodeChildrenType.Inlines,
-  new FacetMap(Facet.string("language"))
+  new FacetMap(Facet.text("language", true))
 );
 
 export class CodeBlock extends BlockNode {
   public constructor(
     public readonly children: readonly Inline[],
-    public readonly language?: string,
+    public readonly language?: Text,
     public readonly annotations: readonly Annotation[] = [],
     public readonly laterals: readonly Lateral[] = []
   ) {
