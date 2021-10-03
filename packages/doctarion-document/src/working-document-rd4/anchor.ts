@@ -1,7 +1,6 @@
 import { Anchor, AnchorOrientation, AnchorRange } from "../document-model-rd4";
-import { DeepReadonly } from "../miscUtils";
 
-import { Interactor, InteractorId, ReadonlyInteractor } from "./interactor";
+import { Interactor, ReadonlyInteractor } from "./interactor";
 import { NodeId, ReadonlyWorkingNode, WorkingNode } from "./nodes";
 
 export type AnchorId = string;
@@ -21,7 +20,8 @@ export class WorkingAnchor extends Anchor {
     public orientation: AnchorOrientation,
     public graphemeIndex?: number,
     public name?: string,
-    public relatedInteractor?: Interactor
+    public relatedInteractor?: Interactor,
+    public relatedOriginatingNode?: WorkingNode
   ) {
     super(node, orientation, graphemeIndex);
   }
@@ -34,6 +34,7 @@ export interface ReadonlyWorkingAnchor extends Anchor {
   readonly graphemeIndex?: number;
   readonly name?: string;
   readonly relatedInteractor?: ReadonlyInteractor;
+  readonly relatedOriginatingNode?: ReadonlyWorkingNode;
 }
 
 export class WorkingAnchorRange implements AnchorRange {

@@ -67,21 +67,39 @@ import {
   WorkingTag,
   WorkingTodo,
 } from "./nodes";
+import { Utils } from "./utils";
 
-export function createWorkingDocumentRootNode(
+export function createWorkingNode(
   idGenerator: FriendlyIdGenerator,
-  root: Document
-): { root: WorkingDocumentRootNode; nodes: Map<NodeId, WorkingNode>; anchors: Map<AnchorId, WorkingAnchor> } {
+  root: Node,
+  existingNodes?: Map<NodeId, WorkingNode>
+): { root: WorkingNode; newNodes: Map<NodeId, WorkingNode>; newAnchors: Map<AnchorId, WorkingAnchor> } {
   const nodeToWorkingNodeMap: Map<Node, WorkingNode> = new Map();
   const newAnchors: Map<AnchorId, WorkingAnchor> = new Map();
   const newNodes: Map<NodeId, WorkingNode> = new Map();
 
   const mapPropertyValue = (value: any, container: WorkingNode, propertyName: string, index?: number): any => {
-    if (value instanceof Anchor) {
-      const anchor = anchorToWorkingAnchors(idGenerator, value, container);
+    if (value instanceof WorkingAnchor) {
+      throw new WorkingDocumentError("Cannot create a working node from a node that contains a WorkingAnchor already");
+    } else if (value instanceof WorkingAnchorRange) {
+      throw new WorkingDocumentError(
+        "Cannot create a working node from a node that contains a WorkingAnchorRange already"
+      );
+    } else if (Utils.isWorkingNode(value)) {
+      throw new WorkingDocumentError("Cannot create a working node from a node that contains a WorkingNode already");
+    } else if (value instanceof Anchor) {
+      // Note that usually (e.g. when the Document is being turned into a
+      // WorkingDocumentRootNode) this Anchor will (incorrectly) have a normal
+      // node (not a WorkingNode) as its `.node` property. This has to be fixed
+      // up below after we are done creating WorkingNodes (the reason we do this
+      // is that the Node the Anchor points to may not have been turned into a
+      // WorkingNode yet).
+      const anchor = anchorToWorkingAnchor(idGenerator, value, container);
       newAnchors.set(anchor.id, anchor);
       return anchor;
     } else if (value instanceof AnchorRange) {
+      // See note above about how the Anchors created will sometimes
+      // (incorrectly) have the original Anchor's node (not a WorkingNode), yet.
       const anchors = anchorRangeToWorkingAnchors(idGenerator, value, container);
       newAnchors.set(anchors.from.id, anchors.from);
       newAnchors.set(anchors.to.id, anchors.to);
@@ -125,42 +143,56 @@ export function createWorkingDocumentRootNode(
 
   const newRoot = mapNode(root);
 
+  // Fix up anchor target nodes
   for (const workingAnchor of newAnchors.values()) {
-    const oldNode: Node = workingAnchor.node;
-    const newNode = nodeToWorkingNodeMap.get(oldNode);
-    if (!newNode) {
-      throw new WorkingDocumentError("Could not find WorkingNode to assign to new WorkingAnchor.");
+    const anchorOriginalTarget: Node = workingAnchor.node;
+    if (Utils.isWorkingNode(anchorOriginalTarget)) {
+      // This case should only be hit if the Anchor (from one of the Nodes being
+      // converted to WorkingNodes) points to an already existing WorkingNode
+      // somewhere else in the document.
+      //
+      // Make sure the target actually exists in the target
+      if (existingNodes?.get(anchorOriginalTarget.id) !== anchorOriginalTarget) {
+        throw new WorkingDocumentError("Anchor has node that is a WorkingNode but is not part of the WorkingDocument");
+      }
+      anchorOriginalTarget.attachedAnchors.set(workingAnchor.id, workingAnchor);
+    } else {
+      const newTarget = nodeToWorkingNodeMap.get(anchorOriginalTarget);
+      if (!newTarget) {
+        throw new WorkingDocumentError("Could not find WorkingNode to assign to new WorkingAnchor");
+      }
+      workingAnchor.node = newTarget;
+      newTarget.attachedAnchors.set(workingAnchor.id, workingAnchor);
     }
-    workingAnchor.node = newNode;
-    newNode.attachedAnchors.set(workingAnchor.id, workingAnchor);
   }
 
-  return { root: newRoot as WorkingDocumentRootNode, nodes: newNodes, anchors: newAnchors };
+  return { root: newRoot as WorkingDocumentRootNode, newNodes, newAnchors };
 }
 
-function anchorToWorkingAnchors(
+function anchorToWorkingAnchor(
   idGenerator: FriendlyIdGenerator,
   anchor: Anchor,
-  newWorkingNode: WorkingNode
+  originNode: WorkingNode
 ): WorkingAnchor {
   return new WorkingAnchor(
     idGenerator.generateId("ANCHOR"),
-    newWorkingNode,
+    anchor.node as any, // Yes this is wrong but will be fixed up (see section around fixing up anchor target nodes above)
     anchor.orientation,
     anchor.graphemeIndex,
     undefined,
-    undefined
+    undefined,
+    originNode
   );
 }
 
 function anchorRangeToWorkingAnchors(
   idGenerator: FriendlyIdGenerator,
   anchors: AnchorRange,
-  newWorkingNode: WorkingNode
+  originNode: WorkingNode
 ): WorkingAnchorRange {
   return new WorkingAnchorRange(
-    anchorToWorkingAnchors(idGenerator, anchors.from, newWorkingNode),
-    anchorToWorkingAnchors(idGenerator, anchors.to, newWorkingNode)
+    anchorToWorkingAnchor(idGenerator, anchors.from, originNode),
+    anchorToWorkingAnchor(idGenerator, anchors.to, originNode)
   );
 }
 

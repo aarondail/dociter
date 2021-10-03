@@ -1,5 +1,6 @@
+import { AnchorPayload } from ".";
 import { NodeNavigator, Path } from "../basic-traversal-rd4";
-import { Node } from "../document-model-rd4";
+import { Facet, Node } from "../document-model-rd4";
 
 import { WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -21,6 +22,19 @@ export const Utils = {
       throw new WorkingDocumentError("Could not navigate to node.");
     }
     return n;
+  },
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  isAnchorPayload(value: any): value is AnchorPayload {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return value.node !== undefined && value.orientation !== undefined;
+  },
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  isAnchorPayloadPair(value: any): value is [AnchorPayload, AnchorPayload] {
+    if (Array.isArray(value) && value.length === 2) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return Utils.isAnchorPayload(value[0]) && Utils.isAnchorPayload(value[1]);
+    }
+    return false;
   },
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isWorkingNode(value: any): value is WorkingNode {

@@ -13,6 +13,7 @@ import {
   Document,
   EntityRef,
   ExtendedComment,
+  Facet,
   Floater,
   Footer,
   Grid,
@@ -43,6 +44,8 @@ export interface WorkingNode extends Node {
   parent?: WorkingNode;
   pathPartFromParent?: PathPart;
   children?: WorkingNode[] | Grapheme[] | FancyGrapheme[];
+
+  setFacet(facet: Facet, value: unknown): void;
 }
 
 export interface ReadonlyWorkingNode extends Node {
@@ -84,6 +87,11 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
       super(...args);
       this.id = id;
       this.attachedAnchors = new Map();
+    }
+
+    setFacet(facet: Facet, value: unknown): void {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      (this as any)[facet.name] = value;
     }
 
     // get asReadonly(): ReadonlyWorkingSpan {
