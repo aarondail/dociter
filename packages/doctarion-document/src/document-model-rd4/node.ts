@@ -33,12 +33,30 @@ export class NodeType {
     public readonly specificIntermediateChildType?: NodeType
   ) {
     // eslint-disable @typescript-eslint/unbound-method
+    this.canContainChildrenOfType = lodash.once(this.canContainChildrenOfType);
     this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
     this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
     this.hasGraphemeChildren = lodash.once(this.hasGraphemeChildren);
     this.hasNodeChildren = lodash.once(this.hasNodeChildren);
     // eslint-enable @typescript-eslint/unbound-method
   }
+
+  public canContainChildrenOfType = (nodeType: NodeType): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.Inlines:
+        return nodeType.category === NodeCategory.Inline;
+      case NodeChildrenType.Blocks:
+        return nodeType.category === NodeCategory.Block;
+      case NodeChildrenType.BlocksAndSuperBlocks:
+        return nodeType.category === NodeCategory.Block || nodeType.category === NodeCategory.SuperBlock;
+      case NodeChildrenType.Intermediates:
+        return (
+          nodeType.category === NodeCategory.Intermediate &&
+          (this.specificIntermediateChildType === undefined || this.specificIntermediateChildType === nodeType)
+        );
+    }
+    return false;
+  };
 
   // facetsWithIndividualNodes: lodash.memoize((nodeType: NodeType) => {
   //   const result: Facet = [];
@@ -106,7 +124,7 @@ export abstract class Node {
   getAllFacetAnchors(): readonly [Facet, Anchor | AnchorRange][] {
     const result: [Facet, Anchor | AnchorRange][] = [];
     for (const facet of this.nodeType.getFacetsThatAreAnchors()) {
-      const value = this.resolveFacet(facet) as Anchor | AnchorRange;
+      const value = this.getFacetValue(facet) as Anchor | AnchorRange;
       if (value) {
         result.push([facet, value]);
       }
@@ -117,7 +135,7 @@ export abstract class Node {
   getAllFacetNodes(): readonly [Facet, readonly Node[]][] {
     const result: [Facet, readonly Node[]][] = [];
     for (const facet of this.nodeType.getFacetsThatAreNodeArrays()) {
-      const array = this.resolveFacet(facet) as readonly Node[];
+      const array = this.getFacetValue(facet) as readonly Node[];
       if (array) {
         result.push([facet, array]);
       }
@@ -125,7 +143,7 @@ export abstract class Node {
     return result;
   }
 
-  resolveFacet(facet: Facet): unknown | undefined {
+  getFacetValue(facet: Facet): unknown | undefined {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     return (this as any)[facet.name];
   }
