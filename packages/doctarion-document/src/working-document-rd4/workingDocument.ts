@@ -2,7 +2,7 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 
 import { NodeNavigator, Path, PseudoNodeUtils, Range } from "../basic-traversal-rd4";
 import { Document, Facet, FacetType, Node } from "../document-model-rd4";
-import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleStrip } from "../text-model-rd4";
+import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleModifier, TextStyleStrip } from "../text-model-rd4";
 
 import { AnchorId, AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { createWorkingNode, createWorkingTextStyleStrip } from "./conversion";
@@ -304,10 +304,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   // public joinNodes() {
   // }
 
-  // public setNodeTextStyle() {
-
-  // }
-
   public setNodeFacet(
     node: NodeId | ReadonlyWorkingNode,
     facet: string | Facet,
@@ -445,6 +441,28 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
         }
         break;
+    }
+  }
+
+  public setNodeTextStyle(
+    node: NodeId | ReadonlyWorkingNode,
+    facet: string | Facet,
+    style: TextStyleModifier,
+    graphemeIndex: number
+  ): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const resolvedFacet = resolvedNode.nodeType.facets.get(typeof facet === "string" ? facet : facet.name);
+    if (!resolvedFacet) {
+      throw new WorkingDocumentError("Unknown facet");
+    }
+    const value = resolvedNode.getFacetValue(resolvedFacet);
+    if (value instanceof WorkingTextStyleStrip) {
+      value.setStyle(style, graphemeIndex);
+    } else {
+      throw new WorkingDocumentError("Facet value is not a text style strip");
     }
   }
 

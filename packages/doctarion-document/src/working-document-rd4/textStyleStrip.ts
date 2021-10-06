@@ -43,7 +43,11 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
     return this.entries.map((e) => e.graphemeIndex);
   }
 
-  public addStyle(style: TextStyleModifier, graphemeIndex: number): void {
+  public clear(): void {
+    this.entries.splice(0, this.entries.length);
+  }
+
+  public setStyle(style: TextStyleModifier, graphemeIndex: number): void {
     const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
     if (!r) {
       this.entries.push({ style, graphemeIndex });
@@ -56,10 +60,6 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
     } else {
       this.entries.splice(i - 1, 0, { style, graphemeIndex });
     }
-  }
-
-  public clear(): void {
-    this.entries.splice(0, this.entries.length);
   }
 
   public updateDueToGraphemeDeletion(graphemeIndex: number, count: number): void {
