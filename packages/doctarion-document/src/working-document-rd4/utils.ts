@@ -1,8 +1,8 @@
-import { AnchorPayload } from ".";
 import { NodeNavigator, Path } from "../basic-traversal-rd4";
-import { Facet, Node } from "../document-model-rd4";
+import { Node } from "../document-model-rd4";
+import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 
-import { WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorPayload, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentRootNode, WorkingNode } from "./nodes";
 
@@ -35,6 +35,17 @@ export const Utils = {
       return Utils.isAnchorPayload(value[0]) && Utils.isAnchorPayload(value[1]);
     }
     return false;
+  },
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  isFancyGrapheme(value: any): value is FancyGrapheme {
+    return typeof value === "string" || value instanceof Emoji || value instanceof Emblem;
+  },
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  isFancyText(value: any): value is FancyText {
+    return Array.isArray(value) && !value.find((x) => !Utils.isFancyGrapheme(x));
+  }, // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  isText(value: any): value is Text {
+    return Array.isArray(value) && !value.find((x) => typeof x !== "string");
   },
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isWorkingNode(value: any): value is WorkingNode {

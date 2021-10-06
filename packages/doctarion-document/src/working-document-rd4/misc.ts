@@ -3,6 +3,6 @@ export enum FlowDirection {
   Forward = "FORWARD",
 }
 
-export interface NodeEditAdditionalContext {
-  readonly flow?: FlowDirection;
-}
+// export interface NodeEditAdditionalContext {
+//   readonly flow?: FlowDirection;
+// }

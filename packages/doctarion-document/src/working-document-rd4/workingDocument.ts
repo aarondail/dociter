@@ -2,9 +2,10 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 
 import { NodeNavigator, Path, PseudoNodeUtils, Range } from "../basic-traversal-rd4";
 import { Document, Facet, FacetType, Node } from "../document-model-rd4";
+import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { AnchorId, AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
-import { createWorkingNode } from "./createWorkingNode";
+import { createWorkingNode, createWorkingTextStyleStrip } from "./conversion";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorId, InteractorPayload, ReadonlyInteractor } from "./interactor";
@@ -15,6 +16,7 @@ import {
   WorkingDocumentRootNode,
   WorkingNode,
 } from "./nodes";
+import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
 export interface ReadonlyWorkingDocument {
@@ -235,14 +237,75 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return workingNode;
   }
 
-  // public insertNodeGrapheme(
-  //   node: ReadonlyWorkingNode,
-  //   grapheme: FancyGrapheme | Grapheme,
-  //   index: number,
-  //   facet?: string | Facet
-  // ): void {}
+  public insertNodeGrapheme(
+    node: ReadonlyWorkingNode,
+    grapheme: FancyGrapheme | Grapheme,
+    index: number,
+    facet?: string | Facet
+  ): void {
+    this.insertNodeText(node, [grapheme], index, facet);
+  }
+
+  public insertNodeText(
+    node: ReadonlyWorkingNode,
+    text: FancyText | Text,
+    index: number,
+    facet?: string | Facet
+  ): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const resolvedFacet =
+      facet !== undefined
+        ? resolvedNode.nodeType.facets.get(typeof facet === "string" ? facet : facet.name)
+        : undefined;
+    if (facet && !resolvedFacet) {
+      throw new WorkingDocumentError("Unknown facet");
+    }
+
+    const isFancy = Utils.isFancyText(text);
+
+    if (resolvedFacet === undefined) {
+      if (isFancy && !resolvedNode.nodeType.hasFancyGraphemeChildren()) {
+        throw new WorkingDocumentError("Node cannot have fancy grapheme children");
+      } else if (!isFancy && !resolvedNode.nodeType.hasGraphemeChildren()) {
+        throw new WorkingDocumentError("Node cannot have grapheme children");
+      }
+    } else if (resolvedFacet && (resolvedFacet.type !== FacetType.Text || isFancy)) {
+      throw new WorkingDocumentError("Node cannot have graphemes or fancy graphemes in the given facet");
+    }
+
+    if (resolvedFacet) {
+      const facetValue = resolvedNode.getFacetValue(resolvedFacet);
+      if (!facetValue) {
+        resolvedNode.setFacet(resolvedFacet, text);
+      } else {
+        (facetValue as Grapheme[]).splice(index, 0, ...(text as Grapheme[]));
+      }
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      resolvedNode.children!.splice(index, 0, ...text);
+    }
+
+    for (const [, strip] of resolvedNode.getAllFacetTextStyleStrips()) {
+      (strip as WorkingTextStyleStrip).updateDueToGraphemeInsertion(index, text.length);
+    }
+
+    for (const [, anchor] of resolvedNode.attachedAnchors) {
+      if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= index) {
+        this.updateAnchor(anchor, {
+          graphemeIndex: anchor.graphemeIndex + text.length,
+        });
+      }
+    }
+  }
 
   // public joinNodes() {
+  // }
+
+  // public setNodeTextStyle() {
+
   // }
 
   public setNodeFacet(
@@ -261,15 +324,21 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const valueType = typeof value;
     switch (resolvedFacet.type) {
       case FacetType.Boolean:
-        if (valueType === "boolean") {
+        if (valueType === "boolean" || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(resolvedFacet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
         }
         break;
       case FacetType.EntityId:
-      case FacetType.String:
-        if (valueType === "string") {
+        if (valueType === "string" || (valueType === "undefined" && resolvedFacet.optional)) {
+          resolvedNode.setFacet(resolvedFacet, value);
+        } else {
+          throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
+        }
+        break;
+      case FacetType.Text:
+        if (Utils.isText(value) || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(resolvedFacet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
@@ -283,6 +352,17 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           } else {
             throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value ${value as string}`);
           }
+        } else if (valueType === "undefined" && resolvedFacet.optional) {
+          resolvedNode.setFacet(resolvedFacet, value);
+        } else {
+          throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
+        }
+        break;
+      case FacetType.TextStyleStrip:
+        if (value instanceof TextStyleStrip) {
+          resolvedNode.setFacet(resolvedFacet, createWorkingTextStyleStrip(value));
+        } else if (valueType === "undefined" && resolvedFacet.optional) {
+          resolvedNode.setFacet(resolvedFacet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
         }
@@ -291,7 +371,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       case FacetType.AnchorRange:
       case FacetType.AnchorOrAnchorRange:
         {
-          let convertedValue: WorkingAnchor | WorkingAnchorRange;
+          let convertedValue: WorkingAnchor | WorkingAnchorRange | undefined;
           if (Utils.isAnchorPayload(value)) {
             if (resolvedFacet.type === FacetType.AnchorRange) {
               throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to passed value`);
@@ -307,6 +387,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             from.relatedOriginatingNode = resolvedNode;
             to.relatedOriginatingNode = resolvedNode;
             convertedValue = new WorkingAnchorRange(from, to);
+          } else if (valueType === "undefined" && resolvedFacet.optional) {
+            // Do nothing here actually
           } else {
             throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to value of type ${valueType}`);
           }
@@ -317,7 +399,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           } else if (currentValue instanceof WorkingAnchorRange) {
             this.deleteAnchor(currentValue.from);
             this.deleteAnchor(currentValue.to);
-          } else {
+          } else if (currentValue !== undefined) {
             throw new WorkingDocumentError(`Current facet ${resolvedFacet.name} value was not an anchor`);
           }
 
@@ -335,18 +417,31 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         {
           const currentValue = resolvedNode.getFacetValue(resolvedFacet);
 
-          if (!Array.isArray(currentValue) || currentValue.find((e) => !Utils.isWorkingNode(e))) {
+          if (
+            currentValue !== undefined &&
+            !(Array.isArray(currentValue) && currentValue.every((e) => Utils.isWorkingNode(e)))
+          ) {
             throw new WorkingDocumentError(`Current facet ${resolvedFacet.name} value is not a node array`);
           }
-          if (!Array.isArray(value) || value.find((e) => !(e instanceof Node) || Utils.isWorkingNode(e))) {
-            throw new WorkingDocumentError(`Cannot set facet ${resolvedFacet.name} to passed value`);
+          if (value === undefined) {
+            if (!resolvedFacet.optional) {
+              throw new WorkingDocumentError(`Cannot set facet ${resolvedFacet.name} to passed value`);
+            }
+          } else {
+            if (!Array.isArray(value) || value.find((e) => !(e instanceof Node) || Utils.isWorkingNode(e))) {
+              throw new WorkingDocumentError(`Cannot set facet ${resolvedFacet.name} to passed value`);
+            }
           }
 
-          this.deleteNodesAndGraphemesPrime(currentValue.map((node: WorkingNode) => ({ node })));
-          resolvedNode.setFacet(resolvedFacet, []);
+          currentValue && this.deleteNodesAndGraphemesPrime(currentValue.map((node: WorkingNode) => ({ node })));
 
-          for (let i = 0; i < value.length; i++) {
-            this.insertNode(resolvedNode, (value[i] as unknown) as Node, i, resolvedFacet);
+          if (value) {
+            resolvedNode.setFacet(resolvedFacet, []);
+            for (let i = 0; i < value.length; i++) {
+              this.insertNode(resolvedNode, (value[i] as unknown) as Node, i, resolvedFacet);
+            }
+          } else {
+            resolvedNode.setFacet(resolvedFacet, undefined);
           }
         }
         break;
@@ -541,6 +636,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
               anchor.graphemeIndex--;
             }
           }
+        }
+
+        for (const [, strip] of node.getAllFacetTextStyleStrips()) {
+          (strip as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
         }
       }
     }

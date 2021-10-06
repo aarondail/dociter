@@ -36,6 +36,7 @@ import {
   Tag,
   Todo,
 } from "../document-model-rd4";
+import { TextStyleStrip } from "../text-model-rd4";
 
 import { AnchorId, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -67,6 +68,7 @@ import {
   WorkingTag,
   WorkingTodo,
 } from "./nodes";
+import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
 export function createWorkingNode(
@@ -115,6 +117,8 @@ export function createWorkingNode(
           ? new PathPart(propertyName)
           : new PathPart(propertyName, index);
       return n;
+    } else if (value instanceof TextStyleStrip) {
+      return createWorkingTextStyleStrip(value);
     } else if (Array.isArray(value)) {
       return value.map((v, idx) => mapPropertyValue(v, container, propertyName, idx));
     } else {
@@ -194,6 +198,11 @@ function anchorRangeToWorkingAnchors(
     anchorToWorkingAnchor(idGenerator, anchors.from, originNode),
     anchorToWorkingAnchor(idGenerator, anchors.to, originNode)
   );
+}
+
+export function createWorkingTextStyleStrip(strip: TextStyleStrip): WorkingTextStyleStrip {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new WorkingTextStyleStrip(lodash.clone(strip.styles) as any, [...strip.indices]);
 }
 
 const getWorkingNodeConstructorCorrespondingToNodeInstance = (node: Node): any => {

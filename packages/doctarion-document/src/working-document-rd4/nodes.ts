@@ -32,9 +32,10 @@ import {
   Todo,
 } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
-import { FancyGrapheme, FancyText, Grapheme, Text } from "../text-model-rd4";
+import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { AnchorId, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { WorkingTextStyleStrip } from "./textStyleStrip";
 
 export type NodeId = string;
 
@@ -67,6 +68,8 @@ type NodePropertyToWorkingNodeProperty<T> = T extends number
   ? WorkingAnchorRange
   : T extends Anchor
   ? WorkingAnchor
+  : T extends TextStyleStrip
+  ? WorkingTextStyleStrip
   : never; // T;
 
 type NodeToWorkingNode<Type extends Node> = WorkingNode &
@@ -101,6 +104,8 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return newClass as any;
 }
+
+type WorkingNodeToReadonlyWorkingNode<Type extends WorkingNode> = Omit<DeepReadonly<Type>, "setFacet">;
 
 // Tried to get some sort of mixin to work but ran into two problems:
 // 1. typescript really work when you wanna create a mixin constrained on a base
@@ -148,9 +153,9 @@ export type WorkingFloater = InstanceType<typeof WorkingFloater>;
 export type WorkingFooter = InstanceType<typeof WorkingFooter>;
 export type WorkingComment = InstanceType<typeof WorkingComment>;
 
-export type ReadonlyWorkingFloater = DeepReadonly<WorkingFloater>;
-export type ReadonlyWorkingFooter = DeepReadonly<WorkingFooter>;
-export type ReadonlyWorkingComment = DeepReadonly<WorkingComment>;
+export type ReadonlyWorkingFloater = WorkingNodeToReadonlyWorkingNode<WorkingFloater>;
+export type ReadonlyWorkingFooter = WorkingNodeToReadonlyWorkingNode<WorkingFooter>;
+export type ReadonlyWorkingComment = WorkingNodeToReadonlyWorkingNode<WorkingComment>;
 
 // BLOCKS
 
@@ -168,12 +173,12 @@ export type WorkingBlockQuote = InstanceType<typeof WorkingBlockQuote>;
 export type WorkingHero = InstanceType<typeof WorkingHero>;
 export type WorkingMedia = InstanceType<typeof WorkingMedia>;
 
-export type ReadonlyWorkingParagraph = DeepReadonly<WorkingParagraph>;
-export type ReadonlyWorkingHeader = DeepReadonly<WorkingHeader>;
-export type ReadonlyWorkingCodeBlock = DeepReadonly<WorkingCodeBlock>;
-export type ReadonlyWorkingBlockQuote = DeepReadonly<WorkingBlockQuote>;
-export type ReadonlyWorkingHero = DeepReadonly<WorkingHero>;
-export type ReadonlyWorkingMedia = DeepReadonly<WorkingMedia>;
+export type ReadonlyWorkingParagraph = WorkingNodeToReadonlyWorkingNode<WorkingParagraph>;
+export type ReadonlyWorkingHeader = WorkingNodeToReadonlyWorkingNode<WorkingHeader>;
+export type ReadonlyWorkingCodeBlock = WorkingNodeToReadonlyWorkingNode<WorkingCodeBlock>;
+export type ReadonlyWorkingBlockQuote = WorkingNodeToReadonlyWorkingNode<WorkingBlockQuote>;
+export type ReadonlyWorkingHero = WorkingNodeToReadonlyWorkingNode<WorkingHero>;
+export type ReadonlyWorkingMedia = WorkingNodeToReadonlyWorkingNode<WorkingMedia>;
 
 // DOCUMENT
 
@@ -181,7 +186,7 @@ export const WorkingDocumentRootNode = CreateWorkingNode<Document, typeof Docume
 
 export type WorkingDocumentRootNode = InstanceType<typeof WorkingDocumentRootNode>;
 
-export type ReadonlyWorkingDocumentRootNode = DeepReadonly<WorkingDocumentRootNode>;
+export type ReadonlyWorkingDocumentRootNode = WorkingNodeToReadonlyWorkingNode<WorkingDocumentRootNode>;
 
 // INLINES
 
@@ -197,11 +202,11 @@ export type WorkingEntityRef = InstanceType<typeof WorkingEntityRef>;
 export type WorkingTodo = InstanceType<typeof WorkingTodo>;
 export type WorkingTag = InstanceType<typeof WorkingTag>;
 
-export type ReadonlyWorkingSpan = DeepReadonly<WorkingSpan>;
-export type ReadonlyWorkingHyperlink = DeepReadonly<WorkingHyperlink>;
-export type ReadonlyWorkingEntityRef = DeepReadonly<WorkingEntityRef>;
-export type ReadonlyWorkingTodo = DeepReadonly<WorkingTodo>;
-export type ReadonlyWorkingTag = DeepReadonly<WorkingTag>;
+export type ReadonlyWorkingSpan = WorkingNodeToReadonlyWorkingNode<WorkingSpan>;
+export type ReadonlyWorkingHyperlink = WorkingNodeToReadonlyWorkingNode<WorkingHyperlink>;
+export type ReadonlyWorkingEntityRef = WorkingNodeToReadonlyWorkingNode<WorkingEntityRef>;
+export type ReadonlyWorkingTodo = WorkingNodeToReadonlyWorkingNode<WorkingTodo>;
+export type ReadonlyWorkingTag = WorkingNodeToReadonlyWorkingNode<WorkingTag>;
 
 // LATERALS
 
@@ -211,8 +216,8 @@ export const WorkingExtendedComment = CreateWorkingNode<ExtendedComment, typeof 
 export type WorkingSidebar = InstanceType<typeof WorkingSidebar>;
 export type WorkingExtendedComment = InstanceType<typeof WorkingExtendedComment>;
 
-export type ReadonlyWorkingSidebar = DeepReadonly<WorkingSidebar>;
-export type ReadonlyWorkingExtendedComment = DeepReadonly<WorkingExtendedComment>;
+export type ReadonlyWorkingSidebar = WorkingNodeToReadonlyWorkingNode<WorkingSidebar>;
+export type ReadonlyWorkingExtendedComment = WorkingNodeToReadonlyWorkingNode<WorkingExtendedComment>;
 
 // SUPER BLOCKS
 
@@ -232,13 +237,13 @@ export type WorkingColumns = InstanceType<typeof WorkingColumns>;
 export type WorkingColumn = InstanceType<typeof WorkingColumn>;
 export type WorkingAutoFlowColumns = InstanceType<typeof WorkingAutoFlowColumns>;
 
-export type ReadonlyWorkingList = DeepReadonly<WorkingList>;
-export type ReadonlyWorkingListItem = DeepReadonly<WorkingListItem>;
-export type ReadonlyWorkingGrid = DeepReadonly<WorkingGrid>;
-export type ReadonlyWorkingGridCell = DeepReadonly<WorkingGridCell>;
-export type ReadonlyWorkingColumns = DeepReadonly<WorkingColumns>;
-export type ReadonlyWorkingColumn = DeepReadonly<WorkingColumn>;
-export type ReadonlyWorkingAutoFlowColumns = DeepReadonly<WorkingAutoFlowColumns>;
+export type ReadonlyWorkingList = WorkingNodeToReadonlyWorkingNode<WorkingList>;
+export type ReadonlyWorkingListItem = WorkingNodeToReadonlyWorkingNode<WorkingListItem>;
+export type ReadonlyWorkingGrid = WorkingNodeToReadonlyWorkingNode<WorkingGrid>;
+export type ReadonlyWorkingGridCell = WorkingNodeToReadonlyWorkingNode<WorkingGridCell>;
+export type ReadonlyWorkingColumns = WorkingNodeToReadonlyWorkingNode<WorkingColumns>;
+export type ReadonlyWorkingColumn = WorkingNodeToReadonlyWorkingNode<WorkingColumn>;
+export type ReadonlyWorkingAutoFlowColumns = WorkingNodeToReadonlyWorkingNode<WorkingAutoFlowColumns>;
 
 // TODO cleanup below
 
