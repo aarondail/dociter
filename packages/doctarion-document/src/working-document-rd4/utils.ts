@@ -1,6 +1,13 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { NodeNavigator, Path } from "../basic-traversal-rd4";
 import { Node } from "../document-model-rd4";
-import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
+import { Mutable } from "../miscUtils";
+import { Emblem, Emoji, FancyGrapheme, FancyText, Text, TextStyle, TextStyleModifier } from "../text-model-rd4";
 
 import { AnchorPayload, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -23,33 +30,25 @@ export const Utils = {
     }
     return n;
   },
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isAnchorPayload(value: any): value is AnchorPayload {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return value.node !== undefined && value.orientation !== undefined;
   },
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isAnchorPayloadPair(value: any): value is [AnchorPayload, AnchorPayload] {
     if (Array.isArray(value) && value.length === 2) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return Utils.isAnchorPayload(value[0]) && Utils.isAnchorPayload(value[1]);
     }
     return false;
   },
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isFancyGrapheme(value: any): value is FancyGrapheme {
     return typeof value === "string" || value instanceof Emoji || value instanceof Emblem;
   },
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isFancyText(value: any): value is FancyText {
     return Array.isArray(value) && !value.find((x) => !Utils.isFancyGrapheme(x));
-  }, // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  },
   isText(value: any): value is Text {
     return Array.isArray(value) && !value.find((x) => typeof x !== "string");
   },
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   isWorkingNode(value: any): value is WorkingNode {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return value.id !== undefined && value.attachedAnchors !== undefined && value instanceof Node;
   },
   *traverseAllAnchorsOriginatingFrom(node: WorkingNode): Iterable<WorkingAnchor> {
@@ -65,7 +64,6 @@ export const Utils = {
   *traverseNodeSubTree(node: WorkingNode): Iterable<WorkingNode> {
     const toVisit: WorkingNode[] = [node];
     while (toVisit.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const n = toVisit.pop()!;
       yield n;
 

@@ -2,6 +2,10 @@ export type Nullable<Type> = {
   [Property in keyof Type]: Type[Property] | null;
 };
 
+export type Mutable<Type> = {
+  -readonly [Property in keyof Type]: Type[Property];
+};
+
 // From: https://twitter.com/mgechev/status/1240178886979223552?lang=en
 export type DeepReadonly<T> = T extends (infer R)[]
   ? DeepReadonlyArray<R>

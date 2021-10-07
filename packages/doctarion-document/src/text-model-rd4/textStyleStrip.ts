@@ -1,10 +1,19 @@
-import { TextStyleModifier } from "./textStyle";
+import { TextStyle, TextStyleModifier } from "./textStyle";
 
+export interface TextStyleStripEntry {
+  readonly graphemeIndex: number;
+  readonly modifier: TextStyleModifier;
+}
 export class TextStyleStrip {
-  public constructor(
-    public readonly styles: readonly TextStyleModifier[],
-    public readonly indices: readonly number[]
-  ) {}
+  public entries: readonly TextStyleStripEntry[];
+
+  /**
+   * The entries should be sorted (by grapheme index) AND not have duplicates
+   * (two styles at the same index).
+   */
+  public constructor(...entries: readonly TextStyleStripEntry[]) {
+    this.entries = entries;
+  }
 }
 
 // export class StyledText {

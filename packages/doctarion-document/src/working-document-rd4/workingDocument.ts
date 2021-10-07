@@ -1,14 +1,24 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
+import lodash from "lodash";
 
-import { NodeNavigator, Path, PseudoNodeUtils, Range } from "../basic-traversal-rd4";
-import { Document, Facet, FacetType, Node } from "../document-model-rd4";
-import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleModifier, TextStyleStrip } from "../text-model-rd4";
+import { NodeNavigator, Path, PseudoNode, Range } from "../basic-traversal-rd4";
+import { Document, Facet, FacetType, Node, Span } from "../document-model-rd4";
+import {
+  FancyGrapheme,
+  FancyText,
+  Grapheme,
+  Text,
+  TextStyle,
+  TextStyleModifier,
+  TextStyleStrip,
+} from "../text-model-rd4";
 
 import { AnchorId, AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { createWorkingNode, createWorkingTextStyleStrip } from "./conversion";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorId, InteractorPayload, ReadonlyInteractor } from "./interactor";
+import { FlowDirection } from "./misc";
 import {
   NodeId,
   ReadonlyWorkingDocumentRootNode,
@@ -135,7 +145,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
         this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }]);
-      } else if (nav.parent && PseudoNodeUtils.isGrapheme(nav.tip.node)) {
+      } else if (nav.parent && PseudoNode.isGrapheme(nav.tip.node)) {
         this.deleteNodesAndGraphemesPrime([
           { node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart.index },
         ]);
@@ -176,7 +186,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     for (const chain of chainsToDelete) {
       if (chain.tip.node instanceof Node) {
         this.deleteNodesAndGraphemesPrime([{ node: chain.tip.node as WorkingNode }]);
-      } else if (chain.parent && PseudoNodeUtils.isGrapheme(chain.tip.node)) {
+      } else if (chain.parent && PseudoNode.isGrapheme(chain.tip.node)) {
         this.deleteNodesAndGraphemesPrime([
           { node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart.index },
         ]);
@@ -301,8 +311,72 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  // public joinNodes() {
-  // }
+  public joinSiblingIntoNode(node: NodeId | ReadonlyWorkingNode, direction: FlowDirection): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const nav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
+    const destNav = nav.clone();
+
+    if (!(direction === FlowDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
+      throw new WorkingDocumentError("Could not find sibling node to join to");
+    }
+
+    const dest = resolvedNode;
+    const source = nav.tip.node as WorkingNode;
+
+    if (dest.nodeType !== source.nodeType) {
+      throw new WorkingDocumentError("Cannot join nodes of different types");
+    }
+
+    const toJoinFollowUps: WorkingNode[] = [];
+
+    if (dest.nodeType.hasNodeChildren()) {
+      // Move children from one inline to the next
+      const { boundaryChildIndex } = this.moveNodes(source, dest, undefined, direction === FlowDirection.Forward);
+      if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const beforeBoundaryNode = dest.children![boundaryChildIndex - 1] as WorkingNode;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const atBoundaryNode = dest.children![boundaryChildIndex] as WorkingNode;
+
+        // Special handling for spans, merge them
+        if (beforeBoundaryNode instanceof Span && atBoundaryNode instanceof Span) {
+          toJoinFollowUps.push(beforeBoundaryNode);
+          // this.joinSiblingIntoNode(beforeBoundaryNode, FlowDirection.Forward);
+        }
+      }
+    } else if (dest.nodeType.hasGraphemeChildren() || dest.nodeType.hasFancyGraphemeChildren()) {
+      this.moveNodeGraphemes(source, dest, direction === FlowDirection.Forward);
+    }
+
+    for (const facet of dest.nodeType.getFacetsThatAreNodeArrays()) {
+      const { boundaryChildIndex } = this.moveNodes(source, dest, facet, direction === FlowDirection.Forward);
+
+      // Again, special handling for spans
+      if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const beforeBoundaryNode = (dest.getFacetValue(facet) as any)?.[boundaryChildIndex - 1] as WorkingNode;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const atBoundaryNode = (dest.getFacetValue(facet) as any)?.[boundaryChildIndex] as WorkingNode;
+
+        // Special handling for spans, merge them
+        if (beforeBoundaryNode instanceof Span && atBoundaryNode instanceof Span) {
+          toJoinFollowUps.push(beforeBoundaryNode);
+          // this.joinSiblingIntoNode(beforeBoundaryNode, FlowDirection.Forward);
+        }
+      }
+    }
+
+    this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
+
+    this.deleteNodesAndGraphemesPrime([{ node: source }]);
+
+    for (const node of toJoinFollowUps) {
+      this.joinSiblingIntoNode(node, FlowDirection.Forward);
+    }
+  }
 
   public setNodeFacet(
     node: NodeId | ReadonlyWorkingNode,
@@ -444,10 +518,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public setNodeTextStyle(
+  public setNodeTextStyleModifier(
     node: NodeId | ReadonlyWorkingNode,
     facet: string | Facet,
-    style: TextStyleModifier,
+    modifier: TextStyleModifier,
     graphemeIndex: number
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
@@ -460,7 +534,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     const value = resolvedNode.getFacetValue(resolvedFacet);
     if (value instanceof WorkingTextStyleStrip) {
-      value.setStyle(style, graphemeIndex);
+      value.setModifier(graphemeIndex, modifier);
     } else {
       throw new WorkingDocumentError("Facet value is not a text style strip");
     }
@@ -672,6 +746,120 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
       this.eventEmitters.anchorOrphaned.emit({ anchor, deletionTarget });
     }
+  }
+
+  private moveNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
+    const destArray = destination.children as Grapheme[];
+    const sourceArray = source.children as Grapheme[];
+    const destArrayOriginalLength = destArray.length;
+    const sourceArrayOriginalLength = sourceArray.length;
+
+    for (const child of prepend ? lodash.reverse(sourceArray) : sourceArray) {
+      prepend ? destArray.unshift(child) : destArray.push(child);
+    }
+
+    // Update anchors now
+    if (prepend) {
+      for (const [, anchor] of destination.attachedAnchors) {
+        if (anchor.graphemeIndex !== undefined) {
+          this.updateAnchor(anchor, { graphemeIndex: anchor.graphemeIndex + sourceArrayOriginalLength });
+        }
+      }
+    }
+    for (const [, anchor] of source.attachedAnchors) {
+      if (prepend || anchor.graphemeIndex === undefined) {
+        this.updateAnchor(anchor, { node: destination });
+      } else {
+        this.updateAnchor(anchor, { node: destination, graphemeIndex: anchor.graphemeIndex + destArrayOriginalLength });
+      }
+    }
+
+    // Update text style strips if they exist
+    for (const facet of destination.nodeType.getFacetsThatAreTextStyleStrips()) {
+      let destStrip = destination.getFacetValue(facet) as WorkingTextStyleStrip | undefined;
+      const sourceStrip = source.getFacetValue(facet);
+
+      if (!destStrip && !sourceStrip) {
+        continue;
+      }
+      if (!destStrip) {
+        destStrip = new WorkingTextStyleStrip([]);
+        destination.setFacet(facet, destStrip);
+      }
+
+      if (prepend) {
+        destStrip.updateDueToGraphemeInsertion(0, sourceArrayOriginalLength);
+      }
+
+      if (sourceStrip && sourceStrip instanceof WorkingTextStyleStrip) {
+        for (const entry of sourceStrip.entries) {
+          destStrip.setModifier(entry.graphemeIndex + (prepend ? 0 : destArrayOriginalLength), entry.modifier);
+        }
+      }
+
+      if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
+        const boundaryIndex = prepend ? sourceArrayOriginalLength : destArrayOriginalLength;
+        const resolvedStyle = destStrip.resolveStyleAt(boundaryIndex - 1);
+        const modifierAtBoundary = destStrip.getModifierAt(boundaryIndex);
+        const revertStyleModifier = TextStyle.createModifierToResetStyleToDefaults(resolvedStyle);
+
+        destStrip.setModifier(boundaryIndex, { ...revertStyleModifier, ...modifierAtBoundary });
+      }
+    }
+
+    for (const [, strip] of source.getAllFacetTextStyleStrips()) {
+      (strip as WorkingTextStyleStrip).clear();
+    }
+
+    sourceArray.splice(0, sourceArrayOriginalLength);
+  }
+
+  private moveNodes(
+    source: WorkingNode,
+    destination: WorkingNode,
+    facet: Facet | undefined, // undefined meaning "children"
+    prepend: boolean
+  ): { boundaryChildIndex: number | undefined } {
+    const destArray = facet
+      ? (destination.getFacetValue(facet) as WorkingNode[])
+      : (destination.children as WorkingNode[]);
+    const sourceArray = facet ? (source.getFacetValue(facet) as WorkingNode[]) : (source.children as WorkingNode[]);
+    const destArrayOriginalLength = destArray.length;
+    const sourceArrayOriginalLength = sourceArray.length;
+
+    for (const child of prepend ? lodash.reverse(sourceArray) : sourceArray) {
+      if (prepend) {
+        destArray.unshift(child);
+      } else {
+        destArray.push(child);
+        child.pathPartFromParent?.adjustIndex(destArrayOriginalLength);
+      }
+      child.parent = destination;
+    }
+
+    if (prepend) {
+      for (let k = sourceArrayOriginalLength; k < destArray.length; k++) {
+        destArray[k].pathPartFromParent?.adjustIndex(sourceArrayOriginalLength);
+      }
+    }
+
+    // Update anchors now
+    for (const [, anchor] of source.attachedAnchors) {
+      this.updateAnchor(anchor, {
+        node: destination,
+      });
+    }
+
+    sourceArray.splice(0, sourceArrayOriginalLength);
+
+    return {
+      boundaryChildIndex:
+        sourceArrayOriginalLength === 0 || destArrayOriginalLength === 0
+          ? undefined
+          : prepend
+          ? sourceArrayOriginalLength
+          : destArrayOriginalLength,
+    };
   }
 
   private removeNodeFromParent(node: WorkingNode) {

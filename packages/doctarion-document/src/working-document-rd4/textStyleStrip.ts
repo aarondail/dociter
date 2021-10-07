@@ -1,24 +1,18 @@
 import binarySearch from "binary-search";
 
-import { TextStyleModifier, TextStyleStrip } from "../text-model-rd4";
-
-interface Entry {
-  style: TextStyleModifier;
-  graphemeIndex: number;
-}
+import { Mutable } from "../miscUtils";
+import { TextStyle, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../text-model-rd4";
 
 // TODO this class is definitely not done AND needs tests
-export class WorkingTextStyleStrip implements TextStyleStrip {
-  private entries: Entry[];
+export class WorkingTextStyleStrip extends TextStyleStrip {
+  private mutableEntries: Mutable<TextStyleStripEntry>[];
 
-  public constructor(styles: TextStyleModifier[], indices: number[]) {
-    this.entries = [];
+  public constructor(entries: readonly TextStyleStripEntry[]) {
+    super(...entries);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    this.mutableEntries = this.entries as any;
 
-    for (let i = 0; i < styles.length; i++) {
-      this.entries.push({ style: styles[i], graphemeIndex: indices[i] });
-    }
-
-    this.entries.sort((a, b) => b.graphemeIndex - a.graphemeIndex);
+    this.mutableEntries.sort((a, b) => b.graphemeIndex - a.graphemeIndex);
 
     // Eliminate any duplicates
     if (this.entries.length > 2) {
@@ -27,38 +21,52 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
         const current = this.entries[j];
         if (current.graphemeIndex === prior.graphemeIndex) {
           // This mutates current.style
-          mergeStyleModifiers(prior.style, current.style);
+          mergeStyleModifiers(prior.modifier, current.modifier);
           // Delete prior
-          this.entries.splice(j + 1, 1);
+          this.mutableEntries.splice(j + 1, 1);
         }
         prior = current;
       }
     }
   }
 
-  public get styles(): TextStyleModifier[] {
-    return this.entries.map((e) => e.style);
-  }
-  public get indices(): number[] {
-    return this.entries.map((e) => e.graphemeIndex);
-  }
-
   public clear(): void {
-    this.entries.splice(0, this.entries.length);
+    this.mutableEntries.splice(0, this.entries.length);
   }
 
-  public setStyle(style: TextStyleModifier, graphemeIndex: number): void {
+  public getModifierAt(graphemeIndex: number): TextStyleModifier | undefined {
+    const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
+    if (r && r.exactMatch) {
+      return this.entries[r.entryIndex].modifier;
+    }
+    return undefined;
+  }
+
+  public resolveStyleAt(graphemeIndex: number): TextStyle {
+    const result = {};
+
+    for (const e of this.entries) {
+      if (e.graphemeIndex > graphemeIndex) {
+        break;
+      }
+      TextStyle.applyModifier(result, e.modifier);
+    }
+
+    return result;
+  }
+
+  public setModifier(graphemeIndex: number, modifier: TextStyleModifier): void {
     const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
     if (!r) {
-      this.entries.push({ style, graphemeIndex });
+      this.mutableEntries.push({ modifier, graphemeIndex });
       return;
     }
     const { entryIndex: i, exactMatch } = r;
 
     if (exactMatch) {
-      mergeStyleModifiers(style, this.entries[i].style);
+      mergeStyleModifiers(modifier, this.mutableEntries[i].modifier);
     } else {
-      this.entries.splice(i - 1, 0, { style, graphemeIndex });
+      this.mutableEntries.splice(i - 1, 0, { modifier, graphemeIndex });
     }
   }
 
@@ -73,8 +81,8 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
     let deletionEndIndex = undefined;
     let modifiedStyle: TextStyleModifier | undefined;
     let firstNonDeletionIndex = undefined;
-    for (let j = i; j < this.entries.length; j++) {
-      const e = this.entries[j];
+    for (let j = i; j < this.mutableEntries.length; j++) {
+      const e = this.mutableEntries[j];
       if (e.graphemeIndex < graphemeIndex + count) {
         if (deletionStartIndex === undefined) {
           deletionStartIndex = j;
@@ -82,10 +90,10 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
         deletionEndIndex = j;
         if (modifiedStyle) {
           // Note this mutates e.style
-          mergeStyleModifiers(modifiedStyle, e.style);
-          modifiedStyle = e.style;
+          mergeStyleModifiers(modifiedStyle, e.modifier);
+          modifiedStyle = e.modifier;
         } else {
-          modifiedStyle = e.style;
+          modifiedStyle = e.modifier;
         }
       } else {
         firstNonDeletionIndex = j;
@@ -95,26 +103,29 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
 
     // Update index for all non-deleted entries right of the deleted ones
     if (firstNonDeletionIndex) {
-      for (let k = firstNonDeletionIndex; k < this.entries.length; k++) {
-        this.entries[k].graphemeIndex -= count;
+      for (let k = firstNonDeletionIndex; k < this.mutableEntries.length; k++) {
+        this.mutableEntries[k].graphemeIndex -= count;
       }
     }
 
     // If there were any to delete
     if (modifiedStyle && deletionStartIndex !== undefined) {
       // Should we merge styles onto the first non-deleted entry?
-      if (firstNonDeletionIndex !== undefined && this.entries[firstNonDeletionIndex].graphemeIndex === graphemeIndex) {
-        mergeStyleModifiers(modifiedStyle, this.entries[firstNonDeletionIndex].style);
+      if (
+        firstNonDeletionIndex !== undefined &&
+        this.mutableEntries[firstNonDeletionIndex].graphemeIndex === graphemeIndex
+      ) {
+        mergeStyleModifiers(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
         // Then delete
-        this.entries.splice(deletionStartIndex, firstNonDeletionIndex - deletionStartIndex);
+        this.mutableEntries.splice(deletionStartIndex, firstNonDeletionIndex - deletionStartIndex);
       } else {
         // In this case we fake keep the first entry (that we would otherwise
         // delete) and just update it
-        this.entries[deletionStartIndex].graphemeIndex = graphemeIndex;
-        this.entries[deletionStartIndex].style = modifiedStyle;
+        this.mutableEntries[deletionStartIndex].graphemeIndex = graphemeIndex;
+        this.mutableEntries[deletionStartIndex].modifier = modifiedStyle;
 
         if (deletionEndIndex && deletionEndIndex > deletionStartIndex) {
-          this.entries.splice(deletionStartIndex + 1, deletionEndIndex - deletionStartIndex);
+          this.mutableEntries.splice(deletionStartIndex + 1, deletionEndIndex - deletionStartIndex);
         }
       }
     }
@@ -127,12 +138,12 @@ export class WorkingTextStyleStrip implements TextStyleStrip {
     }
     const { entryIndex: i } = r;
 
-    for (let k = i; k < this.entries.length; k++) {
-      this.entries[k].graphemeIndex += count;
+    for (let k = i; k < this.mutableEntries.length; k++) {
+      this.mutableEntries[k].graphemeIndex += count;
     }
   }
 
-  private binarySearchComparator = (entry: Entry, graphemeIndexAsNeedle: number): number => {
+  private binarySearchComparator = (entry: TextStyleStripEntry, graphemeIndexAsNeedle: number): number => {
     return entry.graphemeIndex - graphemeIndexAsNeedle;
   };
 
