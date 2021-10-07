@@ -5,7 +5,6 @@ import { ChainLink } from "./chainLink";
 import { Path, PathString } from "./path";
 import { PathPart } from "./pathPart";
 import { PseudoNode } from "./pseudoNode";
-import { PseudoNodeUtils } from "./pseudoNodeUtils";
 
 export interface ReadonlyNodeNavigator {
   readonly chain: Chain;
@@ -150,7 +149,7 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
     // InlineUrlLink that has contents... navigating backwards in this case should move off
     // the InlineUrlLink, not into its children.
     if (!options?.skipDescendants) {
-      const children = PseudoNodeUtils.getChildren(this.tip.node);
+      const children = PseudoNode.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
         return this.navigateToLastChild();
       }
@@ -180,7 +179,7 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
     // InlineUrlLink that has contents... navigating forwards in this case should move off
     // the InlineUrlLink, not into its children.
     if (!options?.skipDescendants) {
-      const children = PseudoNodeUtils.getChildren(this.tip.node);
+      const children = PseudoNode.getChildren(this.tip.node);
       if (children?.length || 0 > 0) {
         return this.navigateToFirstChild();
       }
@@ -237,7 +236,7 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
   }
 
   public navigateToChild(index: number): boolean {
-    return this.navigateToChildPrime(PseudoNodeUtils.getChildren(this.tip.node), index);
+    return this.navigateToChildPrime(PseudoNode.getChildren(this.tip.node), index);
   }
 
   public navigateToDocumentNode(): boolean {
@@ -255,11 +254,11 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
   }
 
   public navigateToFirstChild(): boolean {
-    return this.navigateToChildPrime(PseudoNodeUtils.getChildren(this.tip.node), 0);
+    return this.navigateToChildPrime(PseudoNode.getChildren(this.tip.node), 0);
   }
 
   public navigateToLastChild(): boolean {
-    const children = PseudoNodeUtils.getChildren(this.tip.node);
+    const children = PseudoNode.getChildren(this.tip.node);
     return this.navigateToChildPrime(children, (children?.length || 0) - 1);
   }
 
