@@ -381,8 +381,6 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
   }
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 const navigateToSiblingHelpers = (() => {
   const nodeOrLinkToNode = (a: Node | ChainLink): Node => {
     if ((a as any).node !== undefined) {

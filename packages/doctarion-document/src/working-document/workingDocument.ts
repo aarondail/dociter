@@ -530,7 +530,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       immer.castDraft(anchor).orientation = orientation!;
       immer.castDraft(anchor).graphemeIndex = graphemeIndex!;
     } else {
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
       const updates = nodeIdOrUpdates;
       if (updates.nodeId) {
         immer.castDraft(anchor).nodeId = updates.nodeId;
@@ -541,7 +540,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if ("graphemeIndex" in updates) {
         immer.castDraft(anchor).graphemeIndex = updates.graphemeIndex;
       }
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
 
     this.eventEmitters.anchorUpdated.emit(anchor);

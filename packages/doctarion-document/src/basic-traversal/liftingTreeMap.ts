@@ -45,7 +45,6 @@ export class LiftingPathMap<ElementType> {
   public constructor() {
     this.root = {
       type: "INTERIOR",
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       childNodes: new Map(),
     };
   }
@@ -65,7 +64,6 @@ export class LiftingPathMap<ElementType> {
           createdNewNodes = true;
           const newChildNode: Node<ElementType> = {
             type: "INTERIOR",
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             childNodes: new Map(),
           };
           currentNode.childNodes.set(nextPartKey, newChildNode);
@@ -110,9 +108,7 @@ export class LiftingPathMap<ElementType> {
           }
         }
         const currentNodeReadyForMutation = currentNode as any;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         currentNodeReadyForMutation.type = "EDGE";
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access
         currentNodeReadyForMutation.childNodes = undefined;
         (currentNodeReadyForMutation as EdgeNode<ElementType>).path = path;
         (currentNodeReadyForMutation as EdgeNode<ElementType>).elements = [element];

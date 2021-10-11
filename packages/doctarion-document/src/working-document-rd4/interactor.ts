@@ -1,7 +1,6 @@
-import { ReadonlyWorkingAnchor, WorkingAnchor } from ".";
 import { HorizontalVisualPosition } from "../cursor";
 
-import { AnchorId, AnchorPayload } from "./anchor";
+import { AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor } from "./anchor";
 
 export type InteractorId = string;
 

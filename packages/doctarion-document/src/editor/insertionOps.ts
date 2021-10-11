@@ -72,7 +72,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
       }
 
       if (isText) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
 
         // Text in a text container
@@ -119,7 +118,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           throw new EditorOperationError(EditorOperationErrorCode.UnexpectedState);
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         let parentIndexFromGrandParent = target.navigator.parent.pathPart.index;
 
         const atEdge = isNavigatorAtEdgeOfTextContainer(target.navigator, direction);
@@ -179,7 +177,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           : target.navigator.tip.pathPart.index + 1;
 
       if (node instanceof InlineEmoji) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const inline = isText
           ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
           : payload.inline;
@@ -199,7 +196,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
         });
       } else if (NodeUtils.isTextContainer(node)) {
         if (isText && isEmptyInsertionPoint) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty inline text or inline url link
           state.insertText(node, 0, graphemes);
@@ -210,7 +206,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           });
         } else {
           // Similar to above...
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const inline = isText
             ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
             : payload.inline;
@@ -231,7 +226,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
         }
       } else if (NodeUtils.isInlineContainer(node)) {
         if (isText && isEmptyInsertionPoint) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty block that contains inlines
           const newInline = new InlineText(graphemes);
@@ -245,7 +239,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           });
         } else {
           // Similar to above...
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const inline = isText
             ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
             : payload.inline;
@@ -265,7 +258,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
         const newParagraphId = state.insertBlock(node, 0, newParagraph);
 
         if (isText && isEmptyInsertionPoint) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           const newInline = new InlineText(graphemes);
           state.insertInline(newParagraphId, 0, newInline);
@@ -277,7 +269,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           });
         } else {
           // Similar to above...
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const inline = isText
             ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
             : payload.inline;

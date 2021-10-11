@@ -86,7 +86,7 @@ export const splitBlock = createCoreOperation<TargetPayload>("splitBlock", (stat
           splitChildIndices.push(
             navigator.cursor.orientation === CursorOrientation.Before
               ? 0
-                NodeUtils.getChildren(navigator.tip.node)!.length - 1
+              : NodeUtils.getChildren(navigator.tip.node)!.length - 1
           );
         }
       }

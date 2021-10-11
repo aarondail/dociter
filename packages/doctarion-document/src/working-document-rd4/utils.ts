@@ -1,12 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { ReadonlyWorkingNode } from ".";
 import { NodeNavigator, Path, PseudoNode } from "../basic-traversal-rd4";
-import { Document, Node, NodeChildrenType, NodeType } from "../document-model-rd4";
-import { Mutable } from "../miscUtils";
-import { Emblem, Emoji, FancyGrapheme, FancyText, Text, TextStyle, TextStyleModifier } from "../text-model-rd4";
+import { Document, Node, NodeChildrenType } from "../document-model-rd4";
+import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 
 import { AnchorPayload, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";

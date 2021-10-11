@@ -144,9 +144,10 @@ function moveVisualUpOrDownHelper(
     direction === "DOWN" ? navigator.navigateToNextCursorPosition() : navigator.navigateToPrecedingCursorPosition();
   const retreat = () =>
     direction === "DOWN" ? navigator.navigateToPrecedingCursorPosition() : navigator.navigateToNextCursorPosition();
-  const didLineWrap = (anchor: NodeNavigator) => direction === "DOWN";
-  services.layout!.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator());
-  services.layout!.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
+  const didLineWrap = (anchor: NodeNavigator) =>
+    direction === "DOWN"
+      ? services.layout!.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator())
+      : services.layout!.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
 
   let foundNewLine = false;
   while (advance()) {

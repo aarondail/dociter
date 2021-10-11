@@ -978,7 +978,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           if (array && Array.isArray(array)) {
             array.splice(pathPart.index, 1);
             for (let i = pathPart.index; i < array.length; i++) {
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const kid = array[i];
               const kidPathPart = (kid as WorkingNode).pathPartFromParent;
               if (kidPathPart !== undefined) {

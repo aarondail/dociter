@@ -66,7 +66,6 @@ export class Editor {
       execute: this.executeRelatedOperation,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.operationRegistry = new Map();
     for (const op of CORE_OPERATIONS) {
       this.operationRegistry.set(op.operationName, op);

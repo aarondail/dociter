@@ -99,7 +99,6 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
     //   return this;
     // }
   };
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return newClass as any;
 }
 

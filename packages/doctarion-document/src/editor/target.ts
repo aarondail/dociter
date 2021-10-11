@@ -48,19 +48,13 @@ export function getTargetedInteractorIds(
           return [state.focusedInteractorId];
         }
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorId !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return [untypedIdentifier.interactorId];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   } else if (untypedIdentifier.interactorIds !== undefined) {
-    return (
-      state
-        .getAllInteractors()
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        .filter((e) => untypedIdentifier.interactorIds.includes(e.id))
-        .map((e) => e.id)
-    );
+    return state
+      .getAllInteractors()
+      .filter((e) => untypedIdentifier.interactorIds.includes(e.id))
+      .map((e) => e.id);
   }
   return [];
 }

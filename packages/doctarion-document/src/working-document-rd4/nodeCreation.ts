@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
@@ -112,7 +108,7 @@ export function createWorkingNode(
       n.parent = container;
       n.pathPartFromParent =
         propertyName === "children"
-            new PathPart(index!)
+          ? new PathPart(index!)
           : index === undefined
           ? new PathPart(propertyName)
           : new PathPart(propertyName, index);
