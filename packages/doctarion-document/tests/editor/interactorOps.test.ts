@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Path } from "../../src/basic-traversal";
 import { Cursor, CursorOrientation } from "../../src/cursor";
 import { HeaderLevel } from "../../src/document-model";

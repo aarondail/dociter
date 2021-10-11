@@ -57,6 +57,10 @@ export const CommentType: NodeType = new NodeType(
   new FacetMap(Facet.anchor("anchor"))
 );
 
+/**
+ * This is more of a above/below the line comment vs to the side (which is the
+ * Lateral ExtendedComment).
+ */
 export class Comment extends Annotation {
   public constructor(public readonly children: readonly Inline[], public readonly anchor: Anchor) {
     super();

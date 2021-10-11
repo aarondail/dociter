@@ -163,7 +163,6 @@ export abstract class Node {
   }
 
   getFacetValue(facet: Facet): unknown | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     return (this as any)[facet.name];
   }
 }

@@ -324,7 +324,6 @@ export class EditorInteractorService {
   };
 
   private handleOperationHasCompleted = (newState: EditorState) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.editorState = newState as any; // null;
     this.updatedAnchors = null;
     this.anchorsNeedJiggle = undefined;

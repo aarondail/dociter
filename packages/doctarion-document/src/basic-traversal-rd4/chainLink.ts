@@ -11,7 +11,6 @@ export class ChainLink<T extends PseudoNode = PseudoNode> {
   public constructor(node: T, pathPart: PathPart);
   constructor(node: T, pathPart?: PathPart) {
     this.node = node;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.pathPart = pathPart as any;
   }
 }

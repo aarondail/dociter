@@ -28,7 +28,6 @@ export function getTargetedInteractorIds(
   target: OperationTarget,
   state: Draft<EditorState>
 ): readonly InteractorId[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   const untypedIdentifier = target as any;
 
   if (target === undefined) {

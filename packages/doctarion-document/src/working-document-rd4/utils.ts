@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { NodeNavigator, Path } from "../basic-traversal-rd4";
-import { Node } from "../document-model-rd4";
+import { ReadonlyWorkingNode } from ".";
+import { NodeNavigator, Path, PseudoNode } from "../basic-traversal-rd4";
+import { Document, Node, NodeChildrenType, NodeType } from "../document-model-rd4";
 import { Mutable } from "../miscUtils";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text, TextStyle, TextStyleModifier } from "../text-model-rd4";
 
@@ -14,6 +13,22 @@ import { WorkingDocumentError } from "./error";
 import { WorkingDocumentRootNode, WorkingNode } from "./nodes";
 
 export const Utils = {
+  canNodeBeSplit(node: PseudoNode): boolean {
+    if (PseudoNode.isGrapheme(node) || node instanceof Document) {
+      return false;
+    }
+    if (node.nodeType.childrenType === NodeChildrenType.None) {
+      return false;
+    }
+    const workingNode = node as WorkingNode;
+    // Return false if we think this node has no parent or it has one but it
+    // isn't part of an array (either a facet NodeArray type or as part of the
+    // children).
+    if (!workingNode.pathPartFromParent || workingNode.pathPartFromParent.index === undefined) {
+      return false;
+    }
+    return true;
+  },
   getPathForNode(node: WorkingNode): Path {
     const tip = node;
     const parts = [];

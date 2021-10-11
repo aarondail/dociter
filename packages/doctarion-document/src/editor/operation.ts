@@ -47,7 +47,6 @@ export function createCoreOperation<Payload = void, ReturnType = void, Name exte
   run: EditorOperationRunFunction<Payload, ReturnType>
 ): EditorOperation<Payload, ReturnType, Name> {
   const op = createOperation<Payload, ReturnType, Name>(name, run);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addCoreOperation(op as any);
   return op;
 }

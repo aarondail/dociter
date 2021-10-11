@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Document } from "../document-model-rd4";
 
 import { ChainLink } from "./chainLink";

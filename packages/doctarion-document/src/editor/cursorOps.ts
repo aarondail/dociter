@@ -132,7 +132,6 @@ function moveVisualUpOrDownHelper(
 
   const targetAnchor =
     interactor.lineMovementHorizontalVisualPosition ??
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     services.layout!.getTargetHorizontalAnchor(
       startNavigator,
       navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
@@ -145,12 +144,9 @@ function moveVisualUpOrDownHelper(
     direction === "DOWN" ? navigator.navigateToNextCursorPosition() : navigator.navigateToPrecedingCursorPosition();
   const retreat = () =>
     direction === "DOWN" ? navigator.navigateToPrecedingCursorPosition() : navigator.navigateToNextCursorPosition();
-  const didLineWrap = (anchor: NodeNavigator) =>
-    direction === "DOWN"
-      ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        services.layout!.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator())
-      : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        services.layout!.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
+  const didLineWrap = (anchor: NodeNavigator) => direction === "DOWN";
+  services.layout!.detectLineWrapOrBreakBetweenNodes(anchor, navigator.toNodeNavigator());
+  services.layout!.detectLineWrapOrBreakBetweenNodes(navigator.toNodeNavigator(), anchor);
 
   let foundNewLine = false;
   while (advance()) {
@@ -173,7 +169,6 @@ function moveVisualUpOrDownHelper(
   }
 
   // Now that we think we are on the next line...
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let distance = services.layout!.detectHorizontalDistanceFromTargetHorizontalAnchor(
     navigator.toNodeNavigator(),
     navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,

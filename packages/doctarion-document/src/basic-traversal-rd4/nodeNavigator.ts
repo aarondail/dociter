@@ -108,12 +108,10 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
   }
 
   public clone(): NodeNavigator {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
     return new (NodeNavigator as any)(this.document, this.currentChain);
   }
 
   public cloneWithoutTip(): NodeNavigator {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
     return new (NodeNavigator as any)(this.document, this.currentChain.dropTipIfPossible() || this.currentChain);
   }
 
@@ -362,7 +360,6 @@ export class NodeNavigator implements ReadonlyNodeNavigator {
 }
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 const navigateToSiblingHelpers = (() => {
   const nodeOrLinkToNode = (a: PseudoNode | ChainLink): PseudoNode => {

@@ -60,7 +60,6 @@
 
 //       if (currentNode.type === "INTERIOR") {
 //         if (currentNode.childNodes.has(nextPartKey)) {
-//           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 //           currentNode = currentNode.childNodes.get(nextPartKey)!;
 //         } else {
 //           createdNewNodes = true;
@@ -83,7 +82,6 @@
 //       // In this case we are sure that we created the currentNode above (as an
 //       // InteriorNode) so we just convert it to an EdgeNode.
 //       currentNode.type = "EDGE";
-//       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
 //       (currentNode as any).childNodes = undefined;
 //       (currentNode as EdgeNode<ElementType>).path = path;
 //       (currentNode as EdgeNode<ElementType>).elements = [element];
@@ -111,7 +109,6 @@
 //             }
 //           }
 //         }
-//         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
 //         const currentNodeReadyForMutation = currentNode as any;
 //         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 //         currentNodeReadyForMutation.type = "EDGE";
@@ -138,7 +135,6 @@
 //       if (currentNode.type === "INTERIOR") {
 //         const childIsPresent = currentNode.childNodes.has(nextPartKey);
 //         if (childIsPresent) {
-//           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 //           currentNode = currentNode.childNodes.get(nextPartKey)!;
 //         } else {
 //           return undefined;
@@ -188,7 +184,6 @@
 //   private *traverseNodeAndChildren(node: Node<ElementType>) {
 //     const toVisit = [node];
 //     while (toVisit.length > 0) {
-//       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 //       const p = toVisit.shift()!;
 //       yield p;
 //       if (p.type === "INTERIOR") {

@@ -14,11 +14,11 @@ import {
 } from "../text-model-rd4";
 
 import { AnchorId, AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
-import { createWorkingNode, createWorkingTextStyleStrip } from "./conversion";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorId, InteractorPayload, ReadonlyInteractor } from "./interactor";
 import { FlowDirection } from "./misc";
+import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import {
   NodeId,
   ReadonlyWorkingDocumentRootNode,
@@ -240,7 +240,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         (facetValue as WorkingNode[]).splice(index, 0, workingNode);
       }
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       resolvedParentNode.children!.splice(index, 0, workingNode);
     }
 
@@ -294,7 +293,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         (facetValue as Grapheme[]).splice(index, 0, ...(text as Grapheme[]));
       }
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       resolvedNode.children!.splice(index, 0, ...text);
     }
 
@@ -334,11 +332,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (dest.nodeType.hasNodeChildren()) {
       // Move children from one inline to the next
-      const { boundaryChildIndex } = this.moveNodes(source, dest, undefined, direction === FlowDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === FlowDirection.Forward);
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const beforeBoundaryNode = dest.children![boundaryChildIndex - 1] as WorkingNode;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const atBoundaryNode = dest.children![boundaryChildIndex] as WorkingNode;
 
         // Special handling for spans, merge them
@@ -348,17 +344,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else if (dest.nodeType.hasGraphemeChildren() || dest.nodeType.hasFancyGraphemeChildren()) {
-      this.moveNodeGraphemes(source, dest, direction === FlowDirection.Forward);
+      this.moveAllNodeGraphemes(source, dest, direction === FlowDirection.Forward);
     }
 
     for (const facet of dest.nodeType.getFacetsThatAreNodeArrays()) {
-      const { boundaryChildIndex } = this.moveNodes(source, dest, facet, direction === FlowDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facet, direction === FlowDirection.Forward);
 
       // Again, special handling for spans
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         const beforeBoundaryNode = (dest.getFacetValue(facet) as any)?.[boundaryChildIndex - 1] as WorkingNode;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         const atBoundaryNode = (dest.getFacetValue(facet) as any)?.[boundaryChildIndex] as WorkingNode;
 
         // Special handling for spans, merge them
@@ -416,7 +410,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         break;
       case FacetType.Enum:
         if (valueType === "string") {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           if (resolvedFacet.options!.includes(value as string)) {
             resolvedNode.setFacet(resolvedFacet, value);
           } else {
@@ -540,8 +533,112 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  // public splitNode() {
+  // public splitNode(node: NodeId | ReadonlyWorkingNode, splitChildIndices: readonly number[]): void {
+  //   const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+  //   if (!resolvedNode) {
+  //     throw new WorkingDocumentError("Unknown node");
+  //   }
+  //   if (!resolvedNode.parent || resolvedNode.pathPartFromParent?.index === undefined) {
+  //     throw new WorkingDocumentError("Unknown node parent");
+  //   }
 
+  //   if (splitChildIndices.length === 0) {
+  //     throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
+  //   }
+
+  //   if (!Utils.canNodeBeSplit(resolvedNode)) {
+  //     throw new WorkingDocumentError("Node cannot be split");
+  //   }
+
+  //   const startingNav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
+  //   const startingNodeChainIndex = startingNav.chain.length - 1;
+  //   const nav = startingNav.clone();
+  //   for (let i = 0; i < splitChildIndices.length; i++) {
+  //     const childIndex = splitChildIndices[i];
+  //     if (!nav.navigateToChild(childIndex)) {
+  //       throw new WorkingDocumentError("Could not find target");
+  //     }
+  //     if (i < splitChildIndices.length - 1) {
+  //       if (!Utils.canNodeBeSplit(nav.tip.node)) {
+  //         throw new WorkingDocumentError("Node cannot be split");
+  //       }
+  //     }
+  //   }
+
+  //   const clone: Node = cloneWorkingNodeAsEmptyRegularNode(this.idGenerator, resolvedNode);
+  //   const newWorkingRoot = this.insertNode(
+  //     resolvedNode.parent,
+  //     clone,
+  //     resolvedNode.pathPartFromParent.index + 1
+  //   ) as WorkingNode;
+
+  //   let currentSplitSource: WorkingNode = resolvedNode;
+  //   let currentSplitDest = newWorkingRoot;
+  //   for (let i = 0; i < splitChildIndices.length; i++) {
+  //     const childIndex = splitChildIndices[i];
+  //     const isLastSplit = i === splitChildIndices.length - 1;
+
+  //     const splitTarget = currentSplitSource.children![childIndex];
+
+  //     if (splitTarget instanceof Node) {
+  //       // Split the kids of the CURRENT SPLIT SOURCE, after the CURRENT node
+  //       // (which will become the current split source and be modified in the
+  //       // next loop)...
+  //       const splitOutKids = currentSplitSource.children!.splice(
+  //         childIndex,
+  //         currentSplitSource.children!.length - childIndex
+  //       );
+  //       for (const kid of splitOutKids) {
+  //         this.processNodeMoved(kid, currentSplitDest);
+  //       }
+  //       currentSplitDest.children = splitOutKids;
+
+  //       const newSplitNode: ObjectNode = NodeUtils.cloneWithoutContents(splitTarget);
+  //       splitOutKids.unshift(newSplitNode as any);
+  //       this.processNodeCreated(newSplitNode, currentSplitDest);
+  //       currentSplitDest = newSplitNode;
+  //       currentSplitSource = splitTarget;
+  //     } else {
+  //       // Its a grapheme
+  //       const textLeft = currentSplitSource.children!.slice(0, childIndex);
+  //       const textRight = currentSplitSource.children!.slice(childIndex);
+  //       immer.castDraft(currentSplitSource).children = immer.castDraft(textLeft);
+  //       immer.castDraft(currentSplitDest).children = immer.castDraft(textRight);
+
+  //       this.adjustAnchorPositionsAfterTextContainingNodeSplit(
+  //         NodeAssociatedData.getId(currentSplitSource)!,
+  //         NodeAssociatedData.getId(currentSplitDest)!,
+  //         childIndex
+  //       );
+
+  //       if (childIndex === 0) {
+  //         // In this case, don't leave the empty source just delete it
+  //         this.deleteNode(NodeAssociatedData.getId(currentSplitSource)!);
+  //       }
+  //     }
+  //   }
+
+  //   // What we need to do here:
+  //   // 5) Move nodes
+  //   // 6) if block move latereal and annoations, deal with spanning the gap
+  //   // 7) In span break text styles
+  //   // 8) In general move attached anchors
+  //   // 9) check that when we inesrt nodes we really clone everything!
+  // }
+
+  // public splitNodeAtPath(path: Path | PathString, splitChildIndices: readonly number[]): void {
+  //   const nav = new NodeNavigator(this.document);
+  //   if (!nav.navigateTo(path)) {
+  //     throw new WorkingDocumentError("Cannot navigate to path");
+  //   }
+  //   if (NodeUtils.isGrapheme(nav.tip.node)) {
+  //     throw new WorkingDocumentError("Cannot split a Grapheme");
+  //   }
+  //   const nodeId = this.getId(nav.tip.node);
+  //   if (!nodeId) {
+  //     throw new WorkingDocumentError("Cannot get id to node at path");
+  //   }
+  //   this.splitNode(nodeId, splitChildIndices);
   // }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, payload: Partial<AnchorPayload>): void {
@@ -748,7 +845,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  private moveNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
+  private moveAllNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
     const destArray = destination.children as Grapheme[];
     const sourceArray = source.children as Grapheme[];
     const destArrayOriginalLength = destArray.length;
@@ -814,7 +911,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     sourceArray.splice(0, sourceArrayOriginalLength);
   }
 
-  private moveNodes(
+  private moveAllNodes(
     source: WorkingNode,
     destination: WorkingNode,
     facet: Facet | undefined, // undefined meaning "children"
@@ -875,10 +972,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (pathPart.facet) {
         if (pathPart.index === undefined) {
           // This is easy
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           (parent as any)[pathPart.facet] = undefined;
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           const array = (parent as any)[pathPart.facet];
           if (array && Array.isArray(array)) {
             array.splice(pathPart.index, 1);

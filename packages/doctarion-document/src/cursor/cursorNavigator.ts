@@ -73,21 +73,15 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
 
   public navigateFreeformTo(cursor: Cursor): boolean;
   public navigateFreeformTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public navigateFreeformTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     if (typeof cursorOrPath === "string") {
-      return this.navigateFreeformTo(
-        Path.parse(cursorOrPath),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        maybeOrientation as any
-      );
+      return this.navigateFreeformTo(Path.parse(cursorOrPath), maybeOrientation as any);
     }
 
     let path: Path;
     let orientation: CursorOrientation;
     if ((cursorOrPath as Path).parts?.length >= 0) {
       path = cursorOrPath as Path;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       orientation = maybeOrientation || CursorOrientation.On;
     } else {
       path = (cursorOrPath as Cursor).path;
@@ -149,10 +143,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
    */
   public navigateTo(cursor: Cursor): boolean;
   public navigateTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   public navigateTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
     const temp = this.clone();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!temp.navigateFreeformTo(cursorOrPath, maybeOrientation || CursorOrientation.On)) {
       return false;
     }

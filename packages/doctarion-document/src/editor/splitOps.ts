@@ -34,7 +34,6 @@ export const splitBlock = createCoreOperation<TargetPayload>("splitBlock", (stat
     // const direction = FlowDirection.Forward; // payload.direction || FlowDirection.Backward;
     // const isForward = direction === FlowDirection.Forward;
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const result = navigator.chain.searchBackwardsAndSplit(
       // eslint-disable-next-line @typescript-eslint/unbound-method
       NodeUtils.isBlockContainer
@@ -87,12 +86,10 @@ export const splitBlock = createCoreOperation<TargetPayload>("splitBlock", (stat
           splitChildIndices.push(
             navigator.cursor.orientation === CursorOrientation.Before
               ? 0
-              : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 NodeUtils.getChildren(navigator.tip.node)!.length - 1
           );
         }
       }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       state.splitNode(state.getId(blockNode)!, splitChildIndices);
 
       navigator.navigateFreeformTo(new Chain(...blockContainerSubChain).path);
@@ -100,7 +97,6 @@ export const splitBlock = createCoreOperation<TargetPayload>("splitBlock", (stat
       navigator.navigateToFirstDescendantCursorPosition();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     state.updateAnchor(anchorId!, services.interactors.cursorNavigatorToAnchorPosition(navigator));
   }
 });

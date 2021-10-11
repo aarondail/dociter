@@ -9,7 +9,6 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
 
   public constructor(entries: readonly TextStyleStripEntry[]) {
     super(...entries);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.mutableEntries = this.entries as any;
 
     this.mutableEntries.sort((a, b) => b.graphemeIndex - a.graphemeIndex);
@@ -175,17 +174,13 @@ export interface ReadonlyWorkingTextStyleStrip extends TextStyleStrip {
 
 function mergeStyleModifiers(source: TextStyleModifier, destination: TextStyleModifier): void {
   for (const key of Object.keys(source)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const left = (source as any)[key];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const right = (destination as any)[key];
     if (right === undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       (destination as any)[key] = left;
     } else if (left === right) {
       continue;
     } else if (left === true && right === false) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       delete (destination as any)[key];
     } else if (left === false && right === true) {
       continue;
@@ -194,7 +189,6 @@ function mergeStyleModifiers(source: TextStyleModifier, destination: TextStyleMo
       continue;
     } else if (right === null) {
       // This is like "popping" the style
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       delete (destination as any)[key];
     } else {
       // Leave the destination as is

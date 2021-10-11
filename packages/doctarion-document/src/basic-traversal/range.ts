@@ -114,7 +114,6 @@ export class Range {
         return false;
       },
       add(chain: Chain) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const l = trackingStack[trackingStack.length - 1]!;
         l.foundKidChains.push(chain);
       },
@@ -151,7 +150,6 @@ export class Range {
       // whether we have moved down into a new depth, or up.
       if (chainLengthBefore + 1 === chainLengthAfter) {
         // Parent --> Child
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const p = nav.chain.parent!.node;
         const totalKidCount = getKidCount(p);
         if (totalKidCount > 0) {

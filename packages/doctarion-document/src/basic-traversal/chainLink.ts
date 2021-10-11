@@ -8,7 +8,6 @@ export class ChainLink<T extends Node = Node> {
 
   public constructor(node: T, ...args: T extends Document ? [] : [PathPart]) {
     this.node = node;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     this.pathPart = args[0] as any;
   }
 }

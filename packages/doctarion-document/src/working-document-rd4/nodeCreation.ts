@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
@@ -19,6 +18,7 @@ import {
   Document,
   EntityRef,
   ExtendedComment,
+  Facet,
   Floater,
   Footer,
   Grid,
@@ -30,6 +30,7 @@ import {
   ListItem,
   Media,
   Node,
+  NodeChildrenType,
   Paragraph,
   Sidebar,
   Span,
@@ -111,7 +112,6 @@ export function createWorkingNode(
       n.parent = container;
       n.pathPartFromParent =
         propertyName === "children"
-          ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             new PathPart(index!)
           : index === undefined
           ? new PathPart(propertyName)
@@ -173,6 +173,46 @@ export function createWorkingNode(
   return { root: newRoot as WorkingDocumentRootNode, newNodes, newAnchors };
 }
 
+export function cloneWorkingNodeAsEmptyRegularNode(idGenerator: FriendlyIdGenerator, root: WorkingNode): Node {
+  const mapFacet = (facet: Facet, value: any): any => {
+    if (value instanceof Anchor) {
+      throw new WorkingDocumentError("Cannot create an empty clone of a WorkingNode that has an Anchor");
+    } else if (value instanceof AnchorRange) {
+      throw new WorkingDocumentError("Cannot create an empty clone of a WorkingNode that has an AnchorRange");
+    } else if (value instanceof Node) {
+      throw new WorkingDocumentError(
+        "Cannot create an empty clone of a WorkingNode that has a Node (not array) property"
+      );
+    } else if (value instanceof TextStyleStrip) {
+      return new TextStyleStrip();
+    } else if (Array.isArray(value)) {
+      return [];
+    } else {
+      // This could DEFINITELY do the wrong thing but hopefully does not.
+      return lodash.clone(value);
+    }
+  };
+
+  const mapNode = (node: WorkingNode): Node => {
+    const { ctor } = getNodeConstructorCorrespondingToWorkingNodeInstance(node);
+    const newNode = new ctor() as Node;
+    if (newNode.nodeType.childrenType !== NodeChildrenType.None) {
+      newNode.children = [];
+    }
+
+    const nodeAsAny = node as any;
+    for (const facet of newNode.nodeType.facets) {
+      const value = nodeAsAny[facet.name];
+      (newNode as any)[facet.name] = mapFacet(facet, value);
+    }
+
+    return newNode;
+  };
+
+  const newRoot = mapNode(root);
+  return newRoot;
+}
+
 function anchorToWorkingAnchor(
   idGenerator: FriendlyIdGenerator,
   anchor: Anchor,
@@ -201,9 +241,71 @@ function anchorRangeToWorkingAnchors(
 }
 
 export function createWorkingTextStyleStrip(strip: TextStyleStrip): WorkingTextStyleStrip {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new WorkingTextStyleStrip(lodash.clone(strip.styles) as any, [...strip.indices]);
+  return new WorkingTextStyleStrip(lodash.clone(strip.entries));
 }
+
+const getNodeConstructorCorrespondingToWorkingNodeInstance = (node: WorkingNode): any => {
+  // ANNOTATIONS
+  if (node instanceof WorkingFloater) {
+    return { ctor: Floater, name: "FLOATER" };
+  } else if (node instanceof WorkingFooter) {
+    return { ctor: Footer, name: "FOOTER" };
+  } else if (node instanceof WorkingComment) {
+    return { ctor: Comment, name: "COMMENT" };
+  }
+  // BLOCKS
+  if (node instanceof WorkingParagraph) {
+    return { ctor: Paragraph, name: "PARAGRAPH" };
+  } else if (node instanceof WorkingHeader) {
+    return { ctor: Header, name: "HEADER" };
+  } else if (node instanceof WorkingCodeBlock) {
+    return { ctor: CodeBlock, name: "CODEBLOCK" };
+  } else if (node instanceof WorkingBlockQuote) {
+    return { ctor: BlockQuote, name: "BLOCKQUOTE" };
+  } else if (node instanceof WorkingHero) {
+    return { ctor: Hero, name: "HERO" };
+  } else if (node instanceof WorkingMedia) {
+    return { ctor: Media, name: "MEDIA" };
+  }
+  // DOCUMENT
+  if (node instanceof WorkingDocumentRootNode) {
+    return { ctor: Document, name: "DOCUMENT" };
+  }
+  // INLINES
+  if (node instanceof WorkingSpan) {
+    return { ctor: Span, name: "SPAN" };
+  } else if (node instanceof WorkingHyperlink) {
+    return { ctor: Hyperlink, name: "HYPERLINK" };
+  } else if (node instanceof WorkingEntityRef) {
+    return { ctor: EntityRef, name: "ENTITYREF" };
+  } else if (node instanceof WorkingTodo) {
+    return { ctor: Todo, name: "TODO" };
+  } else if (node instanceof WorkingTag) {
+    return { ctor: Tag, name: "TAG" };
+  }
+  // LATERALS
+  if (node instanceof WorkingSidebar) {
+    return { ctor: Sidebar, name: "SIDEBAR" };
+  } else if (node instanceof WorkingExtendedComment) {
+    return { ctor: ExtendedComment, name: "EXTENDEDCOMMENT" };
+  }
+  // SUPER BLOCKS
+  if (node instanceof WorkingList) {
+    return { ctor: List, name: "LIST" };
+  } else if (node instanceof WorkingListItem) {
+    return { ctor: ListItem, name: "LISTITEM" };
+  } else if (node instanceof WorkingGrid) {
+    return { ctor: Grid, name: "GRID" };
+  } else if (node instanceof WorkingGridCell) {
+    return { ctor: GridCell, name: "GRIDCELL" };
+  } else if (node instanceof WorkingColumns) {
+    return { ctor: Columns, name: "COLUMNS" };
+  } else if (node instanceof WorkingColumn) {
+    return { ctor: Column, name: "COLUMN" };
+  } else if (node instanceof WorkingAutoFlowColumns) {
+    return { ctor: AutoFlowColumns, name: "AUTOFLOWCOLUMNS" };
+  }
+};
 
 const getWorkingNodeConstructorCorrespondingToNodeInstance = (node: Node): any => {
   // ANNOTATIONS
@@ -276,7 +378,6 @@ const getWorkingNodeConstructorCorrespondingToNodeInstance = (node: Node): any =
 //       idGenerator.generateId("FLOATER"),
 //       children,
 //       // Cheat with the working node
-//       // eslint-disable-next-line @typescript-eslint/no-explicit-any
 //       anchorOrAnchorRangeToWorkingAnchors(idGenerator, node.anchors, node as any),
 //       node.placement
 //     );
@@ -297,7 +398,6 @@ const getWorkingNodeConstructorCorrespondingToNodeInstance = (node: Node): any =
 //       idGenerator.generateId("FOOTER"),
 //       children,
 //       // Cheat with the working node
-//       // eslint-disable-next-line @typescript-eslint/no-explicit-any
 //       anchorToWorkingAnchors(idGenerator, node.anchor, node as any)
 //     );
 //     children.forEach((c) => (c.parent = newNode));
@@ -309,7 +409,6 @@ const getWorkingNodeConstructorCorrespondingToNodeInstance = (node: Node): any =
 //       idGenerator.generateId("FLOATER"),
 //       children,
 //       // Cheat with the working node
-//       // eslint-disable-next-line @typescript-eslint/no-explicit-any
 //       anchorOrAnchorRangeToWorkingAnchors(idGenerator, node.anchors, node as any),
 //       node.placement
 //     );

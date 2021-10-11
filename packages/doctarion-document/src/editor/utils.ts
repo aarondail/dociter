@@ -212,7 +212,6 @@ export function selectTargets(
   getTargetedInteractorIds(target, state).forEach(recordResult);
   if (ordered && result.length > 1) {
     result.sort((left, right) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const cmp = left.firstCursor!.compareTo(right.firstCursor!);
       switch (cmp) {
         case SimpleComparison.Before:

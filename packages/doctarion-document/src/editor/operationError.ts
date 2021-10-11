@@ -8,7 +8,6 @@ export enum EditorOperationErrorCode {
 }
 
 export class EditorOperationError extends Error {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(public readonly code: EditorOperationErrorCode, message?: string) {
     super(message);
   }

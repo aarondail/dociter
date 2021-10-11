@@ -73,7 +73,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // Assign initial node ids
     const n = new NodeNavigator(this.document);
     n.navigateToStartOfDfs();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.processNodeCreated(this.document as any, undefined);
     n.traverseDescendants((node, parent) => this.processNodeCreated(node as immer.Draft<ObjectNode>, parent), {
       skipGraphemes: true,
@@ -101,7 +100,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.anchors[anchorId] = anchor;
 
     if (relatedInteractorId) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.eventEmitters.interactorUpdated.emit(this.interactors[relatedInteractorId]!);
     }
     return anchor;
@@ -118,9 +116,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const id = this.idGenerator.generateId("INTERACTOR");
     // We are giving this an undefined mainAnchor, which is cheating, but is
     // convenient here. We set it in updateInteractor so its ok.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newInteractor = new Interactor(id, undefined as any, status, undefined, undefined, name);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.interactors[id] = newInteractor;
     this.updateInteractor(id, { to: at, ...otherOptions });
     this.eventEmitters.interactorUpdated.emit(newInteractor);
@@ -140,7 +136,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     delete this.anchors[id];
 
     if (resolvedAnchor.relatedInteractorId) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.eventEmitters.interactorUpdated.emit(this.interactors[resolvedAnchor.relatedInteractorId]!);
     }
   }
@@ -264,7 +259,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     immer.castDraft(resolvedNode.text).splice(graphemeIndex, 0, ...text);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.adjustAnchorPositionsAfterTextInsertion(NodeAssociatedData.getId(resolvedNode)!, graphemeIndex, text.length);
   }
 
@@ -440,34 +434,26 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     let currentSplitSource: ObjectNode = resolvedTarget;
     let currentSplitDest = newSplitRoot;
     for (const splitIndex of splitChildIndices) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const current = currentSplitSource.children![splitIndex]!;
       if (NodeUtils.isGrapheme(current)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const textLeft = currentSplitSource.children!.slice(0, splitIndex);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const textRight = currentSplitSource.children!.slice(splitIndex);
         immer.castDraft(currentSplitSource).children = immer.castDraft(textLeft);
         immer.castDraft(currentSplitDest).children = immer.castDraft(textRight);
 
         this.adjustAnchorPositionsAfterTextContainingNodeSplit(
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           NodeAssociatedData.getId(currentSplitSource)!,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           NodeAssociatedData.getId(currentSplitDest)!,
           splitIndex
         );
 
         if (splitIndex === 0) {
           // In this case, don't leave the empty source just delete it
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.deleteNode(NodeAssociatedData.getId(currentSplitSource)!);
         }
       } else if (current instanceof InlineEmoji) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const splitOutKids = immer
           .castDraft(currentSplitSource)
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           .children!.splice(splitIndex, currentSplitSource.children!.length - splitIndex);
         for (const kid of splitOutKids) {
           this.processNodeMoved(kid, currentSplitDest);
@@ -477,10 +463,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         // Split the kids of the CURRENT SPLIT SOURCE, after the CURRENT node
         // (which will become the current split source and be modified in the
         // next loop)...
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const splitOutKids = immer
           .castDraft(currentSplitSource)
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           .children!.splice(splitIndex + 1, currentSplitSource.children!.length - splitIndex);
         for (const kid of splitOutKids) {
           this.processNodeMoved(kid, currentSplitDest);
@@ -489,12 +473,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
         if ((current.children?.length || 0) === 0) {
           // In this case, don't leave the empty source just delete it
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           this.deleteNode(NodeAssociatedData.getId(current)!);
         }
 
         const newSplitNode: ObjectNode = NodeUtils.cloneWithoutContents(current);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         splitOutKids.unshift(newSplitNode as any);
         this.processNodeCreated(newSplitNode, currentSplitDest);
         currentSplitDest = newSplitNode;
@@ -534,7 +516,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   ): void;
   updateAnchor(
     id: AnchorId,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     nodeIdOrUpdates: any,
     orientation?: AnchorOrientation,
     graphemeIndex?: number | undefined
@@ -546,9 +527,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (typeof nodeIdOrUpdates === "string") {
       immer.castDraft(anchor).nodeId = nodeIdOrUpdates;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       immer.castDraft(anchor).orientation = orientation!;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion
       immer.castDraft(anchor).graphemeIndex = graphemeIndex!;
     } else {
       /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
@@ -568,7 +547,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters.anchorUpdated.emit(anchor);
 
     if (anchor.relatedInteractorId) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.eventEmitters.interactorUpdated.emit(this.interactors[anchor.relatedInteractorId]!);
     }
   }
@@ -951,7 +929,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   private processNodeCreated(node: ObjectNode, parent: Node | NodeId | undefined): NodeId {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const nodeId = this.idGenerator.generateId((node as any).kind || "DOCUMENT");
     const parentId = parent && (typeof parent === "string" ? parent : NodeAssociatedData.getId(parent));
     NodeAssociatedData.assignId(node, nodeId);

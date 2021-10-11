@@ -152,7 +152,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
               ? target.navigator.tip.pathPart.index + 0
               : target.navigator.tip.pathPart.index + 1;
 
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           state.splitNode(state.getId(target.navigator.parent.node)!, [insertionIndex]);
 
           // Then do insertion like above
@@ -184,7 +183,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
         const inline = isText
           ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
           : payload.inline;
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const parent = target.navigator.parent?.node;
         if (!parent || !NodeUtils.isInlineContainer(parent)) {
           throw new EditorOperationError(EditorOperationErrorCode.UnexpectedState);
@@ -216,7 +214,6 @@ export const insert = createCoreOperation<InsertPayload>("insert", (state, servi
           const inline = isText
             ? new InlineText(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
             : payload.inline;
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const parent = target.navigator.parent?.node;
           if (!parent || !NodeUtils.isInlineContainer(parent)) {
             throw new EditorOperationError(EditorOperationErrorCode.UnexpectedState);

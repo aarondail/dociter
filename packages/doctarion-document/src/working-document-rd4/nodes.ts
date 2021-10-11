@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PathPart } from "../basic-traversal-rd4";
 import {
   Anchor,
@@ -93,7 +92,6 @@ function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) =
     }
 
     setFacet(facet: Facet, value: unknown): void {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       (this as any)[facet.name] = value;
     }
 

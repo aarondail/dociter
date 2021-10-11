@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { HeaderLevel } from "../../src/document-model";
 import { Anchor, AnchorOrientation, NodeId, WorkingDocument } from "../../src/working-document";
 import { doc, header, inlineEmoji, inlineText, inlineUrlLink, nodeToXml, paragraph } from "../utils";

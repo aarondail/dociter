@@ -164,7 +164,6 @@ SLICE:  HEADER ONE > TEXT {} > "H1"`);
 
   it("when merging blocks forward, an anchor on a empty block is moved appropriately", () => {
     const editor = new Editor({ document: testDoc1 });
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, name: "α" }));
     editor.execute(OPS.jump({ to: { path: "1/2/0", orientation: After } }));
 

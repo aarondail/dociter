@@ -44,7 +44,6 @@ SLICE:  PARAGRAPH > URL_LINK g.com > "GOOGLE"`);
 
   it("handles multiple cursors", () => {
     const editor = new Editor({ document: testDoc1 });
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     editor.execute(OPS.updateInteractor({ id: editor.state.focusedInteractor!.id, name: "α" }));
 
     // Jump to "GOOGLE" text of the url link

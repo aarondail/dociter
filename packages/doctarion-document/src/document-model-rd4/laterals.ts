@@ -15,6 +15,7 @@ export const SidebarType: NodeType = new NodeType(
   FacetMap.empty
 );
 
+// TODO does this need an anchor or is it ok if applies to the whole block?
 export class Sidebar extends Lateral {
   public constructor(public readonly children: readonly BlockNode[]) {
     super();
@@ -25,6 +26,7 @@ export class Sidebar extends Lateral {
   }
 }
 
+// TODO should this be an anchor range?
 export const ExtendedCommentType: NodeType = new NodeType(
   "ExtendedComment",
   NodeCategory.Lateral,

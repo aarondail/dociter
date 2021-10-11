@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
 import lodash from "lodash";
@@ -115,7 +114,6 @@ export const DebugEditorHelpers = (() => {
         // Graphemes don't need to be individually written
         break;
       }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       chunks.push(debugSoloNode(node));
     }
     return chunks.join(" > ");
@@ -174,7 +172,6 @@ export const DebugEditorHelpers = (() => {
     return interactors
       .map((i, index) => {
         const a = i.getAnchor(InteractorAnchorType.Main);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const c = debugCursor(editor.state.getAnchor(a!), nav, editor.state, editor);
         const cursorDebug = c.cursorDebug;
 
@@ -182,7 +179,6 @@ export const DebugEditorHelpers = (() => {
         let mainFirst = false;
         if (i.isSelection) {
           const sa = i.getAnchor(InteractorAnchorType.SelectionAnchor);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const saC = debugCursor(editor.state.getAnchor(sa!), nav, editor.state, editor);
           saCursorDebug = saC.cursorDebug;
           mainFirst = !!(c.cursor && saC.cursor && c.cursor.compareTo(saC.cursor) !== SimpleComparison.After);
@@ -214,7 +210,6 @@ export const DebugEditorHelpers = (() => {
         editor
       );
       const { cursorDebug: cursorDebug2, chain: chain2 } = debugCursor(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         editor.state.getAnchor(interactor.selectionAnchor!),
         nav,
         editor.state,
@@ -292,18 +287,12 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
 
   const debugBlockAtInteractor = (editor: Editor, interactorId: InteractorId): string => {
     const i = editor.state.getAllInteractors().find((x) => x.id === interactorId);
-    const mainCursor = editor.anchorToCursor(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      editor.state.getAnchor(i!.mainAnchor)!
-    );
+    const mainCursor = editor.anchorToCursor(editor.state.getAnchor(i!.mainAnchor)!);
     if (!mainCursor) {
       throw Error("Could not convert main anchor into cursor");
     }
     const selectionAnchorCursor =
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      i!.selectionAnchor &&
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      editor.anchorToCursor(editor.state.getAnchor(i!.selectionAnchor)!);
+      i!.selectionAnchor && editor.anchorToCursor(editor.state.getAnchor(i!.selectionAnchor)!);
     if (selectionAnchorCursor) {
       const path1 = "" + mainCursor.path?.parts[0]?.index;
       const path2 = "" + selectionAnchorCursor.path?.parts[0]?.index;
@@ -320,7 +309,6 @@ ${JSON.stringify(editor.state.document.children, undefined, 4)}
   };
 
   const debugCurrentBlock = (editor: Editor): string => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const i = editor.state.focusedInteractor!;
     const c = i.mainAnchor;
     if (!c) {
@@ -382,7 +370,6 @@ export function nodeToXml(node: ObjectNode, includeIds?: boolean): string {
       s += p(Text.toString(node.children), ind + 2);
     } else {
       for (const k of NodeUtils.getChildren(node) || []) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         s += debugPrime(k as any, ind + 2);
       }
     }

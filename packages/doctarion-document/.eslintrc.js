@@ -63,5 +63,7 @@ module.exports = {
       { allowNumber: true, allowNullish: true, allowAny: true, allowBoolean: true },
     ],
     "@typescript-eslint/restrict-plus-operands": ["off"],
+    "@typescript-eslint/no-non-null-assertion": ["off"],
+    "@typescript-eslint/no-explicit-any": ["off"],
   },
 };

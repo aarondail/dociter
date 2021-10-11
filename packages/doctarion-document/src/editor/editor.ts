@@ -18,7 +18,6 @@ export interface EditorConfig {
   // For reasons I dont fully understand typescript doesn't allow you to pass an
   // element with type `EditorOperation<void, void>` if we use `unknown` instead of
   // `any` here.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly additionalOperations?: readonly EditorOperation<any, unknown, string>[];
   readonly document: Document;
   readonly cursor?: Cursor;

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CursorOrientation } from "../../src/cursor";
 import { HeaderLevel } from "../../src/document-model";
 import { Editor, OPS } from "../../src/editor";

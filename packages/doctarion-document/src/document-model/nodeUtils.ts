@@ -57,7 +57,6 @@ export const NodeUtils = {
   },
 
   isInlineContainer(node: Node): node is InlineContainingNode {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const k = (node as any).kind;
     return k === NodeKind.ParagraphBlock || k === NodeKind.HeaderBlock;
   },
@@ -67,7 +66,6 @@ export const NodeUtils = {
   },
 
   isInlineText(node: Node): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     return (node as any).kind === NodeKind.InlineText;
   },
 
@@ -76,7 +74,6 @@ export const NodeUtils = {
   },
 
   isTextContainer(node: Node): node is TextContainingNode {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const k = (node as any).kind;
     return k === NodeKind.InlineText || k === NodeKind.InlineUrlLink;
   },
@@ -95,7 +92,6 @@ export const NodeUtils = {
     } else if (node instanceof InlineEmoji) {
       return handlers.onInlineEmoji(node);
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return handlers.onDocument(node as any);
     }
   },

@@ -62,7 +62,6 @@ class MarkedAnchorDueToNodeDeletionSet {
     }
 
     if (graphemeRelated) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const currentCount = this.map.get(anchorId)!;
       if (currentCount === true) {
         // Whole object deletion (what true means here) overrides grapheme related stuff
@@ -84,7 +83,6 @@ class MarkedAnchorDueToNodeDeletionSet {
 
     const result: MarkedAnchorDueToNodeDeletionEntry[] = [];
     for (const [anchorId, boolOrNumber] of this.map.entries()) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const anchor = this.document.getAnchor(anchorId)!;
       const interactor = anchor.relatedInteractorId
         ? this.document.getInteractor(anchor.relatedInteractorId)
