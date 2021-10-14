@@ -1,49 +1,18 @@
-import { Annotation } from "./annotations";
 import { Facet, FacetMap } from "./facets";
 import { Inline } from "./inlines";
-import { Lateral } from "./laterals";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
-class BlockNodeType extends NodeType {
-  private static readonly baseFacets = new FacetMap(
-    Facet.nodeArray("annotations", NodeCategory.Annotation),
-    Facet.nodeArray("laterals", NodeCategory.Lateral)
-  );
+export abstract class BlockNode extends Node {}
 
-  public constructor(name: string, childrenType: NodeChildrenType, extraFacets?: FacetMap) {
-    super(
-      name,
-      NodeCategory.Block,
-      childrenType,
-      extraFacets ? extraFacets.extend(BlockNodeType.baseFacets) : BlockNodeType.baseFacets
-    );
-  }
-}
-
-export abstract class BlockNode extends Node {
-  /**
-   * The reason Annotations are on a Block rather than Inlines is that
-   * they can _span_ across inlines. Other than that, it would probably make sense
-   * to have the inlines own these.
-   */
-  public abstract annotations: readonly Annotation[];
-  /**
-   * Unlike the Annotations, Laterals (i.e., Sidebars and ExtendedComments),
-   * these probably could be owned at the Document level. The reason they are
-   * here is to intentionally say that they belong on a single Block, even if
-   * they theoretically span blocks. We may change that later.
-   */
-  public abstract laterals: readonly Lateral[];
-}
-
-export const ParagraphType: NodeType = new BlockNodeType("Paragraph", NodeChildrenType.Inlines);
+export const ParagraphType: NodeType = new NodeType(
+  "Paragraph",
+  NodeCategory.Block,
+  NodeChildrenType.Inlines,
+  FacetMap.empty
+);
 
 export class Paragraph extends BlockNode {
-  public constructor(
-    public readonly children: readonly Inline[],
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor(public readonly children: readonly Inline[]) {
     super();
   }
 
@@ -52,16 +21,17 @@ export class Paragraph extends BlockNode {
   }
 }
 
-export const BlockQuoteType: NodeType = new BlockNodeType("BlockQuote", NodeChildrenType.Inlines);
+export const BlockQuoteType: NodeType = new NodeType(
+  "BlockQuote",
+  NodeCategory.Block,
+  NodeChildrenType.Inlines,
+  FacetMap.empty
+);
 
 export class BlockQuote extends BlockNode {
   public static readonly nodeName = "BlockQuote";
 
-  public constructor(
-    public readonly children: readonly Inline[],
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor(public readonly children: readonly Inline[]) {
     super();
   }
 
@@ -69,16 +39,17 @@ export class BlockQuote extends BlockNode {
     return BlockQuoteType;
   }
 }
-export const HeroType: NodeType = new BlockNodeType("BlockQuote", NodeChildrenType.Inlines);
+export const HeroType: NodeType = new NodeType(
+  "BlockQuote",
+  NodeCategory.Block,
+  NodeChildrenType.Inlines,
+  FacetMap.empty
+);
 
 export class Hero extends BlockNode {
   public static readonly nodeName = "Hero";
 
-  public constructor(
-    public readonly children: readonly Inline[],
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor(public readonly children: readonly Inline[]) {
     super();
   }
 
@@ -87,20 +58,12 @@ export class Hero extends BlockNode {
   }
 }
 
-export const MediaType: NodeType = new BlockNodeType("Media", NodeChildrenType.None);
+export const MediaType: NodeType = new NodeType("Media", NodeCategory.Block, NodeChildrenType.None, FacetMap.empty);
 
-/**
- * It might seem like Media should not be a ContentBlock, but we do want
- * laterals (sidebars), and if we at some provide editable facets (e.g. caption)
- * it sorta makes sense that we could have annotations on those.
- */
 export class Media extends BlockNode {
   public readonly children: undefined;
 
-  public constructor(
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor() {
     super();
   }
 
@@ -109,19 +72,15 @@ export class Media extends BlockNode {
   }
 }
 
-export const CodeBlockType: NodeType = new BlockNodeType(
+export const CodeBlockType: NodeType = new NodeType(
   "CodeBlock",
+  NodeCategory.Block,
   NodeChildrenType.Inlines,
   new FacetMap(Facet.text("language", true))
 );
 
 export class CodeBlock extends BlockNode {
-  public constructor(
-    public readonly children: readonly Inline[],
-    public readonly language?: Text,
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor(public readonly children: readonly Inline[], public readonly language?: Text) {
     super();
   }
 
@@ -136,19 +95,15 @@ export enum HeaderLevel {
   Three = "THREE",
 }
 
-export const HeaderType: NodeType = new BlockNodeType(
+export const HeaderType: NodeType = new NodeType(
   "Header",
+  NodeCategory.Block,
   NodeChildrenType.Inlines,
   new FacetMap(Facet.enum("level", Object.values(HeaderLevel)))
 );
 
 export class Header extends BlockNode {
-  public constructor(
-    public readonly children: readonly Inline[],
-    public readonly level: HeaderLevel,
-    public readonly annotations: readonly Annotation[] = [],
-    public readonly laterals: readonly Lateral[] = []
-  ) {
+  public constructor(public readonly children: readonly Inline[], public readonly level: HeaderLevel) {
     super();
   }
 

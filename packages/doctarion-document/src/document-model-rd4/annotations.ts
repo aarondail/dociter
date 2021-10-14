@@ -4,7 +4,8 @@ import { Inline } from "./inlines";
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "./node";
 
 /**
- * Annotations appear with content in blocks (and such), rather than off "to the side",
+ * Annotations appear sorta in place with content in blocks (and such), rather
+ * than off "to the side",
  */
 export abstract class Annotation extends Node {}
 
@@ -54,7 +55,7 @@ export const CommentType: NodeType = new NodeType(
   "Comment",
   NodeCategory.Annotation,
   NodeChildrenType.Inlines,
-  new FacetMap(Facet.anchor("anchor"))
+  new FacetMap(Facet.anchorOrAnchorRange("anchors"))
 );
 
 /**
@@ -62,7 +63,7 @@ export const CommentType: NodeType = new NodeType(
  * Lateral ExtendedComment).
  */
 export class Comment extends Annotation {
-  public constructor(public readonly children: readonly Inline[], public readonly anchor: Anchor) {
+  public constructor(public readonly children: readonly Inline[], public readonly anchors: Anchor | AnchorRange) {
     super();
   }
 

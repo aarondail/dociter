@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { NodeNavigator, Path, PseudoNode } from "../basic-traversal-rd4";
-import { Document, Node, NodeChildrenType } from "../document-model-rd4";
+import { NodeNavigator, Path, PathPart, PseudoNode } from "../basic-traversal-rd4";
+import { Document, Facet, Node, NodeChildrenType } from "../document-model-rd4";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 
 import { AnchorPayload, WorkingAnchor, WorkingAnchorRange } from "./anchor";
@@ -93,6 +93,34 @@ export const Utils = {
             toVisit.push(value);
           }
         }
+      }
+    }
+  },
+  updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(
+    node: WorkingNode,
+    facet?: Facet | undefined,
+    startingIndex?: number
+  ) {
+    if (facet) {
+      const facetValue = node.getFacetValue(facet);
+      if (!facetValue) {
+        return;
+      }
+
+      const kids = facetValue as WorkingNode[];
+      for (let i = startingIndex ?? 0; i < kids.length; i++) {
+        const kid = kids[i];
+        kid.parent = node;
+        kid.pathPartFromParent = new PathPart(facet.name, i);
+      }
+    } else {
+      if (!node.children) {
+        return;
+      }
+      for (let i = startingIndex ?? 0; i < node.children.length; i++) {
+        const kid = node.children[i] as WorkingNode;
+        kid.pathPartFromParent = new PathPart(i);
+        kid.parent = node;
       }
     }
   },

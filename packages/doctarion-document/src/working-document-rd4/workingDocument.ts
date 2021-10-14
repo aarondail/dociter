@@ -243,6 +243,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedParentNode.children!.splice(index, 0, workingNode);
     }
 
+    Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(resolvedParentNode, resolvedFacet, index);
+
     return workingNode;
   }
 
@@ -533,113 +535,102 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  // public splitNode(node: NodeId | ReadonlyWorkingNode, splitChildIndices: readonly number[]): void {
-  //   const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
-  //   if (!resolvedNode) {
-  //     throw new WorkingDocumentError("Unknown node");
-  //   }
-  //   if (!resolvedNode.parent || resolvedNode.pathPartFromParent?.index === undefined) {
-  //     throw new WorkingDocumentError("Unknown node parent");
-  //   }
+  public splitNode(node: NodeId | ReadonlyWorkingNode, splitChildIndices: readonly number[]): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    if (!resolvedNode.parent || resolvedNode.pathPartFromParent?.index === undefined) {
+      throw new WorkingDocumentError("Unknown node parent");
+    }
 
-  //   if (splitChildIndices.length === 0) {
-  //     throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
-  //   }
+    if (splitChildIndices.length === 0) {
+      throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
+    }
 
-  //   if (!Utils.canNodeBeSplit(resolvedNode)) {
-  //     throw new WorkingDocumentError("Node cannot be split");
-  //   }
+    // Make sure we can split nodes
+    const nav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
+    for (let i = 0; i < splitChildIndices.length; i++) {
+      const childIndex = splitChildIndices[i];
+      if (!nav.navigateToChild(childIndex)) {
+        throw new WorkingDocumentError("Could not find target");
+      }
+      if (i < splitChildIndices.length - 1) {
+        if (!Utils.canNodeBeSplit(nav.tip.node)) {
+          throw new WorkingDocumentError("Node cannot be split");
+        }
+      }
+    }
 
-  //   const startingNav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
-  //   const startingNodeChainIndex = startingNav.chain.length - 1;
-  //   const nav = startingNav.clone();
-  //   for (let i = 0; i < splitChildIndices.length; i++) {
-  //     const childIndex = splitChildIndices[i];
-  //     if (!nav.navigateToChild(childIndex)) {
-  //       throw new WorkingDocumentError("Could not find target");
-  //     }
-  //     if (i < splitChildIndices.length - 1) {
-  //       if (!Utils.canNodeBeSplit(nav.tip.node)) {
-  //         throw new WorkingDocumentError("Node cannot be split");
-  //       }
-  //     }
-  //   }
+    if (!Utils.canNodeBeSplit(resolvedNode)) {
+      throw new WorkingDocumentError("Node cannot be split");
+    }
 
-  //   const clone: Node = cloneWorkingNodeAsEmptyRegularNode(this.idGenerator, resolvedNode);
-  //   const newWorkingRoot = this.insertNode(
-  //     resolvedNode.parent,
-  //     clone,
-  //     resolvedNode.pathPartFromParent.index + 1
-  //   ) as WorkingNode;
+    const clone: Node = cloneWorkingNodeAsEmptyRegularNode(this.idGenerator, resolvedNode);
+    const newWorkingRoot = this.insertNode(
+      resolvedNode.parent,
+      clone,
+      resolvedNode.pathPartFromParent.index + 1
+    ) as WorkingNode;
 
-  //   let currentSplitSource: WorkingNode = resolvedNode;
-  //   let currentSplitDest = newWorkingRoot;
-  //   for (let i = 0; i < splitChildIndices.length; i++) {
-  //     const childIndex = splitChildIndices[i];
-  //     const isLastSplit = i === splitChildIndices.length - 1;
+    let currentSplitSource: WorkingNode = resolvedNode;
+    let currentSplitDest = newWorkingRoot;
+    for (let i = 0; i < splitChildIndices.length; i++) {
+      const childIndex = splitChildIndices[i];
 
-  //     const splitTarget = currentSplitSource.children![childIndex];
+      const isLastSplit = i === splitChildIndices.length - 1;
+      if (currentSplitSource.nodeType.hasNodeChildren()) {
+        const splitOutKids = currentSplitSource.children!.splice(
+          childIndex,
+          currentSplitSource.children!.length - childIndex
+        ) as WorkingNode[];
+        currentSplitDest.children = [...splitOutKids, ...currentSplitDest.children!] as any;
 
-  //     if (splitTarget instanceof Node) {
-  //       // Split the kids of the CURRENT SPLIT SOURCE, after the CURRENT node
-  //       // (which will become the current split source and be modified in the
-  //       // next loop)...
-  //       const splitOutKids = currentSplitSource.children!.splice(
-  //         childIndex,
-  //         currentSplitSource.children!.length - childIndex
-  //       );
-  //       for (const kid of splitOutKids) {
-  //         this.processNodeMoved(kid, currentSplitDest);
-  //       }
-  //       currentSplitDest.children = splitOutKids;
+        if (isLastSplit) {
+          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
+        } else {
+          // Split the kids of the CURRENT SPLIT SOURCE, after the BOUNDARY child
+          // node (which will become the current split source and be modified in
+          // the next loop)...
+          const boundaryNodeThatWeAreGoingToSplitMore = currentSplitDest.children![0] as WorkingNode;
 
-  //       const newSplitNode: ObjectNode = NodeUtils.cloneWithoutContents(splitTarget);
-  //       splitOutKids.unshift(newSplitNode as any);
-  //       this.processNodeCreated(newSplitNode, currentSplitDest);
-  //       currentSplitDest = newSplitNode;
-  //       currentSplitSource = splitTarget;
-  //     } else {
-  //       // Its a grapheme
-  //       const textLeft = currentSplitSource.children!.slice(0, childIndex);
-  //       const textRight = currentSplitSource.children!.slice(childIndex);
-  //       immer.castDraft(currentSplitSource).children = immer.castDraft(textLeft);
-  //       immer.castDraft(currentSplitDest).children = immer.castDraft(textRight);
+          const boundaryNodeToAddToDest = cloneWorkingNodeAsEmptyRegularNode(
+            this.idGenerator,
+            boundaryNodeThatWeAreGoingToSplitMore
+          );
+          // Return the boundary node original to the parent and put the spilt version in the destination
+          currentSplitSource.children!.push(boundaryNodeThatWeAreGoingToSplitMore as any);
+          currentSplitDest.children!.shift(); // We will insert the new node it below
 
-  //       this.adjustAnchorPositionsAfterTextContainingNodeSplit(
-  //         NodeAssociatedData.getId(currentSplitSource)!,
-  //         NodeAssociatedData.getId(currentSplitDest)!,
-  //         childIndex
-  //       );
+          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
 
-  //       if (childIndex === 0) {
-  //         // In this case, don't leave the empty source just delete it
-  //         this.deleteNode(NodeAssociatedData.getId(currentSplitSource)!);
-  //       }
-  //     }
-  //   }
+          // Finally insert the new boundary node and set it for the next iteration
+          currentSplitDest = this.insertNode(currentSplitDest, boundaryNodeToAddToDest, 0) as WorkingNode;
+          currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
+        }
+      } else {
+        if (!isLastSplit) {
+          throw new WorkingDocumentError("Unexpectedly tried to split graphemes");
+        }
 
-  //   // What we need to do here:
-  //   // 5) Move nodes
-  //   // 6) if block move latereal and annoations, deal with spanning the gap
-  //   // 7) In span break text styles
-  //   // 8) In general move attached anchors
-  //   // 9) check that when we inesrt nodes we really clone everything!
-  // }
+        // In this case (graphemes) we may need to move anchors that are on
+        // the graphemes... and split the TextStyleStrips
+        for (const anchor of currentSplitSource.attachedAnchors.values()) {
+          if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= childIndex) {
+            this.updateAnchor(anchor, {
+              node: currentSplitDest,
+              graphemeIndex: anchor.graphemeIndex - childIndex,
+            });
+          }
+        }
 
-  // public splitNodeAtPath(path: Path | PathString, splitChildIndices: readonly number[]): void {
-  //   const nav = new NodeNavigator(this.document);
-  //   if (!nav.navigateTo(path)) {
-  //     throw new WorkingDocumentError("Cannot navigate to path");
-  //   }
-  //   if (NodeUtils.isGrapheme(nav.tip.node)) {
-  //     throw new WorkingDocumentError("Cannot split a Grapheme");
-  //   }
-  //   const nodeId = this.getId(nav.tip.node);
-  //   if (!nodeId) {
-  //     throw new WorkingDocumentError("Cannot get id to node at path");
-  //   }
-  //   this.splitNode(nodeId, splitChildIndices);
-  // }
+        for (const [facet, strip] of currentSplitSource.getAllFacetTextStyleStrips()) {
+          const newStrip: WorkingTextStyleStrip = (strip as WorkingTextStyleStrip).updateAndSplitAt(childIndex);
+          currentSplitDest.setFacet(facet, newStrip);
+        }
+      }
+    }
+  }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, payload: Partial<AnchorPayload>): void {
     const resolvedAnchor = this.anchorLookup.get(typeof anchor === "string" ? anchor : anchor.id);
@@ -897,7 +888,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
         const boundaryIndex = prepend ? sourceArrayOriginalLength : destArrayOriginalLength;
         const resolvedStyle = destStrip.resolveStyleAt(boundaryIndex - 1);
-        const modifierAtBoundary = destStrip.getModifierAt(boundaryIndex);
+        const modifierAtBoundary = destStrip.getModifierAtExactly(boundaryIndex);
         const revertStyleModifier = TextStyle.createModifierToResetStyleToDefaults(resolvedStyle);
 
         destStrip.setModifier(boundaryIndex, { ...revertStyleModifier, ...modifierAtBoundary });

@@ -33,7 +33,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     this.mutableEntries.splice(0, this.entries.length);
   }
 
-  public getModifierAt(graphemeIndex: number): TextStyleModifier | undefined {
+  public getModifierAtExactly(graphemeIndex: number): TextStyleModifier | undefined {
     const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
     if (r && r.exactMatch) {
       return this.entries[r.entryIndex].modifier;
@@ -67,6 +67,39 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     } else {
       this.mutableEntries.splice(i - 1, 0, { modifier, graphemeIndex });
     }
+  }
+
+  public updateAndSplitAt(splitAtGraphemeIndex: number): WorkingTextStyleStrip {
+    const r = this.searchForEntryAtOrAfterGraphemeIndex(splitAtGraphemeIndex);
+
+    let splitBoundaryEntryIndex = 0;
+    if (r) {
+      ({ entryIndex: splitBoundaryEntryIndex } = r);
+    }
+
+    // Collect styles before index
+    const styleAtSplitOnRightSide = this.resolveStyleAt(splitAtGraphemeIndex);
+    const modifierEntriesToMoveRight = this.mutableEntries.splice(
+      splitBoundaryEntryIndex,
+      this.mutableEntries.length - splitBoundaryEntryIndex
+    );
+
+    const split = new WorkingTextStyleStrip([]);
+    split.mutableEntries = modifierEntriesToMoveRight;
+    split.entries = split.mutableEntries;
+    for (const entry of split.mutableEntries) {
+      entry.graphemeIndex -= splitAtGraphemeIndex;
+    }
+
+    const modifierAtVeryBeginningOfSplitRight = this.getModifierAtExactly(0);
+    if (modifierAtVeryBeginningOfSplitRight) {
+      for (const key of Object.keys(modifierAtVeryBeginningOfSplitRight)) {
+        delete (styleAtSplitOnRightSide as any)[key];
+      }
+    }
+
+    split.setModifier(0, styleAtSplitOnRightSide);
+    return split;
   }
 
   public updateDueToGraphemeDeletion(graphemeIndex: number, count: number): void {
