@@ -1,5 +1,5 @@
 import { Node } from "../document-model-rd4";
-import { FancyGrapheme } from "../text-model-rd4";
+import { FancyGrapheme, Grapheme } from "../text-model-rd4";
 
 export type PseudoNode = Node | FancyGrapheme;
 
@@ -11,7 +11,7 @@ export const PseudoNode = {
     return undefined;
   },
 
-  isGrapheme(node: PseudoNode): node is FancyGrapheme {
+  isGraphemeOrFancyGrapheme(node: PseudoNode): node is Grapheme {
     return !(node instanceof Node);
   },
 };

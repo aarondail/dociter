@@ -34,10 +34,11 @@ export class NodeType {
   ) {
     // eslint-disable @typescript-eslint/unbound-method
     this.canContainChildrenOfType = lodash.once(this.canContainChildrenOfType);
+    this.doesNotHaveChildren = lodash.once(this.doesNotHaveChildren);
     this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
     this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
-    this.hasFancyGraphemeChildren = lodash.once(this.hasFancyGraphemeChildren);
-    this.hasGraphemeChildren = lodash.once(this.hasGraphemeChildren);
+    this.hasFancyTextChildren = lodash.once(this.hasFancyTextChildren);
+    this.hasTextOrFancyTextChildren = lodash.once(this.hasTextOrFancyTextChildren);
     this.hasNodeChildren = lodash.once(this.hasNodeChildren);
     // eslint-enable @typescript-eslint/unbound-method
   }
@@ -57,6 +58,15 @@ export class NodeType {
         );
     }
     return false;
+  };
+
+  public doesNotHaveChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.None:
+        return true;
+      default:
+        return false;
+    }
   };
 
   public getFacetsThatAreAnchors = (): Facet[] => {
@@ -94,19 +104,9 @@ export class NodeType {
     return result;
   };
 
-  public hasFancyGraphemeChildren = (): boolean => {
+  public hasFancyTextChildren = (): boolean => {
     switch (this.childrenType) {
       case NodeChildrenType.FancyText:
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  public hasGraphemeChildren = (): boolean => {
-    switch (this.childrenType) {
-      case NodeChildrenType.FancyText:
-      case NodeChildrenType.Text:
         return true;
       default:
         return true;
@@ -119,6 +119,16 @@ export class NodeType {
       case NodeChildrenType.Text:
       case NodeChildrenType.None:
         return false;
+      default:
+        return true;
+    }
+  };
+
+  public hasTextOrFancyTextChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+        return true;
       default:
         return true;
     }

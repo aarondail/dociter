@@ -278,9 +278,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const isFancy = Utils.isFancyText(text);
 
     if (resolvedFacet === undefined) {
-      if (isFancy && !resolvedNode.nodeType.hasFancyGraphemeChildren()) {
+      if (isFancy && !resolvedNode.nodeType.hasFancyTextChildren()) {
         throw new WorkingDocumentError("Node cannot have fancy grapheme children");
-      } else if (!isFancy && !resolvedNode.nodeType.hasGraphemeChildren()) {
+      } else if (!isFancy && !resolvedNode.nodeType.hasTextOrFancyTextChildren()) {
         throw new WorkingDocumentError("Node cannot have grapheme children");
       }
     } else if (resolvedFacet && (resolvedFacet.type !== FacetType.Text || isFancy)) {
@@ -345,7 +345,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           // this.joinSiblingIntoNode(beforeBoundaryNode, FlowDirection.Forward);
         }
       }
-    } else if (dest.nodeType.hasGraphemeChildren() || dest.nodeType.hasFancyGraphemeChildren()) {
+    } else if (dest.nodeType.hasTextOrFancyTextChildren() || dest.nodeType.hasFancyTextChildren()) {
       this.moveAllNodeGraphemes(source, dest, direction === FlowDirection.Forward);
     }
 
@@ -787,7 +787,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if (graphemeIndex === undefined) {
         this.removeNodeFromParent(node);
       } else {
-        if (!node.children || !node.nodeType.hasGraphemeChildren()) {
+        if (!node.children || !node.nodeType.hasTextOrFancyTextChildren()) {
           return;
         }
         node.children.splice(graphemeIndex, 1);
