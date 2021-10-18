@@ -3,7 +3,7 @@ import { Side } from "../miscUtils";
 
 export type HorizontalVisualPosition = number;
 
-export interface NodeLayoutReporter {
+export interface NodeLayoutService {
   detectHorizontalDistanceFrom(
     subject: NodeNavigator | Chain,
     subjectSide: Side,

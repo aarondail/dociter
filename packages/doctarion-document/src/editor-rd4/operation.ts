@@ -1,8 +1,9 @@
+import { WorkingDocument } from "../working-document-rd4";
+
 import { EditorOperationServices } from "./services";
-import { EditorState } from "./state";
 
 export type EditorOperationRunFunction<Payload, ReturnType> = (
-  state: EditorState,
+  state: WorkingDocument,
   services: EditorOperationServices,
   payload: Payload
 ) => ReturnType;

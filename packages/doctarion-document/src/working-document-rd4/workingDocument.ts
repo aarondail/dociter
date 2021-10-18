@@ -29,17 +29,24 @@ import {
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
+export interface WorkingDocumentUpdateAdditionalContext {
+  readonly orphanedAnchorRepositionDirection?: FlowDirection;
+}
 export interface ReadonlyWorkingDocument {
   readonly allAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly document: ReadonlyWorkingDocumentRootNode;
+  readonly focusedInteractor: ReadonlyInteractor | undefined;
   readonly interactors: ReadonlyMap<InteractorId, ReadonlyInteractor>;
   readonly nodes: ReadonlyMap<NodeId, ReadonlyWorkingNode>;
+
+  getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
 }
 
 export class WorkingDocument implements ReadonlyWorkingDocument {
   private readonly actualDocument: WorkingDocumentRootNode;
   private readonly anchorLookup: Map<AnchorId, WorkingAnchor>;
   private readonly eventEmitters: WorkingDocumentEventEmitter;
+  private focusedInteractorId: InteractorId | undefined;
   private readonly interactorLookup: Map<InteractorId, Interactor>;
   private readonly nodeLookup: Map<NodeId, WorkingNode>;
 
@@ -68,6 +75,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
   public get events(): WorkingDocumentEvents {
     return this.eventEmitters;
+  }
+  public get focusedInteractor(): ReadonlyInteractor | undefined {
+    return this.focusedInteractorId !== undefined ? this.interactors.get(this.focusedInteractorId) : undefined;
   }
   public get interactors(): ReadonlyMap<InteractorId, ReadonlyInteractor> {
     return this.interactorLookup;
@@ -130,6 +140,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     this.interactorLookup.delete(resolvedInteractor.id);
     this.eventEmitters.interactorDeleted.emit(resolvedInteractor);
+    if (this.focusedInteractorId === resolvedInteractor.id) {
+      this.focusedInteractorId = undefined;
+    }
   }
 
   public deleteNode(node: NodeId | ReadonlyWorkingNode /*, additionalContext?: NodeEditAdditionalContext*/): void {
@@ -137,18 +150,19 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }]);
+    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], FlowDirection.Backward);
   }
 
   public deleteNodeAtPath(path: Path /*, additionalContext?: NodeEditAdditionalContext*/): void {
     const nav = new NodeNavigator(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }]);
-      } else if (nav.parent && PseudoNode.isGrapheme(nav.tip.node)) {
-        this.deleteNodesAndGraphemesPrime([
-          { node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart.index },
-        ]);
+        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], FlowDirection.Backward);
+      } else if (nav.parent && PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
+        this.deleteNodesAndGraphemesPrime(
+          [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart.index }],
+          FlowDirection.Backward
+        );
       }
     }
   }
@@ -158,17 +172,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
    */
   public deleteNodeGrapheme(
     node: NodeId | ReadonlyWorkingNode,
-    graphemeIndex: number
-    /*, additionalContext?: NodeEditAdditionalContext*/
+    graphemeIndex: number,
+    additionalContext?: WorkingDocumentUpdateAdditionalContext
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }]);
+    this.deleteNodesAndGraphemesPrime(
+      [{ node: resolvedNode, graphemeIndex }],
+      additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
+    );
   }
 
-  public deleteNodesInRange(range: Range /*additionalContext?: NodeEditAdditionalContext*/): void {
+  public deleteNodesInRange(range: Range, additionalContext?: WorkingDocumentUpdateAdditionalContext): void {
     const chainsToDelete = range.getChainsCoveringRange(this.document);
     if (chainsToDelete.length === 0) {
       return;
@@ -185,13 +202,31 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // This is probably a very inefficient way to deal with text.. and everything
     for (const chain of chainsToDelete) {
       if (chain.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: chain.tip.node as WorkingNode }]);
-      } else if (chain.parent && PseudoNode.isGrapheme(chain.tip.node)) {
-        this.deleteNodesAndGraphemesPrime([
-          { node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart.index },
-        ]);
+        this.deleteNodesAndGraphemesPrime(
+          [{ node: chain.tip.node as WorkingNode }],
+          additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
+        );
+      } else if (chain.parent && PseudoNode.isGraphemeOrFancyGrapheme(chain.tip.node)) {
+        this.deleteNodesAndGraphemesPrime(
+          [{ node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart.index }],
+          additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
+        );
       }
     }
+  }
+
+  public getNodePath(node: NodeId | ReadonlyWorkingNode): Path {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    let tip: WorkingNode | undefined = resolvedNode;
+    const parts = [];
+    while (tip && tip.pathPartFromParent) {
+      parts.unshift(tip.pathPartFromParent);
+      tip = tip.parent;
+    }
+    return new Path(...parts);
   }
 
   public insertNode(
@@ -316,7 +351,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    const nav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
+    const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
     const destNav = nav.clone();
 
     if (!(direction === FlowDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
@@ -367,11 +402,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
 
-    this.deleteNodesAndGraphemesPrime([{ node: source }]);
+    this.deleteNodesAndGraphemesPrime([{ node: source }], direction);
 
     for (const node of toJoinFollowUps) {
       this.joinSiblingIntoNode(node, FlowDirection.Forward);
     }
+  }
+
+  public setFocusedInteractor(id: InteractorId | undefined): void {
+    if (id !== undefined) {
+      if (this.interactors.get(id) === undefined) {
+        throw new WorkingDocumentError("Invalid interactor id");
+      }
+    }
+    this.focusedInteractorId = id;
   }
 
   public setNodeFacet(
@@ -498,7 +542,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             }
           }
 
-          currentValue && this.deleteNodesAndGraphemesPrime(currentValue.map((node: WorkingNode) => ({ node })));
+          currentValue &&
+            this.deleteNodesAndGraphemesPrime(
+              currentValue.map((node: WorkingNode) => ({ node })),
+              FlowDirection.Backward
+            );
 
           if (value) {
             resolvedNode.setFacet(resolvedFacet, []);
@@ -549,7 +597,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
 
     // Make sure we can split nodes
-    const nav = Utils.getNodeNavigatorForNode(resolvedNode, this.actualDocument);
+    const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
     for (let i = 0; i < splitChildIndices.length; i++) {
       const childIndex = splitChildIndices[i];
       if (!nav.navigateToChild(childIndex)) {
@@ -763,15 +811,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     locations: readonly {
       readonly node: WorkingNode;
       readonly graphemeIndex?: number;
-    }[]
-    /*, additionalContext?: NodeEditAdditionalContext*/
+    }[],
+    orphanedAnchorRepositionDirection: FlowDirection
   ): void {
     if (locations.length < 1) {
       return;
     }
 
     // This is needed in case we have orphaned anchors
-    const deletionTarget = Utils.getNodeNavigatorForNode(locations[0].node, this.actualDocument);
+    const deletionTarget = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(locations[0].node));
     if (locations[0].graphemeIndex !== undefined) {
       deletionTarget.navigateToChild(locations[0].graphemeIndex);
     }
@@ -824,16 +872,25 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
     }
 
+    // Note these are all node-to-node anchors
     for (const anchor of removedAnchors) {
       this.deleteAnchorPrime(anchor, "bypass-originating-node-check");
     }
 
+    // These may be node-to-node and interactor anchors
+    const orphanedAnchorsNeedingRepositioning = [];
     for (const anchor of orphanedAnchors) {
       if (removedAnchors.has(anchor)) {
         continue;
       }
+      orphanedAnchorsNeedingRepositioning.push(anchor);
       this.eventEmitters.anchorOrphaned.emit({ anchor, deletionTarget });
     }
+    this.repositionOrphanedAnchors(
+      orphanedAnchorsNeedingRepositioning,
+      deletionTarget,
+      orphanedAnchorRepositionDirection
+    );
   }
 
   private moveAllNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
@@ -993,6 +1050,27 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     } else {
       // This must be the document, so don't really delete it
       throw new WorkingDocumentError("Cannot delete document root node");
+    }
+  }
+
+  private repositionOrphanedAnchors(
+    anchors: WorkingAnchor[],
+    deletionTarget: NodeNavigator,
+    direction: FlowDirection
+  ): void {
+    if (anchors.length === 0) {
+      return;
+    }
+
+    const postDeleteCursor = Utils.determineCursorPositionAfterDeletion(this.actualDocument, deletionTarget, direction);
+    // Minor fixup for selections... ideally wouldn't have to do this
+    // if (Array.isArray(deletionTarget)) {
+    //   postDeleteCursor.navigateToNextCursorPosition();
+    // }
+
+    const postDeleteAnchor = Utils.getAnchorPayloadFromCursorNavigator(postDeleteCursor);
+    for (const anchor of anchors) {
+      this.updateAnchor(anchor.id, postDeleteAnchor);
     }
   }
 }
