@@ -13,10 +13,10 @@ import {
   TextStyleStrip,
 } from "../text-model-rd4";
 
-import { AnchorId, AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
-import { Interactor, InteractorId, InteractorPayload, ReadonlyInteractor } from "./interactor";
+import { Interactor, InteractorId, InteractorParameters, ReadonlyInteractor } from "./interactor";
 import { FlowDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import {
@@ -86,20 +86,24 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return this.nodeLookup;
   }
 
-  public addAnchor(payload: AnchorPayload): ReadonlyWorkingAnchor {
-    return this.addAnchorPrime(payload);
+  public addAnchor(parameters: AnchorParameters): ReadonlyWorkingAnchor {
+    return this.addAnchorPrime(parameters);
   }
 
-  public addInteractor(payload: InteractorPayload & Partial<Pick<InteractorPayload, "status">>): ReadonlyInteractor {
+  public addInteractor(
+    parameters: InteractorParameters & Partial<Pick<InteractorParameters, "status">>
+  ): ReadonlyInteractor {
     const id = this.idGenerator.generateId("INTERACTOR");
 
     const mainAnchor = this.addAnchorPrime(
-      payload.name ? { ...payload.mainAnchor, name: payload.name + "-MAIN" } : payload.mainAnchor,
+      parameters.name ? { ...parameters.mainAnchor, name: parameters.name + "-MAIN" } : parameters.mainAnchor,
       "dont-emit-event"
     );
-    const selectionAnchor = payload.selectionAnchor
+    const selectionAnchor = parameters.selectionAnchor
       ? this.addAnchorPrime(
-          payload.name ? { ...payload.selectionAnchor, name: payload.name + "-SELECTION" } : payload.selectionAnchor,
+          parameters.name
+            ? { ...parameters.selectionAnchor, name: parameters.name + "-SELECTION" }
+            : parameters.selectionAnchor,
           "dont-emit-event"
         )
       : undefined;
@@ -107,10 +111,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const newInteractor = new Interactor(
       id,
       mainAnchor,
-      payload.status,
+      parameters.status,
       selectionAnchor,
-      payload.lineMovementHorizontalVisualPosition,
-      payload.name
+      parameters.lineMovementHorizontalVisualPosition,
+      parameters.name
     );
     this.interactorLookup.set(id, newInteractor);
     mainAnchor.relatedInteractor = newInteractor;
@@ -421,7 +425,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public setNodeFacet(
     node: NodeId | ReadonlyWorkingNode,
     facet: string | Facet,
-    value: boolean | string | AnchorPayload | [AnchorPayload, AnchorPayload] | readonly Node[]
+    value: boolean | string | AnchorParameters | [AnchorParameters, AnchorParameters] | readonly Node[]
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
@@ -481,13 +485,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       case FacetType.AnchorOrAnchorRange:
         {
           let convertedValue: WorkingAnchor | WorkingAnchorRange | undefined;
-          if (Utils.isAnchorPayload(value)) {
+          if (Utils.isAnchorParameters(value)) {
             if (resolvedFacet.type === FacetType.AnchorRange) {
               throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to passed value`);
             }
             convertedValue = this.addAnchorPrime(value, "dont-emit-event");
             convertedValue.relatedOriginatingNode = resolvedNode;
-          } else if (Utils.isAnchorPayloadPair(value)) {
+          } else if (Utils.isAnchorParametersPair(value)) {
             if (resolvedFacet.type === FacetType.Anchor) {
               throw new WorkingDocumentError(`Can not set facet ${resolvedFacet.name} to passed value`);
             }
@@ -680,15 +684,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, payload: Partial<AnchorPayload>): void {
+  public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, parameters: Partial<AnchorParameters>): void {
     const resolvedAnchor = this.anchorLookup.get(typeof anchor === "string" ? anchor : anchor.id);
     if (!resolvedAnchor) {
       throw new WorkingDocumentError("Unknown anchor");
     }
 
-    if (payload.node) {
+    if (parameters.node) {
       const oldNode = resolvedAnchor.node;
-      const nodeId = typeof payload.node === "string" ? payload.node : payload.node.id;
+      const nodeId = typeof parameters.node === "string" ? parameters.node : parameters.node.id;
       const resolvedNode = this.nodeLookup.get(nodeId);
       if (!resolvedNode) {
         throw new WorkingDocumentError("Node could not be found in document");
@@ -699,14 +703,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         resolvedNode.attachedAnchors.set(resolvedAnchor.id, resolvedAnchor);
       }
     }
-    if (payload.orientation) {
-      resolvedAnchor.orientation = payload.orientation;
+    if (parameters.orientation) {
+      resolvedAnchor.orientation = parameters.orientation;
     }
-    if ("graphemeIndex" in payload) {
-      resolvedAnchor.graphemeIndex = payload.graphemeIndex;
+    if ("graphemeIndex" in parameters) {
+      resolvedAnchor.graphemeIndex = parameters.graphemeIndex;
     }
-    if ("name" in payload) {
-      resolvedAnchor.name = payload.name;
+    if ("name" in parameters) {
+      resolvedAnchor.name = parameters.name;
     }
 
     this.eventEmitters.anchorUpdated.emit(resolvedAnchor);
@@ -715,22 +719,27 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public updateInteractor(interactor: InteractorId | ReadonlyInteractor, payload: Partial<InteractorPayload>): void {
+  public updateInteractor(
+    interactor: InteractorId | ReadonlyInteractor,
+    parameters: Partial<InteractorParameters>
+  ): void {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
     if (!resolvedInteractor) {
       throw new WorkingDocumentError("Unknown interactor");
     }
 
-    if (payload.mainAnchor) {
-      this.updateAnchor(resolvedInteractor.mainAnchor, payload.mainAnchor);
+    if (parameters.mainAnchor) {
+      this.updateAnchor(resolvedInteractor.mainAnchor, parameters.mainAnchor);
     }
-    if ("selectionAnchor" in payload) {
-      if (payload.selectionAnchor) {
+    if ("selectionAnchor" in parameters) {
+      if (parameters.selectionAnchor) {
         if (resolvedInteractor.selectionAnchor) {
-          this.updateAnchor(resolvedInteractor.selectionAnchor, payload.selectionAnchor);
+          this.updateAnchor(resolvedInteractor.selectionAnchor, parameters.selectionAnchor);
         } else {
           const selectionAnchor = this.addAnchor(
-            payload.name ? { ...payload.selectionAnchor, name: payload.name + "-SELECTION" } : payload.selectionAnchor
+            parameters.name
+              ? { ...parameters.selectionAnchor, name: parameters.name + "-SELECTION" }
+              : parameters.selectionAnchor
           ) as WorkingAnchor;
           resolvedInteractor.selectionAnchor = selectionAnchor;
           selectionAnchor.relatedInteractor = resolvedInteractor;
@@ -742,15 +751,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     }
-    if ("lineMovementHorizontalVisualPosition" in payload) {
-      resolvedInteractor.lineMovementHorizontalVisualPosition = payload.lineMovementHorizontalVisualPosition;
+    if ("lineMovementHorizontalVisualPosition" in parameters) {
+      resolvedInteractor.lineMovementHorizontalVisualPosition = parameters.lineMovementHorizontalVisualPosition;
     }
-    if ("name" in payload) {
-      if (payload.name !== undefined) {
-        resolvedInteractor.name = payload.name;
-        resolvedInteractor.mainAnchor.name = payload.name + "-MAIN";
+    if ("name" in parameters) {
+      if (parameters.name !== undefined) {
+        resolvedInteractor.name = parameters.name;
+        resolvedInteractor.mainAnchor.name = parameters.name + "-MAIN";
         if (resolvedInteractor.selectionAnchor) {
-          resolvedInteractor.selectionAnchor.name = payload.name + "-SELECTION";
+          resolvedInteractor.selectionAnchor.name = parameters.name + "-SELECTION";
         }
       } else {
         resolvedInteractor.name = undefined;
@@ -760,15 +769,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     }
-    if (payload.status) {
-      resolvedInteractor.status = payload.status;
+    if (parameters.status) {
+      resolvedInteractor.status = parameters.status;
     }
 
     this.eventEmitters.interactorUpdated.emit(resolvedInteractor);
   }
 
-  private addAnchorPrime(payload: AnchorPayload, option?: "dont-emit-event"): WorkingAnchor {
-    const { node, orientation, graphemeIndex, name } = payload;
+  private addAnchorPrime(parameters: AnchorParameters, option?: "dont-emit-event"): WorkingAnchor {
+    const { node, orientation, graphemeIndex, name } = parameters;
     const nodeId = typeof node === "string" ? node : node.id;
     const resolvedNode = this.nodeLookup.get(nodeId);
     if (!resolvedNode) {
@@ -1068,7 +1077,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     //   postDeleteCursor.navigateToNextCursorPosition();
     // }
 
-    const postDeleteAnchor = Utils.getAnchorPayloadFromCursorNavigator(postDeleteCursor);
+    const postDeleteAnchor = Utils.getAnchorParametersFromCursorNavigator(postDeleteCursor);
     for (const anchor of anchors) {
       this.updateAnchor(anchor.id, postDeleteAnchor);
     }

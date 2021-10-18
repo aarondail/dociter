@@ -1,6 +1,6 @@
 import { HorizontalVisualPosition } from "../cursor";
 
-import { AnchorPayload, ReadonlyWorkingAnchor, WorkingAnchor } from "./anchor";
+import { AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor } from "./anchor";
 
 export type InteractorId = string;
 
@@ -14,10 +14,10 @@ export enum InteractorAnchorType {
   SelectionAnchor = "SELECTION_ANCHOR",
 }
 
-export interface InteractorPayload {
-  readonly mainAnchor: Omit<AnchorPayload, "name">;
+export interface InteractorParameters {
+  readonly mainAnchor: Omit<AnchorParameters, "name">;
   readonly status: InteractorStatus;
-  readonly selectionAnchor?: Omit<AnchorPayload, "name">;
+  readonly selectionAnchor?: Omit<AnchorParameters, "name">;
   /**
    * When moving between lines visually, this value stores cursor's x value at
    * the start of the line movement, so we can intelligently move between lines

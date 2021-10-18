@@ -12,7 +12,7 @@ import {
 } from "../document-model-rd4";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 
-import { AnchorPayload, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { FlowDirection } from "./misc";
 import { WorkingDocumentRootNode, WorkingNode } from "./nodes";
@@ -104,7 +104,7 @@ export const Utils = {
     }
     return n;
   },
-  getAnchorPayloadFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorPayload {
+  getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters {
     const node = cursorNavigator.tip.node;
     if (PseudoNode.isGraphemeOrFancyGrapheme(node)) {
       const parent = cursorNavigator.parent?.node;
@@ -130,12 +130,12 @@ export const Utils = {
     }
     return n;
   },
-  isAnchorPayload(value: any): value is AnchorPayload {
+  isAnchorParameters(value: any): value is AnchorParameters {
     return value.node !== undefined && value.orientation !== undefined;
   },
-  isAnchorPayloadPair(value: any): value is [AnchorPayload, AnchorPayload] {
+  isAnchorParametersPair(value: any): value is [AnchorParameters, AnchorParameters] {
     if (Array.isArray(value) && value.length === 2) {
-      return Utils.isAnchorPayload(value[0]) && Utils.isAnchorPayload(value[1]);
+      return Utils.isAnchorParameters(value[0]) && Utils.isAnchorParameters(value[1]);
     }
     return false;
   },
