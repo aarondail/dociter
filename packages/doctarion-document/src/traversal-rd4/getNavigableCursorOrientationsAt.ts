@@ -1,5 +1,7 @@
-import { NodeNavigator, PseudoNode } from "../basic-traversal-rd4";
 import { Node, NodeCategory, Span } from "../document-model-rd4";
+
+import { NodeNavigator } from "./nodeNavigator";
+import { PseudoNode } from "./pseudoNode";
 
 function isEmptyInsertionPoint(node: PseudoNode): boolean {
   if (node instanceof Node) {

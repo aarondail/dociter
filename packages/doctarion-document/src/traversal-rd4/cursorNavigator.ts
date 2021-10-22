@@ -1,15 +1,17 @@
-import { Chain, ChainLink, NodeNavigator, Path, PathString } from "../basic-traversal-rd4";
 import { Document, Node } from "../document-model-rd4";
 
-import { Cursor, CursorOrientation } from "./cursor";
+import { Chain, ChainLink } from "./chain";
+import { CursorOrientation, CursorPath } from "./cursorPath";
 import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
+import { NodeNavigator } from "./nodeNavigator";
+import { Path, PathString } from "./path";
 
 export interface ReadonlyCursorNavigator {
   readonly chain: Chain;
   readonly grandParent: ChainLink | undefined;
   readonly parent: ChainLink | undefined;
   readonly tip: ChainLink;
-  readonly cursor: Cursor;
+  readonly cursor: CursorPath;
 
   clone(): CursorNavigator;
   toNodeNavigator(): NodeNavigator;
@@ -49,8 +51,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return this.nodeNavigator.tip;
   }
 
-  public get cursor(): Cursor {
-    return new Cursor(this.nodeNavigator.path, this.currentOrientation);
+  public get cursor(): CursorPath {
+    return new CursorPath(this.nodeNavigator.path, this.currentOrientation);
   }
 
   public changeCursorOrientationFreely(orientation: CursorOrientation): void {
@@ -64,7 +66,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return navigator;
   }
 
-  public navigateFreelyTo(cursor: Cursor): boolean;
+  public navigateFreelyTo(cursor: CursorPath): boolean;
   public navigateFreelyTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   navigateFreelyTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {
@@ -78,8 +80,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       path = cursorOrPath as Path;
       orientation = maybeOrientation || CursorOrientation.On;
     } else {
-      path = (cursorOrPath as Cursor).path;
-      orientation = (cursorOrPath as Cursor).orientation;
+      path = (cursorOrPath as CursorPath).path;
+      orientation = (cursorOrPath as CursorPath).orientation;
     }
 
     const n = new NodeNavigator(this.document);
@@ -135,7 +137,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
    * Note that when navigating to a grapheme with before orientation, the
    * navigator may choose to use an earlier point with after orientation.
    */
-  public navigateTo(cursor: Cursor): boolean;
+  public navigateTo(cursor: CursorPath): boolean;
   public navigateTo(path: PathString | Path, orientation?: CursorOrientation): boolean;
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   navigateTo(cursorOrPath: any, maybeOrientation?: CursorOrientation): boolean {

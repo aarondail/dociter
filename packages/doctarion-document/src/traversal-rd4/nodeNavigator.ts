@@ -1,7 +1,6 @@
 import { Document } from "../document-model-rd4";
 
-import { Chain } from "./chain";
-import { ChainLink } from "./chainLink";
+import { Chain, ChainLink } from "./chain";
 import { Path, PathString } from "./path";
 import { PathPart } from "./pathPart";
 import { PseudoNode } from "./pseudoNode";

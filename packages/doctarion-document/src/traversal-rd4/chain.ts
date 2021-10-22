@@ -1,7 +1,7 @@
 import { Document } from "../document-model-rd4";
 
-import { ChainLink } from "./chainLink";
 import { Path } from "./path";
+import { PathPart } from "./pathPart";
 import { PseudoNode } from "./pseudoNode";
 
 // -----------------------------------------------------------------------------
@@ -11,6 +11,18 @@ import { PseudoNode } from "./pseudoNode";
 //
 // The first link in a Chain is always the Document.
 // -----------------------------------------------------------------------------
+
+export class ChainLink<T extends PseudoNode = PseudoNode> {
+  public readonly node: T;
+  public readonly pathPart: T extends Document ? undefined : PathPart;
+
+  public constructor(node: T extends Document ? Document : never);
+  public constructor(node: T, pathPart: PathPart);
+  constructor(node: T, pathPart?: PathPart) {
+    this.node = node;
+    this.pathPart = pathPart as any;
+  }
+}
 
 export class Chain {
   public readonly links: readonly ChainLink[];

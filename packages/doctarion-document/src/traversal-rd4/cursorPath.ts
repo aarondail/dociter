@@ -1,17 +1,16 @@
+import { AnchorOrientation } from "../document-model-rd4";
+import { SimpleComparison } from "../miscUtils";
+
 import {
   Path,
   PathAdjustmentDueToMoveReason,
   PathAdjustmentDueToRelativeDeletionNoChangeReason,
   PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason,
   PathComparison,
-} from "../basic-traversal-rd4";
-import { SimpleComparison } from "../miscUtils";
+} from "./path";
 
-export enum CursorOrientation {
-  Before = "BEFORE",
-  After = "AFTER",
-  On = "ON",
-}
+export type CursorOrientation = AnchorOrientation;
+export const CursorOrientation = AnchorOrientation;
 
 /**
  * Cursors can be placed on nodes, but also before and after them. Before and
@@ -21,29 +20,29 @@ export enum CursorOrientation {
  * They are very similar to Anchors, but instead of referencing a Node they have
  * a Path to a node.
  */
-export class Cursor {
+export class CursorPath {
   public constructor(public readonly path: Path, public readonly orientation: CursorOrientation) {}
 
   public adjustDueToMove(
     oldPrefix: Path,
     newPrefix: Path,
     indexOffsetUnderPrefix: number
-  ): Cursor | PathAdjustmentDueToMoveReason {
+  ): CursorPath | PathAdjustmentDueToMoveReason {
     const pathOrReason = this.path.adjustDueToMove(oldPrefix, newPrefix, indexOffsetUnderPrefix);
     if (pathOrReason instanceof Path) {
-      return new Cursor(pathOrReason, this.orientation);
+      return new CursorPath(pathOrReason, this.orientation);
     }
     return pathOrReason;
   }
 
   /**
-   * This adjusts this cursor's path to account for a deletion of a different
-   * path (passed in).
+   * This adjusts the path to account for a deletion of a different path (passed
+   * in).
    */
-  public adjustDueToRelativeDeletionAt(at: Path): Cursor | PathAdjustmentDueToRelativeDeletionNoChangeReason {
+  public adjustDueToRelativeDeletionAt(at: Path): CursorPath | PathAdjustmentDueToRelativeDeletionNoChangeReason {
     const pathOrReason = this.path.adjustDueToRelativeDeletionAt(at);
     if (pathOrReason instanceof Path) {
-      return new Cursor(pathOrReason, this.orientation);
+      return new CursorPath(pathOrReason, this.orientation);
     }
     return pathOrReason;
   }
@@ -54,10 +53,10 @@ export class Cursor {
    */
   public adjustDueToRelativeInsertionBefore(
     at: Path
-  ): Cursor | PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason {
+  ): CursorPath | PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason {
     const pathOrReason = this.path.adjustDueToRelativeInsertionBefore(at);
     if (pathOrReason instanceof Path) {
-      return new Cursor(pathOrReason, this.orientation);
+      return new CursorPath(pathOrReason, this.orientation);
     }
     return pathOrReason;
   }
@@ -67,7 +66,7 @@ export class Cursor {
    * the other one in the way the cursors move thorough a Document. It returns equal
    * if both Cursors are exactly the same, and After otherwise.
    */
-  public compareTo(other: Cursor): SimpleComparison {
+  public compareTo(other: CursorPath): SimpleComparison {
     switch (this.path.compareTo(other.path)) {
       case PathComparison.Equal:
         if (this.orientation === CursorOrientation.Before) {
