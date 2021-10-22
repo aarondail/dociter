@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { NodeNavigator, Path, PathPart, PseudoNode } from "../basic-traversal-rd4";
-import { Cursor, CursorNavigator, CursorOrientation } from "../cursor-traversal-rd4";
-import {
-  Anchor,
-  AnchorOrientation,
-  Document,
-  Facet,
-  Node,
-  NodeCategory,
-  NodeChildrenType,
-} from "../document-model-rd4";
+import { AnchorOrientation, Document, Facet, Node, NodeCategory, NodeChildrenType } from "../document-model-rd4";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
+import {
+  CursorNavigator,
+  CursorOrientation,
+  CursorPath,
+  NodeNavigator,
+  Path,
+  PathPart,
+  PseudoNode,
+} from "../traversal-rd4";
 
 import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -86,12 +85,12 @@ export const Utils = {
     } else {
       // Try one level higher as a fallback
       const p = deletionTarget.path.withoutTip();
-      if (n.navigateFreelyTo(new Cursor(p, CursorOrientation.On))) {
+      if (n.navigateFreelyTo(new CursorPath(p, CursorOrientation.On))) {
         n.navigateToLastDescendantCursorPosition();
       } else {
         // OK try one more level higher again
         const p2 = deletionTarget.path.withoutTip().withoutTip();
-        if (n.navigateFreelyTo(new Cursor(p2, CursorOrientation.On))) {
+        if (n.navigateFreelyTo(new CursorPath(p2, CursorOrientation.On))) {
           // Not sure this is really right...
           n.navigateToLastDescendantCursorPosition();
         } else {
@@ -103,25 +102,6 @@ export const Utils = {
       }
     }
     return n;
-  },
-  getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters {
-    const node = cursorNavigator.tip.node;
-    if (PseudoNode.isGraphemeOrFancyGrapheme(node)) {
-      const parent = cursorNavigator.parent?.node;
-      if (!parent) {
-        throw new WorkingDocumentError("Grapheme lacks parent");
-      }
-      return {
-        node: parent as WorkingNode,
-        orientation: (cursorNavigator.cursor.orientation as unknown) as AnchorOrientation,
-        graphemeIndex: cursorNavigator.tip.pathPart.index,
-      };
-    }
-    return {
-      node: node as WorkingNode,
-      orientation: (cursorNavigator.cursor.orientation as unknown) as AnchorOrientation,
-      graphemeIndex: undefined,
-    };
   },
   getNodeNavigator(document: WorkingDocumentRootNode, path: Path): NodeNavigator {
     const n = new NodeNavigator(document);

@@ -6,7 +6,7 @@ import { NodeId, ReadonlyWorkingNode, WorkingNode } from "./nodes";
 export type AnchorId = string;
 
 export interface AnchorParameters {
-  readonly node: NodeId | WorkingNode;
+  readonly node: NodeId | ReadonlyWorkingNode;
   readonly orientation: AnchorOrientation;
   readonly graphemeIndex?: number;
   readonly name?: string;

@@ -1,8 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
-import { NodeNavigator, Path, PseudoNode, Range } from "../basic-traversal-rd4";
-import { Document, Facet, FacetType, Node, Span } from "../document-model-rd4";
+import { AnchorOrientation, Document, Facet, FacetType, Node, Span } from "../document-model-rd4";
 import {
   FancyGrapheme,
   FancyText,
@@ -12,6 +11,16 @@ import {
   TextStyleModifier,
   TextStyleStrip,
 } from "../text-model-rd4";
+import {
+  CursorNavigator,
+  CursorOrientation,
+  CursorPath,
+  NodeNavigator,
+  Path,
+  PathPart,
+  PseudoNode,
+  Range,
+} from "../traversal-rd4";
 
 import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -39,6 +48,16 @@ export interface ReadonlyWorkingDocument {
   readonly interactors: ReadonlyMap<InteractorId, ReadonlyInteractor>;
   readonly nodes: ReadonlyMap<NodeId, ReadonlyWorkingNode>;
 
+  getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters;
+  getAnchorParametersFromCursorPath(cursorPath: CursorPath): AnchorParameters;
+  getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator;
+  getCursorNavigatorsForInteractor(
+    interactor: ReadonlyInteractor | InteractorId
+  ): { readonly mainAnchor: CursorNavigator; readonly selectionAnchor: CursorNavigator | undefined };
+  getCursorPathForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorPath;
+  getCursorPathsForInteractor(
+    anchor: ReadonlyInteractor | InteractorId
+  ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined };
   getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
 }
 
@@ -217,6 +236,99 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         );
       }
     }
+  }
+
+  public getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters {
+    const node = cursorNavigator.tip.node;
+    if (PseudoNode.isGraphemeOrFancyGrapheme(node)) {
+      const parent = cursorNavigator.parent?.node;
+      if (!parent) {
+        throw new WorkingDocumentError("Grapheme lacks parent");
+      }
+      return {
+        node: parent as WorkingNode,
+        orientation: (cursorNavigator.cursor.orientation as unknown) as AnchorOrientation,
+        graphemeIndex: cursorNavigator.tip.pathPart.index,
+      };
+    }
+    return {
+      node: node as WorkingNode,
+      orientation: (cursorNavigator.cursor.orientation as unknown) as AnchorOrientation,
+      graphemeIndex: undefined,
+    };
+  }
+
+  public getAnchorParametersFromCursorPath(cursorPath: CursorPath): AnchorParameters {
+    const n = new CursorNavigator(this.actualDocument);
+    if (!n.navigateFreelyTo(cursorPath)) {
+      throw new WorkingDocumentError("Could not create valid CursorNavigator for CursorPath");
+    }
+    return this.getAnchorParametersFromCursorNavigator(n);
+  }
+
+  public getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator {
+    const cursorPath = this.getCursorPathForAnchor(anchor);
+    const n = new CursorNavigator(this.actualDocument);
+    if (n.navigateFreelyTo(cursorPath)) {
+      return n;
+    }
+    throw new WorkingDocumentError("Could not create valid CursorNavigator for anchor");
+  }
+
+  public getCursorNavigatorsForInteractor(
+    interactor: ReadonlyInteractor | InteractorId
+  ): { readonly mainAnchor: CursorNavigator; readonly selectionAnchor: CursorNavigator | undefined } {
+    const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
+    if (!resolvedInteractor) {
+      throw new WorkingDocumentError("Unknown interactor");
+    }
+    return {
+      mainAnchor: this.getCursorNavigatorForAnchor(resolvedInteractor.mainAnchor),
+      selectionAnchor: resolvedInteractor.selectionAnchor
+        ? this.getCursorNavigatorForAnchor(resolvedInteractor.selectionAnchor)
+        : undefined,
+    };
+  }
+
+  public getCursorPathForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorPath {
+    const resolvedAnchor = this.anchorLookup.get(typeof anchor === "string" ? anchor : anchor.id);
+    if (!resolvedAnchor) {
+      throw new WorkingDocumentError("Unknown anchor");
+    }
+
+    const path = this.getNodePath(resolvedAnchor.node);
+    if (resolvedAnchor.graphemeIndex !== undefined) {
+      // Normalize
+      let { graphemeIndex, orientation } = resolvedAnchor;
+      if (orientation === AnchorOrientation.Before) {
+        const nodeKids = resolvedAnchor.node.children;
+        if (nodeKids && graphemeIndex !== 0) {
+          graphemeIndex--;
+          orientation = AnchorOrientation.After;
+        }
+      }
+
+      return new CursorPath(
+        new Path(...path.parts, new PathPart(graphemeIndex)),
+        (orientation as unknown) as CursorOrientation
+      );
+    }
+    return new CursorPath(path, (resolvedAnchor.orientation as unknown) as CursorOrientation);
+  }
+
+  public getCursorPathsForInteractor(
+    interactor: ReadonlyInteractor | InteractorId
+  ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined } {
+    const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
+    if (!resolvedInteractor) {
+      throw new WorkingDocumentError("Unknown interactor");
+    }
+    return {
+      mainAnchor: this.getCursorPathForAnchor(resolvedInteractor.mainAnchor),
+      selectionAnchor: resolvedInteractor.selectionAnchor
+        ? this.getCursorPathForAnchor(resolvedInteractor.selectionAnchor)
+        : undefined,
+    };
   }
 
   public getNodePath(node: NodeId | ReadonlyWorkingNode): Path {
@@ -1077,7 +1189,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     //   postDeleteCursor.navigateToNextCursorPosition();
     // }
 
-    const postDeleteAnchor = Utils.getAnchorParametersFromCursorNavigator(postDeleteCursor);
+    const postDeleteAnchor = this.getAnchorParametersFromCursorNavigator(postDeleteCursor);
     for (const anchor of anchors) {
       this.updateAnchor(anchor.id, postDeleteAnchor);
     }
