@@ -3,19 +3,19 @@ import { FriendlyIdGenerator } from "doctarion-utils";
 import { Path } from "../basic-traversal-rd4";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor-traversal-rd4";
 import { Document } from "../document-model-rd4";
-import { InteractorId, ReadonlyInteractor, ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
-import { CursorService } from "./cursorService";
+import { InteractorId, ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
 
+import { Command, CommandInfo, CORE_COMMANDS } from "./commands";
+import { CursorService } from "./cursorService";
 import { EditorError } from "./error";
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
-import { EditorOperationServices, EditorProvidableServices } from "./services";
+import { EditorProvidableServices, EditorServices } from "./services";
 
 export interface EditorConfig {
   // For reasons I dont fully understand typescript doesn't allow you to pass an
   // element with type `EditorOperation<void, void>` if we use `unknown` instead of
   // `any` here.
-  readonly additionalOperations?: readonly EditorOperation<any, unknown, string>[];
+  readonly additionalOperations?: readonly CommandInfo<any, unknown, string>[];
   readonly document: Document;
   readonly cursor?: Cursor;
   readonly omitDefaultInteractor?: boolean;
@@ -29,8 +29,8 @@ export class Editor {
   private readonly eventEmitters: EditorEventEmitter;
   // private futureList: EditorState[];
   // private historyList: EditorState[];
-  private readonly operationRegistry: Map<string, EditorOperation<unknown, unknown, string>>;
-  private readonly operationServices: EditorOperationServices;
+  private readonly operationRegistry: Map<string, CommandInfo<unknown, unknown, string>>;
+  private readonly operationServices: EditorServices;
   private workingState: WorkingDocument;
 
   public constructor({
@@ -60,12 +60,12 @@ export class Editor {
     };
 
     this.operationRegistry = new Map();
-    for (const op of CORE_OPERATIONS) {
-      this.operationRegistry.set(op.operationName, op);
+    for (const op of CORE_COMMANDS) {
+      this.operationRegistry.set(op.name, op);
     }
     if (additionalOperations) {
       for (const op of additionalOperations) {
-        this.operationRegistry.set(op.operationName, op);
+        this.operationRegistry.set(op.name, op);
       }
     }
 
@@ -95,7 +95,7 @@ export class Editor {
     return this.workingState;
   }
 
-  public execute<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
+  public execute<ReturnType>(command: Command<unknown, ReturnType, string>): ReturnType {
     const op = this.operationRegistry.get(command.name);
     if (!op) {
       throw new EditorError("Unknown operation");
@@ -105,7 +105,7 @@ export class Editor {
     // const oldState = this.workingState.clone();
     try {
       this.eventEmitters.operationWillRun.emit(this.workingState);
-      result = op.operationRunFunction(this.workingState, this.operationServices, command.payload) as ReturnType;
+      result = op.executor(this.workingState, this.operationServices, command.payload) as ReturnType;
 
       // Post operation cleanup
       if (this.currentOperationState?.interactorsUpdated) {
@@ -185,15 +185,13 @@ export class Editor {
     return dupeIds;
   };
 
-  private executeRelatedOperation = <ReturnType>(
-    command: EditorOperationCommand<unknown, ReturnType, string>
-  ): ReturnType => {
+  private executeRelatedOperation = <ReturnType>(command: Command<unknown, ReturnType, string>): ReturnType => {
     // This must only be called in the context of a currently executing operation
     const op = this.operationRegistry.get(command.name);
     if (!op) {
       throw new EditorError("Unknown operation");
     }
-    return op.operationRunFunction(this.workingState, this.operationServices, command.payload) as ReturnType;
+    return op.executor(this.workingState, this.operationServices, command.payload) as ReturnType;
   };
 
   private handleInteractorUpdated = () => {

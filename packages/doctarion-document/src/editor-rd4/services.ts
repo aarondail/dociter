@@ -1,12 +1,13 @@
 import { InteractorId } from "../working-document-rd4";
+
+import { Command } from "./commands/types";
 import { CursorService } from "./cursorService";
 import { NodeLayoutService } from "./nodeLayoutService";
-import { EditorOperationCommand } from "./operation";
 
 /**
  * These are all the services available to `EditorOperation` functions.
  */
-export interface EditorOperationServices {
+export interface EditorServices {
   readonly cursor: CursorService;
 
   readonly dedupeInteractors: () => InteractorId[] | undefined;
@@ -15,7 +16,7 @@ export interface EditorOperationServices {
    * Use this to execute (during an operation) another related operation.  You
    * have to pass the state (the draft of the immer state).
    */
-  readonly execute: <ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>) => ReturnType;
+  readonly execute: <ReturnType>(command: Command<unknown, ReturnType, string>) => ReturnType;
 
   /**
    * The layout service doesn't layout nodes, rather it reports layout
@@ -27,4 +28,4 @@ export interface EditorOperationServices {
 /**
  * These are services that should be provided to the Editor.
  */
-export type EditorProvidableServices = Pick<EditorOperationServices, "layout">;
+export type EditorProvidableServices = Pick<EditorServices, "layout">;

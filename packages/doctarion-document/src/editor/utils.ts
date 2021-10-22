@@ -209,6 +209,7 @@ export function selectTargets(
       result.push({ isSelection: false, interactor, navigator: nav, firstCursor: ordered ? nav.cursor : undefined });
     }
   };
+
   getTargetedInteractorIds(target, state).forEach(recordResult);
   if (ordered && result.length > 1) {
     result.sort((left, right) => {
