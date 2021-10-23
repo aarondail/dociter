@@ -1,8 +1,15 @@
 import { SimpleComparison } from "../miscUtils";
-import { CursorNavigator, CursorPath } from "../traversal-rd4";
-import { InteractorId, InteractorStatus, ReadonlyInteractor, WorkingDocument } from "../working-document-rd4";
+import { CursorNavigator, CursorPath, Path } from "../traversal-rd4";
+import {
+  AnchorParameters,
+  InteractorId,
+  InteractorStatus,
+  ReadonlyInteractor,
+  WorkingDocument,
+} from "../working-document-rd4";
+import { CommandError } from "./error";
 
-import { InteractorTargets, Target } from "./payloads";
+import { InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 
 export type SelectTargetsResult = {
   readonly interactor: ReadonlyInteractor;
@@ -53,6 +60,25 @@ export const CommandUtils = {
     }
     return dupeIds;
   },
+
+  getAnchorParametersFromInteractorInputPosition(
+    state: WorkingDocument,
+    position: InteractorInputPosition
+  ): AnchorParameters {
+    const n = new CursorNavigator(state.document);
+    const cursor =
+      position instanceof CursorPath
+        ? position
+        : new CursorPath(
+            position.path instanceof Path ? position.path : Path.parse(position.path),
+            position.orientation
+          );
+    if (!cursor || !n.navigateTo(cursor)) {
+      throw new CommandError("Invalid InteractorInputPosition");
+    }
+    return state.getAnchorParametersFromCursorNavigator(n);
+  },
+
   selectTargets(state: WorkingDocument, target: Target, sort?: boolean): SelectTargetsResult[] {
     // TODO get rid of firstCursor at some point
 

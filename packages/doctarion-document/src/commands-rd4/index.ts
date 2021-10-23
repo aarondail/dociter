@@ -1,9 +1,10 @@
+export * from "./error";
 export * from "./payloads";
 export * from "./types";
 export * from "./services";
 export * from "./utils";
 
-import * as CursorCommands from "./cursor";
+import * as CursorCommands from "./cursorCommands";
 // import { delete_ } from "./deletionOps";
 // import * as InsertionOps from "./insertionOps";
 // import * as InteractorOps from "./interactorOps";

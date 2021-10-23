@@ -1,42 +1,56 @@
-import { CursorNavigator } from "../../cursor-traversal-rd4";
-import { ReadonlyInteractor, WorkingDocument } from "../../working-document-rd4";
-import { EditorServices } from "../services";
+import { Side } from "../miscUtils";
+import { CursorNavigator, CursorOrientation, NodeNavigator } from "../traversal-rd4";
+import { ReadonlyInteractor, WorkingDocument } from "../working-document-rd4";
 
-import { MovementPayload } from "./payloads";
+import { InteractorInputPosition, MovementPayload } from "./payloads";
+import { CommandServices } from "./services";
 import { coreCommand } from "./types";
+import { CommandUtils } from "./utils";
 
 export const moveBack = coreCommand<MovementPayload>("cursor/moveBack", (state, services, payload): void => {
-  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-    if (navigator.navigateToPrecedingCursorPosition()) {
-      state.updateInteractor(interactor.id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+    const n = target.mainAnchorNavigator;
+    if (n.navigateToPrecedingCursorPosition()) {
+      const p = {
+        mainAnchor: state.getAnchorParametersFromCursorNavigator(n),
         lineMovementHorizontalVisualPosition: undefined,
-        selectTo: payload.select ? "main" : undefined,
-      });
+      };
+      if (payload.select && target.selectionAnchorCursor === undefined) {
+        (p as any).selectionAnchor = state.getAnchorParametersFromCursorPath(target.mainAnchorCursor);
+      } else if (!payload.select) {
+        (p as any).selectionAnchor = undefined;
+      }
+      state.updateInteractor(target.interactor, p);
     }
-  });
+  }
 });
 
 export const moveForward = coreCommand<MovementPayload>("cursor/moveForward", (state, services, payload): void => {
-  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-    if (navigator.navigateToNextCursorPosition()) {
-      state.updateInteractor(interactor.id, {
-        to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+    const n = target.mainAnchorNavigator;
+    if (n.navigateToNextCursorPosition()) {
+      const p = {
+        mainAnchor: state.getAnchorParametersFromCursorNavigator(n),
         lineMovementHorizontalVisualPosition: undefined,
-        selectTo: payload.select ? "main" : undefined,
-      });
+      };
+      if (payload.select && target.selectionAnchorCursor === undefined) {
+        (p as any).selectionAnchor = state.getAnchorParametersFromCursorPath(target.mainAnchorCursor);
+      } else if (!payload.select) {
+        (p as any).selectionAnchor = undefined;
+      }
+      state.updateInteractor(target.interactor, p);
     }
-    return false;
-  });
+  }
 });
 
 export const moveVisualDown = coreCommand<MovementPayload>("cursor/moveVisualDown", (state, services, payload) => {
-  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-    if (!services.layout) {
-      return false;
-    }
-    return moveVisualUpOrDownHelper(state, services, "DOWN", interactor, navigator);
-  });
+  if (!services.layout) {
+    return;
+  }
+
+  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+    moveVisualUpOrDownHelper(state, services, "DOWN", target.interactor, target.mainAnchorNavigator);
+  }
 });
 
 // export function moveLineDown(state: immer.Draft<EditorState>): void {
@@ -49,12 +63,13 @@ export const moveVisualDown = coreCommand<MovementPayload>("cursor/moveVisualDow
 // }
 
 export const moveVisualUp = coreCommand<MovementPayload>("cursor/moveVisualUp", (state, services, payload) => {
-  forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor, navigator) => {
-    if (!services.layout) {
-      return false;
-    }
-    return moveVisualUpOrDownHelper(state, services, "UP", interactor, navigator);
-  });
+  if (!services.layout) {
+    return;
+  }
+
+  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+    moveVisualUpOrDownHelper(state, services, "UP", target.interactor, target.mainAnchorNavigator);
+  }
 });
 
 // export function moveLineUp(state: immer.Draft<EditorState>): void {
@@ -69,32 +84,22 @@ export const moveVisualUp = coreCommand<MovementPayload>("cursor/moveVisualUp", 
 export const jump = coreCommand<{ to: InteractorInputPosition } & MovementPayload>(
   "cursor/jump",
   (state, services, payload): void => {
-    forEachInteractorInMovementTargetPayloadDo(state, services, payload, (interactor) => {
-      state.updateInteractor(interactor.id, {
-        to: services.interactors.convertInteractorInputPositionToAnchorPosition(payload.to),
-        lineMovementHorizontalVisualPosition: undefined,
-        selectTo: payload.select ? "main" : undefined,
-      });
-    });
-  }
-);
+    const to = CommandUtils.getAnchorParametersFromInteractorInputPosition(state, payload.to);
 
-function forEachInteractorInMovementTargetPayloadDo(
-  state: WorkingDocument,
-  services: EditorServices,
-  payload: MovementPayload,
-  updateFn: (interactor: ReadonlyInteractor, navigator: CursorNavigator) => void
-): void {
-  for (const target of selectTargets(state, services, payload.target)) {
-    if (target.isSelection) {
-      const { interactor, navigators, isMainCursorFirst } = target;
-      updateFn(interactor, isMainCursorFirst ? navigators[0] : navigators[1]);
-    } else {
-      const { interactor, navigator } = target;
-      updateFn(interactor, navigator);
+    for (const target of CommandUtils.selectTargets(state, payload.target)) {
+      const p = {
+        mainAnchor: to,
+        lineMovementHorizontalVisualPosition: undefined,
+      };
+      if (payload.select && target.selectionAnchorCursor === undefined) {
+        (p as any).selectionAnchor = state.getAnchorParametersFromCursorPath(target.mainAnchorCursor);
+      } else if (!payload.select) {
+        (p as any).selectionAnchor = undefined;
+      }
+      state.updateInteractor(target.interactor, p);
     }
   }
-}
+);
 
 /**
  * This returns true if it updates the interactor.
@@ -105,16 +110,16 @@ function forEachInteractorInMovementTargetPayloadDo(
 // https://developer.mozilla.org/en-US/docs/Web/API/Document/caretRangeFromPoint
 function moveVisualUpOrDownHelper(
   state: WorkingDocument,
-  services: EditorServices,
+  services: CommandServices,
   direction: "UP" | "DOWN",
-  interactor: Draft<Interactor>,
+  interactor: ReadonlyInteractor,
   navigator: CursorNavigator
 ): void {
   const startNavigator = navigator.clone().toNodeNavigator();
 
   const targetAnchor =
     interactor.lineMovementHorizontalVisualPosition ??
-    services.layout!.getTargetHorizontalAnchor(
+    services.layout!.getTargetHorizontalPosition(
       startNavigator,
       navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left
     );
@@ -152,7 +157,7 @@ function moveVisualUpOrDownHelper(
   }
 
   // Now that we think we are on the next line...
-  let distance = services.layout!.detectHorizontalDistanceFromTargetHorizontalAnchor(
+  let distance = services.layout!.detectHorizontalDistanceFrom(
     navigator.toNodeNavigator(),
     navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
     targetAnchor
@@ -178,7 +183,7 @@ function moveVisualUpOrDownHelper(
         break;
       }
 
-      const newDistance = services.layout?.detectHorizontalDistanceFromTargetHorizontalAnchor(
+      const newDistance = services.layout?.detectHorizontalDistanceFrom(
         navigator.toNodeNavigator(),
         navigator.cursor.orientation === CursorOrientation.After ? Side.Right : Side.Left,
         targetAnchor
@@ -206,8 +211,8 @@ function moveVisualUpOrDownHelper(
   }
 
   state.updateInteractor(interactor.id, {
-    to: services.interactors.cursorNavigatorToAnchorPosition(navigator),
+    mainAnchor: state.getAnchorParametersFromCursorNavigator(navigator),
     lineMovementHorizontalVisualPosition: undefined,
-    selectTo: undefined,
+    selectionAnchor: undefined,
   });
 }

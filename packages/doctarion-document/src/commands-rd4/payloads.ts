@@ -1,3 +1,4 @@
+import { CursorOrientation, CursorPath, Path, PathString } from "../traversal-rd4";
 import { InteractorId } from "../working-document-rd4";
 
 // -----------------------------------------------------------------------------
@@ -33,3 +34,5 @@ export const Target = {
   All: InteractorTargets.All,
   AllActive: InteractorTargets.AllActive,
 };
+
+export type InteractorInputPosition = CursorPath | { path: Path | PathString; orientation: CursorOrientation };
