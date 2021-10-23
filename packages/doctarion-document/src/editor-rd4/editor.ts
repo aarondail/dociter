@@ -1,6 +1,6 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { CORE_COMMANDS, Command, CommandInfo, CommandServices, CommandUtils } from "../commands-rd4";
+import { CORE_COMMANDS, Command, CommandInfo, CommandServices, CommandUtils, Commands } from "../commands-rd4";
 import { Document } from "../document-model-rd4";
 import { CursorNavigator, CursorOrientation, CursorPath, Path } from "../traversal-rd4";
 import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
@@ -78,7 +78,7 @@ export class Editor {
         cn.navigateToPrecedingCursorPosition();
         cursor = cn.cursor;
       }
-      this.execute(addInteractor({ at: cursor, focused: true }));
+      this.execute(Commands.addInteractor({ at: cursor, focused: true }));
     }
   }
 

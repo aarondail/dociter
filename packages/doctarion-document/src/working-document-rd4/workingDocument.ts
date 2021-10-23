@@ -109,9 +109,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return this.addAnchorPrime(parameters);
   }
 
-  public addInteractor(
-    parameters: InteractorParameters & Partial<Pick<InteractorParameters, "status">>
-  ): ReadonlyInteractor {
+  public addInteractor(parameters: InteractorParameters): ReadonlyInteractor {
     const id = this.idGenerator.generateId("INTERACTOR");
 
     const mainAnchor = this.addAnchorPrime(

@@ -7,8 +7,8 @@ import {
   ReadonlyInteractor,
   WorkingDocument,
 } from "../working-document-rd4";
-import { CommandError } from "./error";
 
+import { CommandError } from "./error";
 import { InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 
 export type SelectTargetsResult = {

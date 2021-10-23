@@ -1,5 +1,4 @@
 import { Draft } from "immer";
-import lodash from "lodash";
 
 import { NodeNavigator, Path, PathString, Range } from "../basic-traversal";
 import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
