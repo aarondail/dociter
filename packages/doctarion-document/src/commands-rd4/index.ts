@@ -1,5 +1,7 @@
 export * from "./payloads";
 export * from "./types";
+export * from "./services";
+export * from "./utils";
 
 import * as CursorCommands from "./cursor";
 // import { delete_ } from "./deletionOps";

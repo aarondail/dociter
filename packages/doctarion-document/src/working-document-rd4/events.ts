@@ -1,6 +1,6 @@
 import { EventChannel, EventEmitter } from "doctarion-utils";
 
-import { ReadonlyNodeNavigator } from "../basic-traversal-rd4";
+import { ReadonlyNodeNavigator } from "../traversal-rd4";
 
 import { ReadonlyWorkingAnchor } from "./anchor";
 import { ReadonlyInteractor } from "./interactor";

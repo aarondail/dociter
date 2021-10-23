@@ -1,10 +1,10 @@
 import { WorkingDocument } from "../working-document-rd4";
 
-import { EditorServices } from "./services";
+import { CommandServices } from "./services";
 
 export type CommandExecutionFunction<Payload, ReturnType> = (
   state: WorkingDocument,
-  services: EditorServices,
+  services: CommandServices,
   payload: Payload
 ) => ReturnType;
 

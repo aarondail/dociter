@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { AnchorOrientation, Document, Facet, Node, NodeCategory, NodeChildrenType } from "../document-model-rd4";
+import { Document, Facet, Node, NodeCategory, NodeChildrenType } from "../document-model-rd4";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 import {
   CursorNavigator,

@@ -1,5 +1,7 @@
-import { Chain, NodeNavigator } from "../basic-traversal-rd4";
 import { Side } from "../miscUtils";
+import { Chain, NodeNavigator } from "../traversal-rd4";
+
+import { Command } from "./types";
 
 export type HorizontalVisualPosition = number;
 
@@ -18,4 +20,17 @@ export interface NodeLayoutService {
   ): boolean | undefined;
 
   getTargetHorizontalPosition(target: NodeNavigator | Chain, side: Side): HorizontalVisualPosition | undefined;
+}
+
+export interface CommandServices {
+  /**
+   * Use this to execute (during an command) another related command.
+   */
+  readonly execute: <ReturnType>(command: Command<unknown, ReturnType, string>) => ReturnType;
+
+  /**
+   * The layout service doesn't layout nodes, rather it reports layout
+   * information related to nodes.
+   */
+  readonly layout?: NodeLayoutService;
 }

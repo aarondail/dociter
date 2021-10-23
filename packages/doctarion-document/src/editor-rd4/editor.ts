@@ -1,15 +1,17 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
-import { Path } from "../basic-traversal-rd4";
-import { Cursor, CursorNavigator, CursorOrientation } from "../cursor-traversal-rd4";
+import { CORE_COMMANDS, Command, CommandInfo, CommandServices, CommandUtils } from "../commands-rd4";
 import { Document } from "../document-model-rd4";
-import { InteractorId, ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
+import { CursorNavigator, CursorOrientation, CursorPath, Path } from "../traversal-rd4";
+import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
 
-import { Command, CommandInfo, CORE_COMMANDS } from "./commands";
-import { CursorService } from "./cursorService";
 import { EditorError } from "./error";
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { EditorProvidableServices, EditorServices } from "./services";
+
+/**
+ * These are services that should be provided to the Editor.
+ */
+export type EditorProvidableServices = Pick<CommandServices, "layout">;
 
 export interface EditorConfig {
   // For reasons I dont fully understand typescript doesn't allow you to pass an
@@ -17,7 +19,7 @@ export interface EditorConfig {
   // `any` here.
   readonly additionalOperations?: readonly CommandInfo<any, unknown, string>[];
   readonly document: Document;
-  readonly cursor?: Cursor;
+  readonly cursor?: CursorPath;
   readonly omitDefaultInteractor?: boolean;
   readonly provideServices?: (events: EditorEvents) => Partial<EditorProvidableServices>;
 }
@@ -30,7 +32,7 @@ export class Editor {
   // private futureList: EditorState[];
   // private historyList: EditorState[];
   private readonly operationRegistry: Map<string, CommandInfo<unknown, unknown, string>>;
-  private readonly operationServices: EditorServices;
+  private readonly operationServices: CommandServices;
   private workingState: WorkingDocument;
 
   public constructor({
@@ -53,9 +55,6 @@ export class Editor {
     const providedServices = provideServices && provideServices(this.events);
     this.operationServices = {
       ...providedServices,
-      // TODO do we really need this
-      cursor: new CursorService(this.workingState),
-      dedupeInteractors: this.dedupeInteractors,
       execute: this.executeRelatedOperation,
     };
 
@@ -109,7 +108,7 @@ export class Editor {
 
       // Post operation cleanup
       if (this.currentOperationState?.interactorsUpdated) {
-        this.dedupeInteractors();
+        CommandUtils.dedupeInteractors(this.workingState);
       }
 
       this.eventEmitters.operationHasRun.emit(this.workingState);
@@ -144,46 +143,6 @@ export class Editor {
   //     this.workingState = oldButNewState;
   //   }
   // }
-
-  /**
-   * There definitely could be more situations in which we want to dedupe
-   * interactors, but for right now we only dedupe interactors that aren't a
-   * selection AND have the same status AND their mainCursor is equal.
-   *
-   * This must be called after the interactorOrdering has been sorted.
-   */
-  private dedupeInteractors = (): InteractorId[] | undefined => {
-    const interactors = this.workingState.interactors;
-    if (interactors.size < 2) {
-      return;
-    }
-
-    // Try to remove any interactors that are exact matches for another
-    // interactor, but only consider NON-selections. Its unclear at this
-    // point what the best behavior for selections would be.
-    let dupeIds: InteractorId[] | undefined;
-    const seenKeys = new Set<string>();
-    for (const [, i] of interactors) {
-      if (i.selectionAnchor) {
-        continue;
-      }
-      const key = `${i.mainAnchor.node.id}${i.mainAnchor.orientation}${i.mainAnchor.graphemeIndex || ""}${i.status}`;
-      if (seenKeys.has(key)) {
-        if (!dupeIds) {
-          dupeIds = [];
-        }
-        dupeIds.push(i.id);
-      }
-      seenKeys.add(key);
-    }
-
-    if (dupeIds) {
-      for (const id of dupeIds) {
-        this.workingState.deleteInteractor(id);
-      }
-    }
-    return dupeIds;
-  };
 
   private executeRelatedOperation = <ReturnType>(command: Command<unknown, ReturnType, string>): ReturnType => {
     // This must only be called in the context of a currently executing operation
