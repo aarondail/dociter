@@ -8,7 +8,7 @@ import * as CursorCommands from "./cursorCommands";
 // import { delete_ } from "./deletionOps";
 // import * as InsertionOps from "./insertionOps";
 import * as InteractorCommands from "./interactorCommands";
-// import * as JoinOps from "./joinOps";
+import * as JoinCommands from "./joinCommands";
 // import * as SplitOps from "./splitOps";
 
 export const Commands = {
@@ -16,6 +16,6 @@ export const Commands = {
   // delete: delete_,
   // ...InsertionOps,
   ...InteractorCommands,
-  // ...JoinOps,
+  ...JoinCommands,
   // ...SplitOps,
 };
