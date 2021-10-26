@@ -1,5 +1,5 @@
 import { SimpleComparison } from "../miscUtils";
-import { CursorNavigator, CursorPath, Path } from "../traversal-rd4";
+import { CursorNavigator, CursorOrientation, CursorPath, Path, Range } from "../traversal-rd4";
 import {
   AnchorParameters,
   InteractorId,
@@ -18,6 +18,8 @@ export type SelectTargetsResult = {
   readonly mainAnchorNavigator: CursorNavigator<ReadonlyWorkingNode>;
   readonly selectionAnchorCursor?: CursorPath;
   readonly selectionAnchorNavigator?: CursorNavigator<ReadonlyWorkingNode>;
+  // This could be lazily calculated...
+  readonly selectionRange?: Range;
   readonly isMainCursorFirst: boolean;
 };
 
@@ -88,15 +90,24 @@ export const CommandUtils = {
         const navigators = state.getCursorNavigatorsForInteractor(interactor);
         const mainAnchorCursor = navigators.mainAnchor.cursor;
         const selectionAnchorCursor = navigators.selectionAnchor ? navigators.selectionAnchor.cursor : undefined;
+        const isMainCursorFirst = selectionAnchorCursor
+          ? mainAnchorCursor.compareTo(selectionAnchorCursor) !== SimpleComparison.After
+          : true;
+        const selectionRange = navigators.selectionAnchor
+          ? getRangeForSelection(
+              state,
+              isMainCursorFirst ? navigators.mainAnchor : navigators.selectionAnchor,
+              isMainCursorFirst ? navigators.selectionAnchor : navigators.mainAnchor
+            )
+          : undefined;
         return {
           interactor,
           mainAnchorCursor,
           mainAnchorNavigator: navigators.mainAnchor,
           selectionAnchorCursor,
           selectionAnchorNavigator: navigators.selectionAnchor,
-          isMainCursorFirst: selectionAnchorCursor
-            ? mainAnchorCursor.compareTo(selectionAnchorCursor) !== SimpleComparison.After
-            : true,
+          selectionRange,
+          isMainCursorFirst,
         };
       }
     );
@@ -144,4 +155,24 @@ function getTargetedInteractors(target: Target, state: WorkingDocument): readonl
     return Array.from(state.interactors.values()).filter((e) => untypedIdentifier.interactorIds.includes(e.id));
   }
   return [];
+}
+
+function getRangeForSelection(state: WorkingDocument, from: CursorNavigator, to: CursorNavigator): Range | undefined {
+  let fromPath = from.path;
+  if (from.cursor.orientation === CursorOrientation.After) {
+    const n = from.toNodeNavigator();
+    if (n.navigateForwardsByDfs()) {
+      fromPath = n.path;
+    }
+  }
+
+  let toPath = to.path;
+  if (to.cursor.orientation === CursorOrientation.Before) {
+    const n = to.toNodeNavigator();
+    if (n.navigateBackwardsByDfs()) {
+      toPath = n.path;
+    }
+  }
+
+  return new Range(fromPath, toPath);
 }

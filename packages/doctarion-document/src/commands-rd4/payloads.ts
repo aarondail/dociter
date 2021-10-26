@@ -36,3 +36,8 @@ export const Target = {
 };
 
 export type InteractorInputPosition = CursorPath | { path: Path | PathString; orientation: CursorOrientation };
+
+export enum Direction {
+  Backward = "BACKWARD",
+  Forward = "FORWARD",
+}

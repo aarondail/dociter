@@ -13,8 +13,8 @@ import {
 
 import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
-import { FlowDirection } from "./misc";
-import { WorkingDocumentRootNode, WorkingNode } from "./nodes";
+import { AnchorPullDirection } from "./misc";
+import { ReadonlyWorkingNode, WorkingDocumentRootNode, WorkingNode } from "./nodes";
 
 export const Utils = {
   canNodeBeSplit(node: PseudoNode): boolean {
@@ -36,15 +36,15 @@ export const Utils = {
   determineCursorPositionAfterDeletion(
     document: WorkingDocumentRootNode,
     deletionTarget: NodeNavigator,
-    direction: FlowDirection
+    direction: AnchorPullDirection
   ): CursorNavigator {
     // The node that the `originalPosition` navigator is pointed to is now
     // deleted, along with (possibly) its parent and grandparent.
     const originalNode = deletionTarget.tip.node;
     const originalParent = deletionTarget.parent?.node;
-    const isBack = direction === FlowDirection.Backward;
+    const isBack = direction === AnchorPullDirection.Backward;
 
-    const n = new CursorNavigator(document);
+    const n = new CursorNavigator<ReadonlyWorkingNode>(document);
     if (n.navigateFreelyTo(deletionTarget.path, CursorOrientation.On)) {
       if (PseudoNode.isGraphemeOrFancyGrapheme(originalNode)) {
         if (n.parent?.node === originalParent) {
@@ -70,7 +70,7 @@ export const Utils = {
 
       if (n.navigateFreelyToPrecedingSibling()) {
         if (
-          direction === FlowDirection.Forward &&
+          direction === AnchorPullDirection.Forward &&
           n.tip.node instanceof Node &&
           n.tip.node.nodeType.category !== NodeCategory.Inline &&
           n.navigateFreelyToNextSibling()

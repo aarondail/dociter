@@ -9,7 +9,7 @@ import { Path, PathString } from "./path";
 export interface ReadonlyCursorNavigator<NodeType extends Node = Node> extends ReadonlyNodeNavigator<NodeType> {
   readonly cursor: CursorPath;
 
-  clone(): ReadonlyCursorNavigator<NodeType>;
+  clone(): CursorNavigator<NodeType>;
   toNodeNavigator(): NodeNavigator<NodeType>;
 }
 

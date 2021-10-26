@@ -5,7 +5,9 @@ import { NodeNavigator } from "./nodeNavigator";
 import { Path, PathComparison } from "./path";
 import { PseudoNode } from "./pseudoNode";
 
-export const Range = {
+export class Range {
+  public constructor(public readonly from: Path, public readonly to: Path) {}
+
   /**
    * This collects all chains in the range.
    */
@@ -23,7 +25,7 @@ export const Range = {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  getChainsCoveringRange<NodeType extends Node>(document: Document, from: Path, to: Path): Chain<NodeType>[] {
+  public getChainsCoveringRange<NodeType extends Node>(document: Document): Chain<NodeType>[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
@@ -31,10 +33,10 @@ export const Range = {
     // Probably it should be re-written.
 
     const nav = new NodeNavigator<NodeType>(document);
-    if (!nav.navigateTo(from)) {
+    if (!nav.navigateTo(this.from)) {
       return [];
     }
-    if (from.equalTo(to)) {
+    if (this.from.equalTo(this.to)) {
       return [nav.chain];
     }
 
@@ -163,7 +165,7 @@ export const Range = {
       }
 
       // Have we reached the end or not?
-      if (nav.path.equalTo(to)) {
+      if (nav.path.equalTo(this.to)) {
         // Yes we have reached the end.
         break;
       }
@@ -198,29 +200,27 @@ export const Range = {
 
     // And we are finally done
     return results;
-  },
+  }
 
   /**
    * This walks through all nodes in the range. The callback is called with a
    * NodeNavigator, which (note!) is reused not cloned between calls.
    */
-  walk<NodeType extends Node>(
+  public walk<NodeType extends Node>(
     document: Document,
-    from: Path,
-    to: Path,
     callback: (navigator: NodeNavigator<NodeType>) => void,
     filter?: (node: PseudoNode<NodeType>) => boolean,
     skipDescendants?: (node: PseudoNode<NodeType>) => boolean
   ): void {
     const nav = new NodeNavigator<NodeType>(document);
-    if (!nav.navigateTo(from)) {
+    if (!nav.navigateTo(this.from)) {
       return;
     }
 
     if (filter && filter(nav.tip.node)) {
       callback(nav);
     }
-    if (from.equalTo(to)) {
+    if (this.from.equalTo(this.to)) {
       return;
     }
     let skipDescendantsPrime = false;
@@ -236,12 +236,12 @@ export const Range = {
       if (filter && filter(nav.tip.node)) {
         callback(nav);
       }
-      const cmp = nav.path.compareTo(to);
+      const cmp = nav.path.compareTo(this.to);
       if ((skipDescendants && cmp === PathComparison.Ancestor) || cmp === PathComparison.Equal) {
         return;
       }
     }
-  },
+  }
   // public walkChains(
   //   document: Document,
   //   callback: (chain: Chain) => void,
@@ -250,4 +250,4 @@ export const Range = {
   // ): void {
   //   return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
   // }
-};
+}

@@ -26,7 +26,7 @@ import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, Worki
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorId, InteractorParameters, ReadonlyInteractor } from "./interactor";
-import { FlowDirection } from "./misc";
+import { AnchorPullDirection, JoinDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import {
   NodeId,
@@ -38,9 +38,6 @@ import {
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
-export interface WorkingDocumentUpdateAdditionalContext {
-  readonly orphanedAnchorRepositionDirection?: FlowDirection;
-}
 export interface ReadonlyWorkingDocument {
   readonly allAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly document: ReadonlyWorkingDocumentRootNode;
@@ -170,23 +167,23 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public deleteNode(node: NodeId | ReadonlyWorkingNode /*, additionalContext?: NodeEditAdditionalContext*/): void {
+  public deleteNode(node: NodeId | ReadonlyWorkingNode, pull?: AnchorPullDirection): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], FlowDirection.Backward);
+    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], pull);
   }
 
-  public deleteNodeAtPath(path: Path /*, additionalContext?: NodeEditAdditionalContext*/): void {
+  public deleteNodeAtPath(path: Path, pull?: AnchorPullDirection): void {
     const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], FlowDirection.Backward);
+        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull);
       } else if (nav.parent && PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
         this.deleteNodesAndGraphemesPrime(
           [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
-          FlowDirection.Backward
+          pull
         );
       }
     } else {
@@ -200,27 +197,24 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public deleteNodeGrapheme(
     node: NodeId | ReadonlyWorkingNode,
     graphemeIndex: number,
-    additionalContext?: WorkingDocumentUpdateAdditionalContext
+    pull?: AnchorPullDirection
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime(
-      [{ node: resolvedNode, graphemeIndex }],
-      additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
-    );
+    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }], pull);
   }
 
-  public deleteNodesInRange(from: Path, to: Path, additionalContext?: WorkingDocumentUpdateAdditionalContext): void {
-    const chainsToDelete = Range.getChainsCoveringRange(this.document, from, to);
+  public deleteNodesInRange(range: Range, pull?: AnchorPullDirection): void {
+    const chainsToDelete = range.getChainsCoveringRange(this.document);
     if (chainsToDelete.length === 0) {
       return;
     }
 
     const fromNav = new NodeNavigator(this.actualDocument);
     const toNav = new NodeNavigator(this.actualDocument);
-    if (!fromNav.navigateTo(from) || !toNav.navigateTo(to)) {
+    if (!fromNav.navigateTo(range.from) || !toNav.navigateTo(range.to)) {
       throw new WorkingDocumentError("Range seems invalid");
     }
 
@@ -229,14 +223,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // This is probably a very inefficient way to deal with text.. and everything
     for (const chain of chainsToDelete) {
       if (chain.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime(
-          [{ node: chain.tip.node as WorkingNode }],
-          additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
-        );
+        this.deleteNodesAndGraphemesPrime([{ node: chain.tip.node as WorkingNode }], pull);
       } else if (chain.parent && PseudoNode.isGraphemeOrFancyGrapheme(chain.tip.node)) {
         this.deleteNodesAndGraphemesPrime(
           [{ node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart!.index }],
-          additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
+          pull
         );
       }
     }
@@ -478,7 +469,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public joinSiblingIntoNode(node: NodeId | ReadonlyWorkingNode, direction: FlowDirection): void {
+  public joinSiblingIntoNode(node: NodeId | ReadonlyWorkingNode, direction: JoinDirection): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
@@ -486,7 +477,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
     const destNav = nav.clone();
 
-    if (!(direction === FlowDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
+    if (!(direction === JoinDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
       throw new WorkingDocumentError("Could not find sibling node to join to");
     }
 
@@ -501,7 +492,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (dest.nodeType.hasNodeChildren()) {
       // Move children from one inline to the next
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === FlowDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === JoinDirection.Forward);
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
         const beforeBoundaryNode = dest.children![boundaryChildIndex - 1] as WorkingNode;
         const atBoundaryNode = dest.children![boundaryChildIndex] as WorkingNode;
@@ -509,15 +500,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         // Special handling for spans, merge them
         if (beforeBoundaryNode instanceof Span && atBoundaryNode instanceof Span) {
           toJoinFollowUps.push(beforeBoundaryNode);
-          // this.joinSiblingIntoNode(beforeBoundaryNode, FlowDirection.Forward);
+          // this.joinSiblingIntoNode(beforeBoundaryNode, PullDirection.Forward);
         }
       }
     } else if (dest.nodeType.hasTextOrFancyTextChildren() || dest.nodeType.hasFancyTextChildren()) {
-      this.moveAllNodeGraphemes(source, dest, direction === FlowDirection.Forward);
+      this.moveAllNodeGraphemes(source, dest, direction === JoinDirection.Forward);
     }
 
     for (const facet of dest.nodeType.getFacetsThatAreNodeArrays()) {
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facet, direction === FlowDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facet, direction === JoinDirection.Forward);
 
       // Again, special handling for spans
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
@@ -527,17 +518,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         // Special handling for spans, merge them
         if (beforeBoundaryNode instanceof Span && atBoundaryNode instanceof Span) {
           toJoinFollowUps.push(beforeBoundaryNode);
-          // this.joinSiblingIntoNode(beforeBoundaryNode, FlowDirection.Forward);
+          // this.joinSiblingIntoNode(beforeBoundaryNode, PullDirection.Forward);
         }
       }
     }
 
     this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
 
-    this.deleteNodesAndGraphemesPrime([{ node: source }], direction);
+    this.deleteNodesAndGraphemesPrime(
+      [{ node: source }],
+      direction === JoinDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
+    );
 
     for (const node of toJoinFollowUps) {
-      this.joinSiblingIntoNode(node, FlowDirection.Forward);
+      this.joinSiblingIntoNode(node, JoinDirection.Forward);
     }
   }
 
@@ -677,7 +671,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           currentValue &&
             this.deleteNodesAndGraphemesPrime(
               currentValue.map((node: WorkingNode) => ({ node })),
-              FlowDirection.Backward
+              AnchorPullDirection.Backward
             );
 
           if (value) {
@@ -949,7 +943,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       readonly node: WorkingNode;
       readonly graphemeIndex?: number;
     }[],
-    orphanedAnchorRepositionDirection: FlowDirection
+    pull?: AnchorPullDirection
   ): void {
     if (locations.length < 1) {
       return;
@@ -1026,7 +1020,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.repositionOrphanedAnchors(
       orphanedAnchorsNeedingRepositioning,
       deletionTarget,
-      orphanedAnchorRepositionDirection
+      pull ?? AnchorPullDirection.Backward
     );
   }
 
@@ -1193,7 +1187,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   private repositionOrphanedAnchors(
     anchors: WorkingAnchor[],
     deletionTarget: NodeNavigator,
-    direction: FlowDirection
+    direction: AnchorPullDirection
   ): void {
     if (anchors.length === 0) {
       return;

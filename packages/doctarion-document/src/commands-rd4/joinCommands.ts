@@ -1,10 +1,8 @@
-import lodash from "lodash";
-
 import { Node, NodeCategory } from "../document-model-rd4";
 import { CursorNavigator, LiftingPathMap, Path, PseudoNode, Range } from "../traversal-rd4";
-import { FlowDirection, ReadonlyWorkingNode } from "../working-document-rd4";
+import { JoinDirection, ReadonlyWorkingNode } from "../working-document-rd4";
 
-import { TargetPayload } from "./payloads";
+import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
@@ -14,13 +12,13 @@ interface JoinOptions {
    * does affect whether the children are joined into the first selected block,
    * or the last.
    */
-  readonly direction: FlowDirection;
+  readonly direction: Direction;
 }
 
 export type JoinPayload = TargetPayload & Partial<JoinOptions>;
 
 export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
-  const direction = payload.direction ?? FlowDirection.Backward;
+  const direction = payload.direction ?? Direction.Backward;
 
   const targets = CommandUtils.selectTargets(state, payload.target);
 
@@ -40,16 +38,14 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
         break;
       }
 
-      Range.walk<ReadonlyWorkingNode>(
+      new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
         state.document,
-        start.path,
-        end.path,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
-          if (direction === FlowDirection.Backward && n.path.equalTo(start.path)) {
+          if (direction === Direction.Backward && n.path.equalTo(start.path)) {
             // Skip
-          } else if (direction === FlowDirection.Forward && n.path.equalTo(end.path)) {
+          } else if (direction === Direction.Forward && n.path.equalTo(end.path)) {
             // Skip
           } else {
             toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
@@ -66,9 +62,14 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
     }
   }
 
-  for (const { elements } of lodash.reverse(toJoin.getAllOrderedByPaths())) {
+  const toJoinElements = toJoin.getAllOrderedByPaths();
+  toJoinElements.reverse();
+  for (const { elements } of toJoinElements) {
     const sourceNode = elements[0]!.node;
-    state.joinSiblingIntoNode(sourceNode, direction);
+    state.joinSiblingIntoNode(
+      sourceNode,
+      direction === Direction.Backward ? JoinDirection.Backward : JoinDirection.Forward
+    );
   }
 });
 

@@ -5,7 +5,7 @@ export * from "./services";
 export * from "./utils";
 
 import * as CursorCommands from "./cursorCommands";
-// import { delete_ } from "./deletionOps";
+import { delete_ } from "./deletionCommands";
 // import * as InsertionOps from "./insertionOps";
 import * as InteractorCommands from "./interactorCommands";
 import * as JoinCommands from "./joinCommands";
@@ -13,7 +13,7 @@ import * as JoinCommands from "./joinCommands";
 
 export const Commands = {
   ...CursorCommands,
-  // delete: delete_,
+  delete: delete_,
   // ...InsertionOps,
   ...InteractorCommands,
   ...JoinCommands,
