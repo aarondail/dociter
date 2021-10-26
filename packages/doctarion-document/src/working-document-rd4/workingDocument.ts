@@ -50,14 +50,18 @@ export interface ReadonlyWorkingDocument {
 
   getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters;
   getAnchorParametersFromCursorPath(cursorPath: CursorPath): AnchorParameters;
-  getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator;
+  getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator<ReadonlyWorkingNode>;
   getCursorNavigatorsForInteractor(
     interactor: ReadonlyInteractor | InteractorId
-  ): { readonly mainAnchor: CursorNavigator; readonly selectionAnchor: CursorNavigator | undefined };
+  ): {
+    readonly mainAnchor: CursorNavigator<ReadonlyWorkingNode>;
+    readonly selectionAnchor: CursorNavigator<ReadonlyWorkingNode> | undefined;
+  };
   getCursorPathForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorPath;
   getCursorPathsForInteractor(
     anchor: ReadonlyInteractor | InteractorId
   ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined };
+  getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<ReadonlyWorkingNode>;
   getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
 }
 
@@ -175,16 +179,18 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public deleteNodeAtPath(path: Path /*, additionalContext?: NodeEditAdditionalContext*/): void {
-    const nav = new NodeNavigator(this.actualDocument);
+    const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
         this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], FlowDirection.Backward);
       } else if (nav.parent && PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
         this.deleteNodesAndGraphemesPrime(
-          [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart.index }],
+          [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
           FlowDirection.Backward
         );
       }
+    } else {
+      throw new WorkingDocumentError("Invalid node path");
     }
   }
 
@@ -206,15 +212,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     );
   }
 
-  public deleteNodesInRange(range: Range, additionalContext?: WorkingDocumentUpdateAdditionalContext): void {
-    const chainsToDelete = range.getChainsCoveringRange(this.document);
+  public deleteNodesInRange(from: Path, to: Path, additionalContext?: WorkingDocumentUpdateAdditionalContext): void {
+    const chainsToDelete = Range.getChainsCoveringRange(this.document, from, to);
     if (chainsToDelete.length === 0) {
       return;
     }
 
     const fromNav = new NodeNavigator(this.actualDocument);
     const toNav = new NodeNavigator(this.actualDocument);
-    if (!fromNav.navigateTo(range.from) || !toNav.navigateTo(range.to)) {
+    if (!fromNav.navigateTo(from) || !toNav.navigateTo(to)) {
       throw new WorkingDocumentError("Range seems invalid");
     }
 
@@ -229,7 +235,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         );
       } else if (chain.parent && PseudoNode.isGraphemeOrFancyGrapheme(chain.tip.node)) {
         this.deleteNodesAndGraphemesPrime(
-          [{ node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart.index }],
+          [{ node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart!.index }],
           additionalContext?.orphanedAnchorRepositionDirection ?? FlowDirection.Backward
         );
       }
@@ -246,7 +252,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       return {
         node: parent as WorkingNode,
         orientation: (cursorNavigator.cursor.orientation as unknown) as AnchorOrientation,
-        graphemeIndex: cursorNavigator.tip.pathPart.index,
+        graphemeIndex: cursorNavigator.tip.pathPart!.index,
       };
     }
     return {
@@ -264,7 +270,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return this.getAnchorParametersFromCursorNavigator(n);
   }
 
-  public getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator {
+  public getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator<WorkingNode> {
     const cursorPath = this.getCursorPathForAnchor(anchor);
     const n = new CursorNavigator(this.actualDocument);
     if (n.navigateFreelyTo(cursorPath)) {
@@ -275,7 +281,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public getCursorNavigatorsForInteractor(
     interactor: ReadonlyInteractor | InteractorId
-  ): { readonly mainAnchor: CursorNavigator; readonly selectionAnchor: CursorNavigator | undefined } {
+  ): {
+    readonly mainAnchor: CursorNavigator<WorkingNode>;
+    readonly selectionAnchor: CursorNavigator<WorkingNode> | undefined;
+  } {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
     if (!resolvedInteractor) {
       throw new WorkingDocumentError("Unknown interactor");
@@ -327,6 +336,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         ? this.getCursorPathForAnchor(resolvedInteractor.selectionAnchor)
         : undefined,
     };
+  }
+
+  public getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<WorkingNode> {
+    const path = this.getNodePath(node);
+    const nav = new NodeNavigator<WorkingNode>(this.actualDocument);
+    if (nav.navigateTo(path)) {
+      throw new WorkingDocumentError("Invalid node path");
+    }
+    return nav;
   }
 
   public getNodePath(node: NodeId | ReadonlyWorkingNode): Path {

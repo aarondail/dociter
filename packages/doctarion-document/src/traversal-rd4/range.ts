@@ -5,23 +5,15 @@ import { NodeNavigator } from "./nodeNavigator";
 import { Path, PathComparison } from "./path";
 import { PseudoNode } from "./pseudoNode";
 
-export class Range {
-  public constructor(
-    public readonly from: Path,
-    /**
-     * This should always be after the from.
-     */
-    public readonly to: Path
-  ) {}
-
+export const Range = {
   /**
    * This collects all chains in the range.
    */
-  public getChains(document: Document): readonly Chain[] {
-    const results: Chain[] = [];
-    this.walkChains(document, (c) => results.push(c));
-    return results;
-  }
+  // public getChains(document: Document): readonly Chain[] {
+  //   const results: Chain[] = [];
+  //   this.walkChains(document, (c) => results.push(c));
+  //   return results;
+  // }
 
   /**
    * This gets chains in the range but tries to eliminate chains that are
@@ -31,15 +23,14 @@ export class Range {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  public getChainsCoveringRange(document: Document): Chain[] {
-    const { from, to } = this;
+  getChainsCoveringRange<NodeType extends Node>(document: Document, from: Path, to: Path): Chain<NodeType>[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
     //
     // Probably it should be re-written.
 
-    const nav = new NodeNavigator(document);
+    const nav = new NodeNavigator<NodeType>(document);
     if (!nav.navigateTo(from)) {
       return [];
     }
@@ -56,25 +47,25 @@ export class Range {
 
     // Results is where we store chains we are done processing and are are going
     // to return (unless we hit a problem).
-    const results: Chain[] = [];
+    const results: Chain<NodeType>[] = [];
     // The tracking stack stores state for every level of depth in the element
     // hierarchy we have gone through to reach the current element.  The current
     // element doesn't get its own entry.  The current element starts at the from
     // parameter and then goes from there (in the while loop below).
     const trackingStack: {
       // The chian for the element
-      chain: Chain;
+      chain: Chain<NodeType>;
       // Total number of kids, used to decide if the entire element can be added
       // to results or not (in conjunction with the found kid chains below).
       totalKidCount: number;
       // As we traverse the children of this element we store the chains we have
       // found for COMPLETELY contained elements here.  Partially contained
       // elements do not appear here... I think.
-      foundKidChains: Chain[];
+      foundKidChains: Chain<NodeType>[];
     }[] = [];
 
     const TrackingStack = {
-      push(chain: Chain) {
+      push(chain: Chain<NodeType>) {
         const link = chain.tip;
         trackingStack.push({
           chain,
@@ -114,7 +105,7 @@ export class Range {
         }
         return false;
       },
-      add(chain: Chain) {
+      add(chain: Chain<NodeType>) {
         const l = trackingStack[trackingStack.length - 1]!;
         l.foundKidChains.push(chain);
       },
@@ -207,27 +198,29 @@ export class Range {
 
     // And we are finally done
     return results;
-  }
+  },
 
   /**
    * This walks through all nodes in the range. The callback is called with a
    * NodeNavigator, which (note!) is reused not cloned between calls.
    */
-  public walk(
+  walk<NodeType extends Node>(
     document: Document,
-    callback: (navigator: NodeNavigator) => void,
-    filter?: (node: PseudoNode) => boolean,
-    skipDescendants?: (node: PseudoNode) => boolean
+    from: Path,
+    to: Path,
+    callback: (navigator: NodeNavigator<NodeType>) => void,
+    filter?: (node: PseudoNode<NodeType>) => boolean,
+    skipDescendants?: (node: PseudoNode<NodeType>) => boolean
   ): void {
-    const nav = new NodeNavigator(document);
-    if (!nav.navigateTo(this.from)) {
+    const nav = new NodeNavigator<NodeType>(document);
+    if (!nav.navigateTo(from)) {
       return;
     }
 
     if (filter && filter(nav.tip.node)) {
       callback(nav);
     }
-    if (this.from.equalTo(this.to)) {
+    if (from.equalTo(to)) {
       return;
     }
     let skipDescendantsPrime = false;
@@ -243,19 +236,18 @@ export class Range {
       if (filter && filter(nav.tip.node)) {
         callback(nav);
       }
-      const cmp = nav.path.compareTo(this.to);
+      const cmp = nav.path.compareTo(to);
       if ((skipDescendants && cmp === PathComparison.Ancestor) || cmp === PathComparison.Equal) {
         return;
       }
     }
-  }
-
-  public walkChains(
-    document: Document,
-    callback: (chain: Chain) => void,
-    filter?: (node: PseudoNode) => boolean,
-    skipDescendants?: (node: PseudoNode) => boolean
-  ): void {
-    return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
-  }
-}
+  },
+  // public walkChains(
+  //   document: Document,
+  //   callback: (chain: Chain) => void,
+  //   filter?: (node: PseudoNode) => boolean,
+  //   skipDescendants?: (node: PseudoNode) => boolean
+  // ): void {
+  //   return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
+  // }
+};

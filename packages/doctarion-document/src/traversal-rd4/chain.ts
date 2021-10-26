@@ -1,4 +1,4 @@
-import { Document } from "../document-model-rd4";
+import { Document, Node } from "../document-model-rd4";
 
 import { Path } from "./path";
 import { PathPart } from "./pathPart";
@@ -12,25 +12,24 @@ import { PseudoNode } from "./pseudoNode";
 // The first link in a Chain is always the Document.
 // -----------------------------------------------------------------------------
 
-export class ChainLink<T extends PseudoNode = PseudoNode> {
-  public readonly node: T;
-  public readonly pathPart: T extends Document ? undefined : PathPart;
+export class ChainLink<NodeType extends Node = Node> {
+  public readonly node: PseudoNode<NodeType>;
+  public readonly pathPart?: PathPart;
 
-  public constructor(node: T extends Document ? Document : never);
-  public constructor(node: T, pathPart: PathPart);
-  constructor(node: T, pathPart?: PathPart) {
+  public constructor(node: PseudoNode<NodeType>, pathPart?: PathPart) {
     this.node = node;
     this.pathPart = pathPart as any;
   }
 }
 
-export class Chain {
-  public readonly links: readonly ChainLink[];
-  public constructor(...links: readonly ChainLink[]) {
+export class Chain<NodeType extends Node = Node> {
+  public readonly links: readonly ChainLink<NodeType>[];
+
+  public constructor(...links: readonly ChainLink<NodeType>[]) {
     this.links = links;
   }
 
-  public get grandParent(): ChainLink | undefined {
+  public get grandParent(): ChainLink<NodeType> | undefined {
     const len = this.links.length;
     if (len < 3) {
       return undefined;
@@ -42,7 +41,7 @@ export class Chain {
     return this.links.length;
   }
 
-  public get parent(): ChainLink | undefined {
+  public get parent(): ChainLink<NodeType> | undefined {
     const len = this.links.length;
     if (len < 2) {
       return undefined;
@@ -55,40 +54,39 @@ export class Chain {
       ...this.links
         // Skip the document
         .slice(1)
-        .map((x) => x.pathPart)
+        .map((x) => x.pathPart!)
     );
   }
 
-  public get tip(): ChainLink {
+  public get tip(): ChainLink<NodeType> {
     return this.links[this.links.length - 1];
   }
 
-  public get tipNode(): PseudoNode {
+  public get tipNode(): PseudoNode<NodeType> {
     return this.tip.node;
   }
 
-  public append(newLink: ChainLink): Chain {
-    return new Chain(...this.links, newLink);
+  public append(newLink: ChainLink<NodeType>): Chain<NodeType> {
+    return new Chain<NodeType>(...this.links, newLink);
   }
 
-  public contains(node: PseudoNode): boolean {
+  public contains(node: PseudoNode<NodeType>): boolean {
     return this.links.find((link) => link.node === node) !== undefined;
   }
 
   /**
-   * This drops the last link in the chain, unless there is only one node,
-   * the document.  Aka the ChainLinkFirst.  This can't be
-   * dropped safely because it would not adhere to the type definition for
-   * Chain.
+   * This drops the last link in the chain, unless there is only one node, the
+   * document. This can't be dropped safely because it would not adhere to the
+   * type definition for Chain.
    */
-  public dropTipIfPossible(): Chain | undefined {
+  public dropTipIfPossible(): Chain<NodeType> | undefined {
     if (this.links.length > 1) {
-      return new Chain(...this.links.slice(0, this.links.length - 1));
+      return new Chain<NodeType>(...this.links.slice(0, this.links.length - 1));
     }
     return undefined;
   }
 
-  public getGrandParentToTipIfPossible(): [ChainLink, ChainLink, ChainLink] | undefined {
+  public getGrandParentToTipIfPossible(): [ChainLink<NodeType>, ChainLink<NodeType>, ChainLink<NodeType>] | undefined {
     const len = this.links.length;
     if (len < 3) {
       return undefined;
@@ -96,7 +94,7 @@ export class Chain {
     return [this.links[len - 3]!, this.links[len - 2]!, this.links[len - 1]!];
   }
 
-  public getParentAndTipIfPossible(): [ChainLink, ChainLink] | undefined {
+  public getParentAndTipIfPossible(): [ChainLink<NodeType>, ChainLink<NodeType>] | undefined {
     const len = this.links.length;
     if (len < 2) {
       return undefined;
@@ -106,20 +104,19 @@ export class Chain {
 
   /**
    * This replaces the last link in the chain, unless there is only one node,
-   * the document. Aka the ChainLinkFirst. This can't be replaced safely (at
-   * least not with a non first link) because it would not adhere to the type
-   * definition for Chain.
+   * the document. This can't be replaced safely (at least not with a non first
+   * link) because it would not adhere to the type definition for Chain.
    */
-  public replaceTipIfPossible(newLink: ChainLink): Chain | undefined {
+  public replaceTipIfPossible(newLink: ChainLink<NodeType>): Chain<NodeType> | undefined {
     if (this.links.length < 2) {
       return undefined;
     }
     const result = this.links.slice(0, this.links.length - 1);
     result.push(newLink);
-    return new Chain(...result);
+    return new Chain<NodeType>(...result);
   }
 
-  public searchBackwards(predicate: (node: PseudoNode) => boolean): ChainLink | undefined {
+  public searchBackwards(predicate: (node: PseudoNode<NodeType>) => boolean): ChainLink<NodeType> | undefined {
     for (let i = this.links.length - 1; i >= 0; i--) {
       const link = this.links[i]!;
       if (predicate(link.node)) {
@@ -130,8 +127,8 @@ export class Chain {
   }
 
   public searchBackwardsAndSplit(
-    nodePredicate: (node: PseudoNode) => boolean
-  ): readonly [readonly ChainLink[], readonly ChainLink[]] | undefined {
+    nodePredicate: (node: PseudoNode<NodeType>) => boolean
+  ): readonly [readonly ChainLink<NodeType>[], readonly ChainLink<NodeType>[]] | undefined {
     for (let i = this.links.length - 1; i >= 0; i--) {
       const link = this.links[i]!;
       if (nodePredicate(link.node)) {
@@ -141,7 +138,7 @@ export class Chain {
     return undefined;
   }
 
-  public searchForwards(predicate: (node: PseudoNode) => boolean): ChainLink | undefined {
+  public searchForwards(predicate: (node: PseudoNode<NodeType>) => boolean): ChainLink<NodeType> | undefined {
     for (let i = 0; i < this.links.length; i++) {
       const link = this.links[i]!;
       if (predicate(link.node)) {
@@ -151,21 +148,21 @@ export class Chain {
     return undefined;
   }
 
-  public static from(document: Document, path: Path): Chain | undefined {
-    const results: ChainLink[] = [new ChainLink<Document>(document)];
-    let currentNode: PseudoNode = document;
+  public static from<NodeType extends Node>(document: Document & NodeType, path: Path): Chain<NodeType> | undefined {
+    const results: ChainLink<NodeType>[] = [new ChainLink<NodeType>(document, undefined)];
+    let currentNode: PseudoNode<NodeType> = document;
     const pathParts = [...path.parts];
     while (pathParts.length > 0) {
       const pathPart = pathParts.shift();
       if (!pathPart) {
         return undefined;
       }
-      const childNode = pathPart.resolve(currentNode);
+      const childNode: PseudoNode<NodeType> | undefined = pathPart.resolve<NodeType>(currentNode);
 
       if (childNode === undefined) {
         return undefined;
       }
-      results.push(new ChainLink(childNode, pathPart));
+      results.push(new ChainLink<NodeType>(childNode, pathPart));
       currentNode = childNode;
     }
     // This is ok since we know the first node is a first link and the

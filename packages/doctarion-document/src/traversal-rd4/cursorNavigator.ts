@@ -3,18 +3,14 @@ import { Document, Node } from "../document-model-rd4";
 import { Chain, ChainLink } from "./chain";
 import { CursorOrientation, CursorPath } from "./cursorPath";
 import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
-import { NodeNavigator } from "./nodeNavigator";
+import { NodeNavigator, ReadonlyNodeNavigator } from "./nodeNavigator";
 import { Path, PathString } from "./path";
 
-export interface ReadonlyCursorNavigator {
-  readonly chain: Chain;
-  readonly grandParent: ChainLink | undefined;
-  readonly parent: ChainLink | undefined;
-  readonly tip: ChainLink;
+export interface ReadonlyCursorNavigator<NodeType extends Node = Node> extends ReadonlyNodeNavigator<NodeType> {
   readonly cursor: CursorPath;
 
-  clone(): CursorNavigator;
-  toNodeNavigator(): NodeNavigator;
+  clone(): ReadonlyCursorNavigator<NodeType>;
+  toNodeNavigator(): NodeNavigator<NodeType>;
 }
 
 /**
@@ -22,32 +18,36 @@ export interface ReadonlyCursorNavigator {
  * between the nodes of a document it navigates between the places where a
  * cursor could be placed.
  */
-export class CursorNavigator implements ReadonlyCursorNavigator {
+export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCursorNavigator<NodeType> {
   private currentOrientation: CursorOrientation;
   // This nodeNavigator stores the current node the cursor is on
-  private nodeNavigator: NodeNavigator;
+  private nodeNavigator: NodeNavigator<NodeType>;
 
   public constructor(
-    public readonly document: Document // private readonly layoutReporter: NodeLayoutReporter | undefined
+    public readonly document: Document & NodeType // private readonly layoutReporter: NodeLayoutReporter | undefined
   ) {
     // The document is always at the root of the chain
     this.currentOrientation = CursorOrientation.On;
-    this.nodeNavigator = new NodeNavigator(document);
+    this.nodeNavigator = new NodeNavigator<NodeType>(document);
   }
 
-  public get chain(): Chain {
+  public get chain(): Chain<NodeType> {
     return this.nodeNavigator.chain;
   }
 
-  public get grandParent(): ChainLink | undefined {
+  public get grandParent(): ChainLink<NodeType> | undefined {
     return this.nodeNavigator.grandParent;
   }
 
-  public get parent(): ChainLink | undefined {
+  public get parent(): ChainLink<NodeType> | undefined {
     return this.nodeNavigator.parent;
   }
 
-  public get tip(): ChainLink {
+  public get path(): Path {
+    return this.nodeNavigator.path;
+  }
+
+  public get tip(): ChainLink<NodeType> {
     return this.nodeNavigator.tip;
   }
 
@@ -59,8 +59,8 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     this.currentOrientation = orientation;
   }
 
-  public clone(): CursorNavigator {
-    const navigator = new CursorNavigator(this.document);
+  public clone(): CursorNavigator<NodeType> {
+    const navigator = new CursorNavigator<NodeType>(this.document);
     navigator.currentOrientation = this.currentOrientation;
     navigator.nodeNavigator = this.nodeNavigator.clone();
     return navigator;
@@ -84,7 +84,7 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
       orientation = (cursorOrPath as CursorPath).orientation;
     }
 
-    const n = new NodeNavigator(this.document);
+    const n = new NodeNavigator<NodeType>(this.document);
     if (!n.navigateTo(path)) {
       return false;
     }
@@ -376,15 +376,15 @@ export class CursorNavigator implements ReadonlyCursorNavigator {
     return false;
   }
 
-  public toNodeNavigator(): NodeNavigator {
+  public toNodeNavigator(): NodeNavigator<NodeType> {
     return this.nodeNavigator.clone();
   }
 
   private complexNavigationHelper(options: {
-    init?: (nav: CursorNavigator) => void;
-    advance: (nav: CursorNavigator) => boolean;
-    abort?: (nav: CursorNavigator) => boolean;
-    success: (nav: CursorNavigator) => boolean;
+    init?: (nav: CursorNavigator<NodeType>) => void;
+    advance: (nav: CursorNavigator<NodeType>) => boolean;
+    abort?: (nav: CursorNavigator<NodeType>) => boolean;
+    success: (nav: CursorNavigator<NodeType>) => boolean;
   }): boolean {
     const clone = this.clone();
     options.init?.(clone);

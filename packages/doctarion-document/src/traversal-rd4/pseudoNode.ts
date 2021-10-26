@@ -1,17 +1,17 @@
 import { Node } from "../document-model-rd4";
 import { FancyGrapheme, Grapheme } from "../text-model-rd4";
 
-export type PseudoNode = Node | FancyGrapheme;
+export type PseudoNode<NodeType extends Node = Node> = NodeType | FancyGrapheme;
 
 export const PseudoNode = {
-  getChildren(node: PseudoNode): readonly PseudoNode[] | undefined {
+  getChildren<NodeType extends Node>(node: PseudoNode<NodeType>): readonly PseudoNode<NodeType>[] | undefined {
     if (node instanceof Node) {
-      return node.children;
+      return node.children as PseudoNode<NodeType>[];
     }
     return undefined;
   },
 
-  isGraphemeOrFancyGrapheme(node: PseudoNode): node is Grapheme {
+  isGraphemeOrFancyGrapheme(node: PseudoNode<any>): node is Grapheme {
     return !(node instanceof Node);
   },
 };

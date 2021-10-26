@@ -38,7 +38,7 @@ export class PathPart {
     return this.index === other.index && this.facet === other.index;
   }
 
-  public resolve(from: PseudoNode): PseudoNode | undefined {
+  public resolve<NodeType extends Node>(from: PseudoNode<NodeType>): PseudoNode<NodeType> | undefined {
     if (!(from instanceof Node)) {
       return undefined;
     }
@@ -49,7 +49,7 @@ export class PathPart {
       }
       return facet;
     } else {
-      return from.children?.[this.index!];
+      return from.children?.[this.index!] as NodeType;
     }
   }
 
