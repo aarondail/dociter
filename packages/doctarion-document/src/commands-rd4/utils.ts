@@ -5,6 +5,7 @@ import {
   InteractorId,
   InteractorStatus,
   ReadonlyInteractor,
+  ReadonlyWorkingNode,
   WorkingDocument,
 } from "../working-document-rd4";
 
@@ -14,9 +15,9 @@ import { InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 export type SelectTargetsResult = {
   readonly interactor: ReadonlyInteractor;
   readonly mainAnchorCursor: CursorPath;
-  readonly mainAnchorNavigator: CursorNavigator;
+  readonly mainAnchorNavigator: CursorNavigator<ReadonlyWorkingNode>;
   readonly selectionAnchorCursor?: CursorPath;
-  readonly selectionAnchorNavigator?: CursorNavigator;
+  readonly selectionAnchorNavigator?: CursorNavigator<ReadonlyWorkingNode>;
   readonly isMainCursorFirst: boolean;
 };
 

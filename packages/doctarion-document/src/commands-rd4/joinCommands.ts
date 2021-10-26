@@ -40,8 +40,10 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
         break;
       }
 
-      new Range(start.path, end.path).walk(
+      Range.walk<ReadonlyWorkingNode>(
         state.document,
+        start.path,
+        end.path,
         (n) => {
           // Skip the start block if we are going backwards, or the end block if
           // we are going forwards
@@ -78,7 +80,7 @@ function nodeIsInlineOrGraphemeOrFancyGrapheme(node: PseudoNode): boolean {
 }
 
 function navigateUpToNonInline(
-  cursorNavigator: CursorNavigator
+  cursorNavigator: CursorNavigator<ReadonlyWorkingNode>
 ): { node: ReadonlyWorkingNode; path: Path } | undefined {
   const n = cursorNavigator.toNodeNavigator();
   // eslint-disable-next-line no-constant-condition
