@@ -12,7 +12,7 @@ export interface ReadonlyNodeNavigator<NodeType extends Node = Node> {
   readonly tip: ChainLink<NodeType>;
   readonly path: Path;
 
-  clone(): ReadonlyNodeNavigator<NodeType>;
+  clone(): NodeNavigator<NodeType>;
 }
 
 /**
@@ -227,6 +227,24 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     const newChain = Chain.from(this.document, path);
     if (newChain) {
       this.currentChain = newChain;
+      return true;
+    }
+    return false;
+  }
+
+  public navigateToAncestor(node: PseudoNode): boolean {
+    const result = this.currentChain.searchBackwardsAndSplit(node);
+    if (result) {
+      this.currentChain = new Chain<NodeType>(...result[0]);
+      return true;
+    }
+    return false;
+  }
+
+  public navigateToAncestorMatchingPredicate(predicate: (node: PseudoNode) => boolean): boolean {
+    const result = this.currentChain.searchBackwardsAndSplit(predicate);
+    if (result) {
+      this.currentChain = new Chain<NodeType>(...result[0]);
       return true;
     }
     return false;

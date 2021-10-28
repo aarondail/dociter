@@ -8,7 +8,7 @@ import {
 } from "../traversal-rd4";
 import { AnchorPullDirection } from "../working-document-rd4";
 
-import { join } from "./joinCommands";
+import { JoinType, join } from "./joinCommands";
 import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
@@ -33,7 +33,7 @@ interface DeleteOptions {
 
 export type DeletePayload = TargetPayload & Partial<DeleteOptions>;
 
-export const delete_ = coreCommand<DeletePayload>("delete", (state, services, payload) => {
+export const deleteImplementation = coreCommand<DeletePayload>("delete", (state, services, payload) => {
   const options: DeleteOptions = {
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     allowJoiningBlocksInBoundaryCases: payload.allowJoiningBlocksInBoundaryCases ?? false,
@@ -67,7 +67,9 @@ export const delete_ = coreCommand<DeletePayload>("delete", (state, services, pa
         });
       } else if (result?.joinInstead) {
         // Join instead of delete
-        services.execute(join({ target: { interactorId: interactor.id }, direction: options.direction }));
+        services.execute(
+          join({ type: JoinType.Blocks, target: { interactorId: interactor.id }, direction: options.direction })
+        );
       }
     }
   }

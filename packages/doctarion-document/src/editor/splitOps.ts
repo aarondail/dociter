@@ -5,7 +5,6 @@ import { CursorOrientation } from "../cursor";
 import { Block, NodeUtils, ObjectNode } from "../document-model";
 import { FlowDirection } from "../working-document";
 
-import { delete_ } from "./deletionOps";
 import { createCoreOperation } from "./operation";
 import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
 import { TargetPayload } from "./payloads";

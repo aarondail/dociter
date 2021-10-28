@@ -5,17 +5,17 @@ export * from "./services";
 export * from "./utils";
 
 import * as CursorCommands from "./cursorCommands";
-import { delete_ } from "./deletionCommands";
-// import * as InsertionOps from "./insertionOps";
+import { deleteImplementation } from "./deletionCommands";
+import * as InsertionCommands from "./insertionCommands";
 import * as InteractorCommands from "./interactorCommands";
 import * as JoinCommands from "./joinCommands";
-// import * as SplitOps from "./splitOps";
+import * as SplitCommands from "./splitCommands";
 
 export const Commands = {
   ...CursorCommands,
-  delete: delete_,
-  // ...InsertionOps,
+  delete: deleteImplementation,
+  ...InsertionCommands,
   ...InteractorCommands,
   ...JoinCommands,
-  // ...SplitOps,
+  ...SplitCommands,
 };

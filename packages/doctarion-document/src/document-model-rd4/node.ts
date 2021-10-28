@@ -37,6 +37,7 @@ export class NodeType {
     this.doesNotHaveChildren = lodash.once(this.doesNotHaveChildren);
     this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
     this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
+    this.hasBlockChildren = lodash.once(this.hasBlockChildren);
     this.hasFancyTextChildren = lodash.once(this.hasFancyTextChildren);
     this.hasTextOrFancyTextChildren = lodash.once(this.hasTextOrFancyTextChildren);
     this.hasNodeChildren = lodash.once(this.hasNodeChildren);
@@ -104,6 +105,16 @@ export class NodeType {
     return result;
   };
 
+  public hasBlockChildren = (): boolean => {
+    switch (this.childrenType) {
+      case NodeChildrenType.Blocks:
+      case NodeChildrenType.BlocksAndSuperBlocks:
+        return true;
+      default:
+        return false;
+    }
+  };
+
   public hasFancyTextChildren = (): boolean => {
     switch (this.childrenType) {
       case NodeChildrenType.FancyText:
@@ -111,6 +122,10 @@ export class NodeType {
       default:
         return true;
     }
+  };
+
+  public hasInlineChildren = (): boolean => {
+    return this.childrenType === NodeChildrenType.Inlines;
   };
 
   public hasNodeChildren = (): boolean => {

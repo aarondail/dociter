@@ -116,37 +116,57 @@ export class Chain<NodeType extends Node = Node> {
     return new Chain<NodeType>(...result);
   }
 
-  public searchBackwards(predicate: (node: PseudoNode<NodeType>) => boolean): ChainLink<NodeType> | undefined {
-    for (let i = this.links.length - 1; i >= 0; i--) {
-      const link = this.links[i]!;
-      if (predicate(link.node)) {
-        return link;
+  public searchBackwards(
+    predicateOrNode: PseudoNode | ((node: PseudoNode<NodeType>) => boolean)
+  ): ChainLink<NodeType> | undefined {
+    if (typeof predicateOrNode === "function") {
+      for (let i = this.links.length - 1; i >= 0; i--) {
+        const link = this.links[i]!;
+        if (predicateOrNode(link.node)) {
+          return link;
+        }
+      }
+    } else {
+      for (let i = this.links.length - 1; i >= 0; i--) {
+        const link = this.links[i]!;
+        if (link.node === predicateOrNode) {
+          return link;
+        }
       }
     }
     return undefined;
   }
 
   public searchBackwardsAndSplit(
-    nodePredicate: (node: PseudoNode<NodeType>) => boolean
+    predicateOrNode: PseudoNode | ((node: PseudoNode<NodeType>) => boolean)
   ): readonly [readonly ChainLink<NodeType>[], readonly ChainLink<NodeType>[]] | undefined {
-    for (let i = this.links.length - 1; i >= 0; i--) {
-      const link = this.links[i]!;
-      if (nodePredicate(link.node)) {
-        return [this.links.slice(0, i + 1), this.links.slice(i + 1)];
+    if (typeof predicateOrNode === "function") {
+      for (let i = this.links.length - 1; i >= 0; i--) {
+        const link = this.links[i]!;
+        if (predicateOrNode(link.node)) {
+          return [this.links.slice(0, i + 1), this.links.slice(i + 1)];
+        }
+      }
+    } else {
+      for (let i = this.links.length - 1; i >= 0; i--) {
+        const link = this.links[i]!;
+        if (link.node === predicateOrNode) {
+          return [this.links.slice(0, i + 1), this.links.slice(i + 1)];
+        }
       }
     }
     return undefined;
   }
 
-  public searchForwards(predicate: (node: PseudoNode<NodeType>) => boolean): ChainLink<NodeType> | undefined {
-    for (let i = 0; i < this.links.length; i++) {
-      const link = this.links[i]!;
-      if (predicate(link.node)) {
-        return link;
-      }
-    }
-    return undefined;
-  }
+  // public searchForwards(predicate: (node: PseudoNode<NodeType>) => boolean): ChainLink<NodeType> | undefined {
+  //   for (let i = 0; i < this.links.length; i++) {
+  //     const link = this.links[i]!;
+  //     if (predicate(link.node)) {
+  //       return link;
+  //     }
+  //   }
+  //   return undefined;
+  // }
 
   public static from<NodeType extends Node>(document: Document & NodeType, path: Path): Chain<NodeType> | undefined {
     const results: ChainLink<NodeType>[] = [new ChainLink<NodeType>(document, undefined)];

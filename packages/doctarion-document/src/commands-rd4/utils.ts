@@ -1,5 +1,17 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+import { Node, NodeCategory, NodeChildrenType } from "../document-model-rd4";
 import { SimpleComparison } from "../miscUtils";
-import { CursorNavigator, CursorOrientation, CursorPath, Path, Range } from "../traversal-rd4";
+import {
+  CursorNavigator,
+  CursorOrientation,
+  CursorPath,
+  NodeNavigator,
+  Path,
+  PseudoNode,
+  Range,
+  ReadonlyCursorNavigator,
+  ReadonlyNodeNavigator,
+} from "../traversal-rd4";
 import {
   AnchorParameters,
   InteractorId,
@@ -10,7 +22,7 @@ import {
 } from "../working-document-rd4";
 
 import { CommandError } from "./error";
-import { InteractorInputPosition, InteractorTargets, Target } from "./payloads";
+import { Direction, InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 
 export type SelectTargetsResult = {
   readonly interactor: ReadonlyInteractor;
@@ -64,6 +76,29 @@ export const CommandUtils = {
     return dupeIds;
   },
 
+  findAncestorNodeWithNavigator(
+    startingNavigator: ReadonlyNodeNavigator<ReadonlyWorkingNode> | ReadonlyCursorNavigator<ReadonlyWorkingNode>,
+    predicateOrNode: PseudoNode | ((node: PseudoNode) => boolean)
+  ): { path: Path; node: ReadonlyWorkingNode } | undefined {
+    const n: NodeNavigator<ReadonlyWorkingNode> =
+      startingNavigator instanceof NodeNavigator
+        ? startingNavigator.clone()
+        : (startingNavigator as ReadonlyCursorNavigator<ReadonlyWorkingNode>).toNodeNavigator();
+
+    if (typeof predicateOrNode === "function") {
+      if (n.navigateToAncestorMatchingPredicate(predicateOrNode)) {
+        // if (CommandUtils.isPseudoNodeABlock(n.tip.node)) {
+        return { path: n.path, node: n.tip.node as ReadonlyWorkingNode };
+      }
+    } else {
+      if (n.navigateToAncestor(predicateOrNode)) {
+        // if (CommandUtils.isPseudoNodeABlock(n.tip.node)) {
+        return { path: n.path, node: n.tip.node as ReadonlyWorkingNode };
+      }
+    }
+    return undefined;
+  },
+
   getAnchorParametersFromInteractorInputPosition(
     state: WorkingDocument,
     position: InteractorInputPosition
@@ -80,6 +115,69 @@ export const CommandUtils = {
       throw new CommandError("Invalid InteractorInputPosition");
     }
     return state.getAnchorParametersFromCursorNavigator(n);
+  },
+
+  isCursorNavigatorAtEdgeOfBlock(
+    navigator: ReadonlyCursorNavigator<ReadonlyWorkingNode>,
+    direction: Direction
+  ): boolean {
+    const block = CommandUtils.findAncestorNodeWithNavigator(navigator, CommandUtils.isPseudoNodeABlock);
+    if (!block) {
+      return false;
+    }
+
+    const n = navigator.clone();
+    if (
+      (direction === Direction.Backward && !n.navigateToPrecedingCursorPosition()) ||
+      (direction === Direction.Forward && !n.navigateToNextCursorPosition())
+    ) {
+      return true;
+    }
+
+    const newBlockMaybe = CommandUtils.findAncestorNodeWithNavigator(n, CommandUtils.isPseudoNodeABlock);
+    return block !== newBlockMaybe;
+  },
+
+  isCursorNavigatorAtEdgeOfContainingNode(
+    navigator: ReadonlyCursorNavigator<ReadonlyWorkingNode>,
+    containingNode: ReadonlyWorkingNode,
+    direction: Direction
+  ): boolean {
+    const firstFind = CommandUtils.findAncestorNodeWithNavigator(navigator, containingNode);
+    if (!firstFind) {
+      return false;
+    }
+
+    const n = navigator.clone();
+    if (
+      (direction === Direction.Backward && !n.navigateToPrecedingCursorPosition()) ||
+      (direction === Direction.Forward && !n.navigateToNextCursorPosition())
+    ) {
+      return true;
+    }
+
+    const secondFind = CommandUtils.findAncestorNodeWithNavigator(n, containingNode);
+    return firstFind !== secondFind;
+  },
+
+  isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme(node: PseudoNode): boolean {
+    return node instanceof Node && node.nodeType.category === NodeCategory.Inline;
+  },
+
+  isPseudoNodeABlock(node: PseudoNode): boolean {
+    return node instanceof Node && node.nodeType.category === NodeCategory.Block;
+  },
+
+  isPseudoNodeABlockContainer(node: PseudoNode): boolean {
+    return node instanceof Node && node.nodeType.hasBlockChildren();
+  },
+
+  isPseudoNodeAnInlineContainer(node: PseudoNode): boolean {
+    return node instanceof Node && node.nodeType.hasInlineChildren();
+  },
+
+  isPseudoNodeATextOrFancyTextContainer(node: PseudoNode): boolean {
+    return node instanceof Node && node.nodeType.hasTextOrFancyTextChildren();
   },
 
   selectTargets(state: WorkingDocument, target: Target, sort?: boolean): SelectTargetsResult[] {

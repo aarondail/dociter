@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { PathPart } from "../basic-traversal-rd4";
 import {
   Anchor,
   AnchorRange,
@@ -32,6 +30,7 @@ import {
 } from "../document-model-rd4";
 import { DeepReadonly } from "../miscUtils";
 import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleStrip } from "../text-model-rd4";
+import { PathPart } from "../traversal-rd4";
 
 import { AnchorId, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
@@ -79,6 +78,7 @@ type NodeToWorkingNode<Type extends Node> = WorkingNode &
 function CreateWorkingNode<Cls extends Node, Ctor extends new (...args: any[]) => Cls>(
   ctor: Ctor
 ): new (id: NodeId, ...args: ConstructorParameters<Ctor>) => NodeToWorkingNode<Cls> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   //@ts-ignore-next-line
   const newClass = class extends ctor {
     public attachedAnchors: Map<AnchorId, WorkingAnchor>;

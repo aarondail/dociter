@@ -1,12 +1,16 @@
-import { Node, NodeCategory } from "../document-model-rd4";
-import { CursorNavigator, LiftingPathMap, Path, PseudoNode, Range } from "../traversal-rd4";
+/* eslint-disable @typescript-eslint/unbound-method */
+import { LiftingPathMap, Range } from "../traversal-rd4";
 import { JoinDirection, ReadonlyWorkingNode } from "../working-document-rd4";
 
 import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
+export enum JoinType {
+  Blocks = "BLOCKS",
+}
 interface JoinOptions {
+  readonly type: JoinType;
   /**
    * Note for selections this doesn't affect which blocks will be joined, but it
    * does affect whether the children are joined into the first selected block,
@@ -32,8 +36,9 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
       const [startNav, endNav] = target.isMainCursorFirst
         ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
         : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
-      const start = navigateUpToNonInline(startNav);
-      const end = navigateUpToNonInline(endNav);
+
+      const start = CommandUtils.findAncestorNodeWithNavigator(startNav, CommandUtils.isPseudoNodeABlock);
+      const end = CommandUtils.findAncestorNodeWithNavigator(endNav, CommandUtils.isPseudoNodeABlock);
       if (!start || !end) {
         break;
       }
@@ -51,11 +56,11 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
             toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
           }
         },
-        nodeIsInlineOrGraphemeOrFancyGrapheme,
-        nodeIsInlineOrGraphemeOrFancyGrapheme
+        CommandUtils.isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme,
+        CommandUtils.isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme
       );
     } else {
-      const n = navigateUpToNonInline(target.mainAnchorNavigator);
+      const n = CommandUtils.findAncestorNodeWithNavigator(target.mainAnchorNavigator, CommandUtils.isPseudoNodeABlock);
       if (n) {
         toJoin.add(n.path, { node: n.node });
       }
@@ -72,25 +77,3 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
     );
   }
 });
-
-function nodeIsInlineOrGraphemeOrFancyGrapheme(node: PseudoNode): boolean {
-  return (
-    PseudoNode.isGraphemeOrFancyGrapheme(node) ||
-    (node instanceof Node && node.nodeType.category === NodeCategory.Inline)
-  );
-}
-
-function navigateUpToNonInline(
-  cursorNavigator: CursorNavigator<ReadonlyWorkingNode>
-): { node: ReadonlyWorkingNode; path: Path } | undefined {
-  const n = cursorNavigator.toNodeNavigator();
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    if (!nodeIsInlineOrGraphemeOrFancyGrapheme(n.tip.node)) {
-      return { path: n.path, node: n.tip.node as ReadonlyWorkingNode };
-    }
-    if (!n.navigateToParent()) {
-      return undefined;
-    }
-  }
-}
