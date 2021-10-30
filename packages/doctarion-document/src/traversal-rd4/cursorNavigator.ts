@@ -3,11 +3,16 @@ import { Document, Node } from "../document-model-rd4";
 import { Chain, ChainLink } from "./chain";
 import { CursorOrientation, CursorPath } from "./cursorPath";
 import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
-import { NodeNavigator, ReadonlyNodeNavigator } from "./nodeNavigator";
+import { NodeNavigator } from "./nodeNavigator";
 import { Path, PathString } from "./path";
 
-export interface ReadonlyCursorNavigator<NodeType extends Node = Node> extends ReadonlyNodeNavigator<NodeType> {
+export interface ReadonlyCursorNavigator<NodeType extends Node = Node> {
+  readonly chain: Chain<NodeType>;
   readonly cursor: CursorPath;
+  readonly grandParent: ChainLink<NodeType> | undefined;
+  readonly parent: ChainLink<NodeType> | undefined;
+  readonly tip: ChainLink<NodeType>;
+  readonly path: Path;
 
   clone(): CursorNavigator<NodeType>;
   toNodeNavigator(): NodeNavigator<NodeType>;
