@@ -1,4 +1,5 @@
 import { FacetType } from "./facets";
+import { NodeOfType } from "./misc";
 import { NodeCategory, NodeChildrenType, NodeType } from "./nodeType";
 
 export const Document = new NodeType({
@@ -16,6 +17,9 @@ export const Document = new NodeType({
     },
   },
 });
+
+// Because document nodes are so important, we export a specific type for them
+export type DocumentNode = NodeOfType<typeof Document>;
 
 export const Paragraph = new NodeType({
   name: "Paragraph",

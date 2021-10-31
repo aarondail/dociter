@@ -1,18 +1,18 @@
-import { Document, Node } from "../document-model-rd4";
+import { DocumentNode, Node } from "../document-model-rd5";
 
 import { Chain, ChainLink } from "./chain";
 import { Path, PathString } from "./path";
 import { PathPart } from "./pathPart";
 import { PseudoNode } from "./pseudoNode";
 
-export interface ReadonlyNodeNavigator<NodeType extends Node = Node> {
-  readonly chain: Chain<NodeType>;
-  readonly grandParent: ChainLink<NodeType> | undefined;
-  readonly parent: ChainLink<NodeType> | undefined;
-  readonly tip: ChainLink<NodeType>;
+export interface ReadonlyNodeNavigator<NodeClass extends Node = Node> {
+  readonly chain: Chain<NodeClass>;
+  readonly grandParent: ChainLink<NodeClass> | undefined;
+  readonly parent: ChainLink<NodeClass> | undefined;
+  readonly tip: ChainLink<NodeClass>;
   readonly path: Path;
 
-  clone(): NodeNavigator<NodeType>;
+  clone(): NodeNavigator<NodeClass>;
 }
 
 /**
@@ -28,37 +28,37 @@ export interface ReadonlyNodeNavigator<NodeType extends Node = Node> {
  * page to get a clear idea of the order in which the DFS visits nodes:
  * https://en.wikipedia.org/wiki/Depth-first_search
  */
-export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNodeNavigator<NodeType> {
+export class NodeNavigator<NodeClass extends Node = Node> implements ReadonlyNodeNavigator<NodeClass> {
   // Note this is a mutable property (can be changed) but the chain itself is
   // immutable
-  private currentChain: Chain<NodeType>;
+  private currentChain: Chain<NodeClass>;
 
   /**
    * Construct a new NodeNavigator. The navigator's initial location will be
    * the document itself.
    */
-  public constructor(document: Document);
-  constructor(private readonly document: Document & NodeType, initialChainUnchecked?: Chain<NodeType>) {
+  public constructor(document: DocumentNode & NodeClass);
+  constructor(private readonly document: DocumentNode & NodeClass, initialChainUnchecked?: Chain<NodeClass>) {
     if (initialChainUnchecked) {
       this.currentChain = initialChainUnchecked;
     } else {
-      this.currentChain = new Chain<NodeType>(new ChainLink<NodeType>(document));
+      this.currentChain = new Chain<NodeClass>(new ChainLink<NodeClass>(document));
     }
   }
 
-  public get chain(): Chain<NodeType> {
+  public get chain(): Chain<NodeClass> {
     return this.currentChain;
   }
 
-  public get grandParent(): ChainLink<NodeType> | undefined {
+  public get grandParent(): ChainLink<NodeClass> | undefined {
     return this.currentChain.grandParent;
   }
 
-  public get parent(): ChainLink<NodeType> | undefined {
+  public get parent(): ChainLink<NodeClass> | undefined {
     return this.currentChain.parent;
   }
 
-  public get tip(): ChainLink<NodeType> {
+  public get tip(): ChainLink<NodeClass> {
     return this.currentChain.tip;
   }
 
@@ -66,7 +66,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return this.currentChain.path;
   }
 
-  public get nextSiblingNode(): PseudoNode<NodeType> | undefined {
+  public get nextSiblingNode(): PseudoNode<NodeClass> | undefined {
     const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return undefined;
@@ -76,7 +76,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return navigateToSiblingHelpers.next(parent, tip.pathPart!);
   }
 
-  public get precedingSiblingNode(): PseudoNode<NodeType> | undefined {
+  public get precedingSiblingNode(): PseudoNode<NodeClass> | undefined {
     const result = this.currentChain.getParentAndTipIfPossible();
     if (!result) {
       return undefined;
@@ -86,7 +86,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return navigateToSiblingHelpers.preceding(parent, tip.pathPart!);
   }
 
-  public get nextParentSiblingNode(): PseudoNode<NodeType> | undefined {
+  public get nextParentSiblingNode(): PseudoNode<NodeClass> | undefined {
     const result = this.currentChain.getGrandParentToTipIfPossible();
     if (!result) {
       return undefined;
@@ -96,7 +96,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return navigateToSiblingHelpers.next(grandParent, parent.pathPart!);
   }
 
-  public get precedingParentSiblingNode(): PseudoNode<NodeType> | undefined {
+  public get precedingParentSiblingNode(): PseudoNode<NodeClass> | undefined {
     const result = this.currentChain.getGrandParentToTipIfPossible();
     if (!result) {
       return undefined;
@@ -106,11 +106,11 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return navigateToSiblingHelpers.preceding(grandParent, parent.pathPart!);
   }
 
-  public clone(): NodeNavigator<NodeType> {
+  public clone(): NodeNavigator<NodeClass> {
     return new (NodeNavigator as any)(this.document, this.currentChain);
   }
 
-  public cloneWithoutTip(): NodeNavigator<NodeType> {
+  public cloneWithoutTip(): NodeNavigator<NodeClass> {
     return new (NodeNavigator as any)(this.document, this.currentChain.dropTipIfPossible() || this.currentChain);
   }
 
@@ -122,7 +122,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return this.precedingSiblingNode !== undefined;
   }
 
-  public isAtSamePositionAs(other: NodeNavigator<NodeType>): boolean {
+  public isAtSamePositionAs(other: NodeNavigator<NodeClass>): boolean {
     return this.path.equalTo(other.path);
   }
 
@@ -235,7 +235,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
   public navigateToAncestor(node: PseudoNode): boolean {
     const result = this.currentChain.searchBackwardsAndSplit(node);
     if (result) {
-      this.currentChain = new Chain<NodeType>(...result[0]);
+      this.currentChain = new Chain<NodeClass>(...result[0]);
       return true;
     }
     return false;
@@ -244,14 +244,14 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
   public navigateToAncestorMatchingPredicate(predicate: (node: PseudoNode) => boolean): boolean {
     const result = this.currentChain.searchBackwardsAndSplit(predicate);
     if (result) {
-      this.currentChain = new Chain<NodeType>(...result[0]);
+      this.currentChain = new Chain<NodeClass>(...result[0]);
       return true;
     }
     return false;
   }
 
   public navigateToChild(index: number): boolean {
-    return this.navigateToChildPrime(PseudoNode.getChildren<NodeType>(this.tip.node), index);
+    return this.navigateToChildPrime(PseudoNode.getChildren<NodeClass>(this.tip.node), index);
   }
 
   public navigateToDocumentNode(): boolean {
@@ -269,11 +269,11 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
   }
 
   public navigateToFirstChild(): boolean {
-    return this.navigateToChildPrime(PseudoNode.getChildren<NodeType>(this.tip.node), 0);
+    return this.navigateToChildPrime(PseudoNode.getChildren<NodeClass>(this.tip.node), 0);
   }
 
   public navigateToLastChild(): boolean {
-    const children = PseudoNode.getChildren<NodeType>(this.tip.node);
+    const children = PseudoNode.getChildren<NodeClass>(this.tip.node);
     return this.navigateToChildPrime(children, (children?.length || 0) - 1);
   }
 
@@ -360,7 +360,7 @@ export class NodeNavigator<NodeType extends Node = Node> implements ReadonlyNode
     return true;
   }
 
-  private navigateToChildPrime(children: readonly PseudoNode<NodeType>[] | undefined, index: number): boolean {
+  private navigateToChildPrime(children: readonly PseudoNode<NodeClass>[] | undefined, index: number): boolean {
     const child = children?.[index];
     if (child) {
       const link = new ChainLink(child, new PathPart(index));

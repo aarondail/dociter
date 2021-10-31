@@ -1,4 +1,4 @@
-import { Document, Node } from "../document-model-rd4";
+import { DocumentNode, Node } from "../document-model-rd5";
 
 import { Chain } from "./chain";
 import { NodeNavigator } from "./nodeNavigator";
@@ -11,11 +11,11 @@ export class Range {
   /**
    * This collects all chains in the range.
    */
-  // public getChains(document: Document): readonly Chain[] {
-  //   const results: Chain[] = [];
-  //   this.walkChains(document, (c) => results.push(c));
-  //   return results;
-  // }
+  public getChains<NodeClass extends Node>(document: DocumentNode & NodeClass): readonly Chain<NodeClass>[] {
+    const results: Chain<NodeClass>[] = [];
+    this.walk(document, (c) => results.push(c.chain));
+    return results;
+  }
 
   /**
    * This gets chains in the range but tries to eliminate chains that are
@@ -25,14 +25,14 @@ export class Range {
    * chain for the InlineText would be returned, rather than for all the code
    * points (as well as for the InlineText).
    */
-  public getChainsCoveringRange<NodeType extends Node>(document: Document): Chain<NodeType>[] {
+  public getChainsCoveringRange<NodeClass extends Node>(document: DocumentNode & NodeClass): Chain<NodeClass>[] {
     // The implementation of this algorithm is pretty rough, I admit I didn't
     // fully reason this out but just plowed through by writing tests and
     // tweaking it until it worked.
     //
     // Probably it should be re-written.
 
-    const nav = new NodeNavigator<NodeType>(document);
+    const nav = new NodeNavigator<NodeClass>(document);
     if (!nav.navigateTo(this.from)) {
       return [];
     }
@@ -49,25 +49,25 @@ export class Range {
 
     // Results is where we store chains we are done processing and are are going
     // to return (unless we hit a problem).
-    const results: Chain<NodeType>[] = [];
+    const results: Chain<NodeClass>[] = [];
     // The tracking stack stores state for every level of depth in the element
     // hierarchy we have gone through to reach the current element.  The current
     // element doesn't get its own entry.  The current element starts at the from
     // parameter and then goes from there (in the while loop below).
     const trackingStack: {
       // The chian for the element
-      chain: Chain<NodeType>;
+      chain: Chain<NodeClass>;
       // Total number of kids, used to decide if the entire element can be added
       // to results or not (in conjunction with the found kid chains below).
       totalKidCount: number;
       // As we traverse the children of this element we store the chains we have
       // found for COMPLETELY contained elements here.  Partially contained
       // elements do not appear here... I think.
-      foundKidChains: Chain<NodeType>[];
+      foundKidChains: Chain<NodeClass>[];
     }[] = [];
 
     const TrackingStack = {
-      push(chain: Chain<NodeType>) {
+      push(chain: Chain<NodeClass>) {
         const link = chain.tip;
         trackingStack.push({
           chain,
@@ -107,7 +107,7 @@ export class Range {
         }
         return false;
       },
-      add(chain: Chain<NodeType>) {
+      add(chain: Chain<NodeClass>) {
         const l = trackingStack[trackingStack.length - 1]!;
         l.foundKidChains.push(chain);
       },
@@ -206,13 +206,13 @@ export class Range {
    * This walks through all nodes in the range. The callback is called with a
    * NodeNavigator, which (note!) is reused not cloned between calls.
    */
-  public walk<NodeType extends Node>(
-    document: Document,
-    callback: (navigator: NodeNavigator<NodeType>) => void,
-    filter?: (node: PseudoNode<NodeType>) => boolean,
-    skipDescendants?: (node: PseudoNode<NodeType>) => boolean
+  public walk<NodeClass extends Node>(
+    document: DocumentNode & NodeClass,
+    callback: (navigator: NodeNavigator<NodeClass>) => void,
+    filter?: (node: PseudoNode<NodeClass>) => boolean,
+    skipDescendants?: (node: PseudoNode<NodeClass>) => boolean
   ): void {
-    const nav = new NodeNavigator<NodeType>(document);
+    const nav = new NodeNavigator<NodeClass>(document);
     if (!nav.navigateTo(this.from)) {
       return;
     }
@@ -242,12 +242,12 @@ export class Range {
       }
     }
   }
-  // public walkChains(
-  //   document: Document,
-  //   callback: (chain: Chain) => void,
-  //   filter?: (node: PseudoNode) => boolean,
-  //   skipDescendants?: (node: PseudoNode) => boolean
-  // ): void {
-  //   return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
-  // }
+  private walkChains<NodeClass extends Node>(
+    document: DocumentNode & NodeClass,
+    callback: (chain: Chain<NodeClass>) => void,
+    filter?: (node: PseudoNode<NodeClass>) => boolean,
+    skipDescendants?: (node: PseudoNode<NodeClass>) => boolean
+  ): void {
+    return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
+  }
 }

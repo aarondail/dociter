@@ -1,11 +1,11 @@
-import { Node, NodeCategory, Span } from "../document-model-rd4";
+import { Node, NodeCategory, NodeChildrenType, Span } from "../document-model-rd5";
 
 import { NodeNavigator } from "./nodeNavigator";
 import { PseudoNode } from "./pseudoNode";
 
 function isEmptyInsertionPoint(node: PseudoNode): boolean {
   if (node instanceof Node) {
-    if (node.nodeType.doesNotHaveChildren()) {
+    if (node.nodeType.childrenType === NodeChildrenType.None) {
       return false;
     }
     return node.children?.length === 0;
@@ -17,11 +17,11 @@ function isInBetweenInsertionPoint(node: PseudoNode, adjacentSiblingNode?: Pseud
   return (
     node instanceof Node &&
     node.nodeType.category === NodeCategory.Inline &&
-    !(node instanceof Span) &&
+    !(node.nodeType === Span) &&
     (!adjacentSiblingNode ||
       (adjacentSiblingNode instanceof Node &&
         adjacentSiblingNode.nodeType.category === NodeCategory.Inline &&
-        !(adjacentSiblingNode instanceof Span)))
+        !(adjacentSiblingNode.nodeType === Span)))
   );
 }
 
@@ -46,7 +46,9 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
   } else {
     const hasOn =
       isEmptyInsertionPoint(el) ||
-      (el instanceof Node && el.nodeType.category === NodeCategory.Inline && el.nodeType.doesNotHaveChildren());
+      (el instanceof Node &&
+        el.nodeType.category === NodeCategory.Inline &&
+        el.nodeType.childrenType === NodeChildrenType.None);
     const hasBeforeBetweenInsertionPoint = isInBetweenInsertionPoint(el, precedingSibling);
     const hasAfterBetweenInsertionPoint = isInBetweenInsertionPoint(el, nextSibling);
 

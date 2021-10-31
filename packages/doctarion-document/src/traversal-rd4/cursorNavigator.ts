@@ -1,4 +1,4 @@
-import { Document, Node } from "../document-model-rd4";
+import { DocumentNode, Node } from "../document-model-rd5";
 
 import { Chain, ChainLink } from "./chain";
 import { CursorOrientation, CursorPath } from "./cursorPath";
@@ -6,16 +6,16 @@ import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientatio
 import { NodeNavigator } from "./nodeNavigator";
 import { Path, PathString } from "./path";
 
-export interface ReadonlyCursorNavigator<NodeType extends Node = Node> {
-  readonly chain: Chain<NodeType>;
+export interface ReadonlyCursorNavigator<NodeClass extends Node = Node> {
+  readonly chain: Chain<NodeClass>;
   readonly cursor: CursorPath;
-  readonly grandParent: ChainLink<NodeType> | undefined;
-  readonly parent: ChainLink<NodeType> | undefined;
-  readonly tip: ChainLink<NodeType>;
+  readonly grandParent: ChainLink<NodeClass> | undefined;
+  readonly parent: ChainLink<NodeClass> | undefined;
+  readonly tip: ChainLink<NodeClass>;
   readonly path: Path;
 
-  clone(): CursorNavigator<NodeType>;
-  toNodeNavigator(): NodeNavigator<NodeType>;
+  clone(): CursorNavigator<NodeClass>;
+  toNodeNavigator(): NodeNavigator<NodeClass>;
 }
 
 /**
@@ -23,28 +23,28 @@ export interface ReadonlyCursorNavigator<NodeType extends Node = Node> {
  * between the nodes of a document it navigates between the places where a
  * cursor could be placed.
  */
-export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCursorNavigator<NodeType> {
+export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyCursorNavigator<NodeClass> {
   private currentOrientation: CursorOrientation;
   // This nodeNavigator stores the current node the cursor is on
-  private nodeNavigator: NodeNavigator<NodeType>;
+  private nodeNavigator: NodeNavigator<NodeClass>;
 
   public constructor(
-    public readonly document: Document & NodeType // private readonly layoutReporter: NodeLayoutReporter | undefined
+    public readonly document: DocumentNode & NodeClass // private readonly layoutReporter: NodeLayoutReporter | undefined
   ) {
     // The document is always at the root of the chain
     this.currentOrientation = CursorOrientation.On;
-    this.nodeNavigator = new NodeNavigator<NodeType>(document);
+    this.nodeNavigator = new NodeNavigator<NodeClass>(document);
   }
 
-  public get chain(): Chain<NodeType> {
+  public get chain(): Chain<NodeClass> {
     return this.nodeNavigator.chain;
   }
 
-  public get grandParent(): ChainLink<NodeType> | undefined {
+  public get grandParent(): ChainLink<NodeClass> | undefined {
     return this.nodeNavigator.grandParent;
   }
 
-  public get parent(): ChainLink<NodeType> | undefined {
+  public get parent(): ChainLink<NodeClass> | undefined {
     return this.nodeNavigator.parent;
   }
 
@@ -52,7 +52,7 @@ export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCu
     return this.nodeNavigator.path;
   }
 
-  public get tip(): ChainLink<NodeType> {
+  public get tip(): ChainLink<NodeClass> {
     return this.nodeNavigator.tip;
   }
 
@@ -64,8 +64,8 @@ export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCu
     this.currentOrientation = orientation;
   }
 
-  public clone(): CursorNavigator<NodeType> {
-    const navigator = new CursorNavigator<NodeType>(this.document);
+  public clone(): CursorNavigator<NodeClass> {
+    const navigator = new CursorNavigator<NodeClass>(this.document);
     navigator.currentOrientation = this.currentOrientation;
     navigator.nodeNavigator = this.nodeNavigator.clone();
     return navigator;
@@ -89,7 +89,7 @@ export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCu
       orientation = (cursorOrPath as CursorPath).orientation;
     }
 
-    const n = new NodeNavigator<NodeType>(this.document);
+    const n = new NodeNavigator<NodeClass>(this.document);
     if (!n.navigateTo(path)) {
       return false;
     }
@@ -381,15 +381,15 @@ export class CursorNavigator<NodeType extends Node = Node> implements ReadonlyCu
     return false;
   }
 
-  public toNodeNavigator(): NodeNavigator<NodeType> {
+  public toNodeNavigator(): NodeNavigator<NodeClass> {
     return this.nodeNavigator.clone();
   }
 
   private complexNavigationHelper(options: {
-    init?: (nav: CursorNavigator<NodeType>) => void;
-    advance: (nav: CursorNavigator<NodeType>) => boolean;
-    abort?: (nav: CursorNavigator<NodeType>) => boolean;
-    success: (nav: CursorNavigator<NodeType>) => boolean;
+    init?: (nav: CursorNavigator<NodeClass>) => void;
+    advance: (nav: CursorNavigator<NodeClass>) => boolean;
+    abort?: (nav: CursorNavigator<NodeClass>) => boolean;
+    success: (nav: CursorNavigator<NodeClass>) => boolean;
   }): boolean {
     const clone = this.clone();
     options.init?.(clone);

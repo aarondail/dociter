@@ -1,4 +1,4 @@
-import { Node } from "../document-model-rd4";
+import { Node } from "../document-model-rd5";
 import { SimpleComparison } from "../miscUtils";
 
 import { PseudoNode } from "./pseudoNode";
@@ -38,18 +38,18 @@ export class PathPart {
     return this.index === other.index && this.facet === other.index;
   }
 
-  public resolve<NodeType extends Node>(from: PseudoNode<NodeType>): PseudoNode<NodeType> | undefined {
+  public resolve<NodeClass extends Node>(from: PseudoNode<NodeClass>): PseudoNode<NodeClass> | undefined {
     if (!(from instanceof Node)) {
       return undefined;
     }
     if (this.facet) {
-      const facet = (from as any)[this.facet];
+      const facet = from.getFacet(this.facet) as any;
       if (facet && this.index !== undefined) {
         return facet[this.index];
       }
       return facet;
     } else {
-      return from.children?.[this.index!] as NodeType;
+      return from.children?.[this.index!] as NodeClass;
     }
   }
 

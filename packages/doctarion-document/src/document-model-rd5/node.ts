@@ -1,14 +1,14 @@
-import { FancyText, TextStyleStrip } from "../text-model-rd4";
+import { FancyText, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
-import { FacetActualTypeDictionary, FacetWithName } from "./facets";
+import { FacetActualTypeDictionary, FacetConvenienceDictionary, FacetWithName } from "./facets";
 import { NodeType, NodeTypeDescription } from "./nodeType";
 
 export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription> {
   public constructor(
     public readonly nodeType: NodeType<SpecificNodeTypeDescription>,
     public readonly children: readonly Node[] | Text | FancyText | undefined,
-    public readonly facets: SpecificNodeTypeDescription["facets"] extends NodeTypeDescription
+    public readonly facets: SpecificNodeTypeDescription["facets"] extends FacetConvenienceDictionary
       ? FacetActualTypeDictionary<SpecificNodeTypeDescription["facets"]>
       : // eslint-disable-next-line @typescript-eslint/ban-types
         undefined | {}

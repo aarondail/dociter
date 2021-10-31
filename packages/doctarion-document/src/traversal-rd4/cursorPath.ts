@@ -1,4 +1,4 @@
-import { AnchorOrientation } from "../document-model-rd4";
+import { AnchorOrientation } from "../document-model-rd5";
 import { SimpleComparison } from "../miscUtils";
 
 import {
