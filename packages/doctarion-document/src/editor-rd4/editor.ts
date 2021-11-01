@@ -1,7 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 
 import { CORE_COMMANDS, Command, CommandInfo, CommandServices, CommandUtils, Commands } from "../commands-rd4";
-import { Document } from "../document-model-rd4";
+import { DocumentNode } from "../document-model-rd5";
 import { CursorNavigator, CursorOrientation, CursorPath, Path } from "../traversal-rd4";
 import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document-rd4";
 
@@ -18,7 +18,7 @@ export interface EditorConfig {
   // element with type `EditorOperation<void, void>` if we use `unknown` instead of
   // `any` here.
   readonly additionalOperations?: readonly CommandInfo<any, unknown, string>[];
-  readonly document: Document;
+  readonly document: DocumentNode;
   readonly cursor?: CursorPath;
   readonly omitDefaultInteractor?: boolean;
   readonly provideServices?: (events: EditorEvents) => Partial<EditorProvidableServices>;
