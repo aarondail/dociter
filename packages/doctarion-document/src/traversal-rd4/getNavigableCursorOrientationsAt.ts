@@ -8,7 +8,7 @@ function isEmptyInsertionPoint(node: PseudoNode): boolean {
     if (node.nodeType.childrenType === NodeChildrenType.None) {
       return false;
     }
-    return node.children?.length === 0;
+    return node.children.length === 0;
   }
   return false;
 }

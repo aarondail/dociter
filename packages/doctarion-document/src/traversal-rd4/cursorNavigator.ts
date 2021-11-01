@@ -181,7 +181,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
   public navigateToFirstDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
     // Is empty insertion point
-    if (this.tip.node instanceof Node && this.tip.node.children?.length === 0) {
+    if (this.tip.node instanceof Node && this.tip.node.children.length === 0) {
       this.currentOrientation = CursorOrientation.On;
       return true;
     }
@@ -196,7 +196,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
   public navigateToLastDescendantCursorPosition(): boolean {
     const ancestor = this.nodeNavigator.tip.node;
     // Is empty insertion point
-    if (this.tip.node instanceof Node && this.tip.node.children?.length === 0) {
+    if (this.tip.node instanceof Node && this.tip.node.children.length === 0) {
       this.currentOrientation = CursorOrientation.On;
       return true;
     }
@@ -225,7 +225,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
       if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.after && !(this.tip.node instanceof Node && (this.tip.node.children?.length || 0) > 0)) {
+      } else if (positions.after && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -269,7 +269,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
       } else if (newPositions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.after && !(this.tip.node instanceof Node && (this.tip.node.children?.length || 0) > 0)) {
+      } else if (newPositions.after && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -306,7 +306,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
       if (positions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.before && !(this.tip.node instanceof Node && (this.tip.node.children?.length || 0) > 0)) {
+      } else if (positions.before && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
@@ -338,7 +338,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
       } else if (newPositions.on) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.before && !(this.tip.node instanceof Node && (this.tip.node.children?.length || 0) > 0)) {
+      } else if (newPositions.before && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }

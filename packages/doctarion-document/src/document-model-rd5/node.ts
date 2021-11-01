@@ -2,16 +2,24 @@ import { FancyText, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
 import { FacetActualTypeDictionary, FacetConvenienceDictionary, FacetWithName } from "./facets";
-import { NodeType, NodeTypeDescription } from "./nodeType";
+import { NodeChildrenType, NodeType, NodeTypeDescription } from "./nodeType";
+
+type NodeChildrenTypeToActualType<T extends NodeChildrenType> = T extends NodeChildrenType.None
+  ? []
+  : T extends NodeChildrenType.FancyText
+  ? FancyText
+  : T extends NodeChildrenType.Text
+  ? Text
+  : readonly Node[];
 
 export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription> {
   public constructor(
     public readonly nodeType: NodeType<SpecificNodeTypeDescription>,
-    public readonly children: readonly Node[] | Text | FancyText | undefined,
+    public readonly children: NodeChildrenTypeToActualType<SpecificNodeTypeDescription["childrenType"]>,
     public readonly facets: SpecificNodeTypeDescription["facets"] extends FacetConvenienceDictionary
       ? FacetActualTypeDictionary<SpecificNodeTypeDescription["facets"]>
       : // eslint-disable-next-line @typescript-eslint/ban-types
-        undefined | {}
+        {}
   ) {}
 
   getAllFacetAnchors(): readonly [FacetWithName, Anchor | AnchorRange][] {

@@ -1,4 +1,4 @@
-import { Anchor, AnchorOrientation, AnchorRange } from "../document-model-rd4";
+import { Anchor, AnchorOrientation, AnchorRange } from "../document-model-rd5";
 
 import { Interactor, ReadonlyInteractor } from "./interactor";
 import { NodeId, ReadonlyWorkingNode, WorkingNode } from "./nodes";

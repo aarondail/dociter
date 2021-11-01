@@ -41,7 +41,7 @@ export class Range {
     }
 
     // Simple helper method
-    const getKidCount = (node: PseudoNode) => (node instanceof Node ? node.children?.length || 0 : 0);
+    const getKidCount = (node: PseudoNode) => (node instanceof Node ? node.children.length : 0);
 
     //----------------------------------------------------------
     // Results and Tracking State definition, and helper methods

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { Document, Facet, Node, NodeCategory, NodeChildrenType } from "../document-model-rd4";
+import { Document, Facet, FacetType, Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 import {
   CursorNavigator,
@@ -14,27 +14,52 @@ import {
 import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { AnchorPullDirection } from "./misc";
-import { ReadonlyWorkingNode, WorkingDocumentRootNode, WorkingNode } from "./nodes";
+import { ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
 
 export const Utils = {
-  canNodeBeSplit(node: PseudoNode): boolean {
-    if (PseudoNode.isGraphemeOrFancyGrapheme(node) || node instanceof Document) {
+  canFacetContainNodesOfType(facet: Facet, nodeType: NodeType): boolean {
+    if (facet.type !== FacetType.NodeArray) {
       return false;
     }
-    if ((node as Node).nodeType.childrenType === NodeChildrenType.None) {
+    if (facet.nodeCategory === undefined) {
+      return true;
+    }
+    return facet.nodeCategory === nodeType.category;
+  },
+  canNodeBeSplit(node: WorkingNode): boolean {
+    if (node.nodeType === Document) {
       return false;
     }
-    const workingNode = node as WorkingNode;
+    if (node.nodeType.childrenType === NodeChildrenType.None) {
+      return false;
+    }
     // Return false if we think this node has no parent or it has one but it
     // isn't part of an array (either a facet NodeArray type or as part of the
     // children).
-    if (!workingNode.pathPartFromParent || workingNode.pathPartFromParent.index === undefined) {
+    if (!node.pathPartFromParent || node.pathPartFromParent.index === undefined) {
       return false;
     }
     return true;
   },
+  canNodeTypeContainChildrenOfType(container: NodeType, nodeType: NodeType): boolean {
+    switch (container.childrenType) {
+      case NodeChildrenType.Inlines:
+        return nodeType.category === NodeCategory.Inline;
+      case NodeChildrenType.Blocks:
+        return nodeType.category === NodeCategory.Block;
+      case NodeChildrenType.BlocksAndSuperBlocks:
+        return nodeType.category === NodeCategory.Block || nodeType.category === NodeCategory.SuperBlock;
+      case NodeChildrenType.Intermediates:
+        return (
+          nodeType.category === NodeCategory.Intermediate &&
+          (container.specificIntermediateChildType === undefined ||
+            container.specificIntermediateChildType === nodeType)
+        );
+    }
+    return false;
+  },
   determineCursorPositionAfterDeletion(
-    document: WorkingDocumentRootNode,
+    document: WorkingDocumentNode,
     deletionTarget: NodeNavigator,
     direction: AnchorPullDirection
   ): CursorNavigator {
@@ -103,7 +128,26 @@ export const Utils = {
     }
     return n;
   },
-  getNodeNavigator(document: WorkingDocumentRootNode, path: Path): NodeNavigator {
+  doesNodeTypeHaveNodeChildren(type: NodeType): boolean {
+    switch (type.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+      case NodeChildrenType.None:
+        return false;
+      default:
+        return true;
+    }
+  },
+  doesNodeTypeHaveTextOrFancyText(type: NodeType): boolean {
+    switch (type.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+        return true;
+      default:
+        return false;
+    }
+  },
+  getNodeNavigator(document: WorkingDocumentNode, path: Path): NodeNavigator<WorkingNode> {
     const n = new NodeNavigator(document);
     if (!n.navigateTo(path)) {
       throw new WorkingDocumentError("Could not navigate to node.");
@@ -128,9 +172,6 @@ export const Utils = {
   isText(value: any): value is Text {
     return Array.isArray(value) && !value.find((x) => typeof x !== "string");
   },
-  isWorkingNode(value: any): value is WorkingNode {
-    return value.id !== undefined && value.attachedAnchors !== undefined && value instanceof Node;
-  },
   *traverseAllAnchorsOriginatingFrom(node: WorkingNode): Iterable<WorkingAnchor> {
     for (const [, anchorOrRange] of node.getAllFacetAnchors()) {
       if (anchorOrRange instanceof WorkingAnchor) {
@@ -150,16 +191,14 @@ export const Utils = {
       const t = n.nodeType;
 
       // Enqueue (direct) children
-      if (t.hasNodeChildren()) {
-        if (n.children) {
-          toVisit.push(...(n.children as WorkingNode[]));
-        }
+      if (Utils.doesNodeTypeHaveNodeChildren(t)) {
+        toVisit.push(...(n.children as WorkingNode[]));
       }
 
       // Enqueue any facets that are nodes
       for (const [, array] of node.getAllFacetNodes()) {
         for (const value of array) {
-          if (Utils.isWorkingNode(value)) {
+          if (value instanceof WorkingNode) {
             toVisit.push(value);
           }
         }
@@ -168,11 +207,11 @@ export const Utils = {
   },
   updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(
     node: WorkingNode,
-    facet?: Facet | undefined,
+    facet?: string,
     startingIndex?: number
   ) {
     if (facet) {
-      const facetValue = node.getFacetValue(facet);
+      const facetValue = node.getFacet(facet);
       if (!facetValue) {
         return;
       }
@@ -181,7 +220,7 @@ export const Utils = {
       for (let i = startingIndex ?? 0; i < kids.length; i++) {
         const kid = kids[i];
         kid.parent = node;
-        kid.pathPartFromParent = new PathPart(facet.name, i);
+        kid.pathPartFromParent = new PathPart(facet, i);
       }
     } else {
       if (!node.children) {

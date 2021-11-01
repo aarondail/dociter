@@ -1,3 +1,4 @@
+import { OptionValueTypeFromOptionArray } from "../miscUtils";
 import { TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
@@ -47,19 +48,15 @@ type FacetTypeToActualType<T extends FacetType> = T extends FacetType.Anchor
   ? TextStyleStrip
   : never;
 
-type NodeOptionsToActualTypePrime<T extends readonly string[]> = T[number];
-
-type NodeOptionsToActualType<T extends readonly string[] | undefined> = T extends readonly string[]
-  ? NodeOptionsToActualTypePrime<T>
-  : never;
-
 // Regarding the NodeArray facet, we could try to give that a more specific type
 // but it seems pretty complicated... and anyways we don't do that for children
 // (and it'd) be hard to handle `specificIntermediateChildType` for the case of
 // intermediates).
 
 type FacetToActualTypePrime<T extends Facet> = T["type"] extends FacetType.Enum
-  ? NodeOptionsToActualType<T["options"]>
+  ? T["options"] extends readonly string[]
+    ? OptionValueTypeFromOptionArray<T["options"]>
+    : never
   : FacetTypeToActualType<T["type"]>;
 
 type FacetToActualType<T extends Facet> = T["optional"] extends true

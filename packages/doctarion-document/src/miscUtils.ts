@@ -24,6 +24,8 @@ export type DeepReadonlyObject<T> = {
   readonly [P in keyof T]: DeepReadonly<T[P]>;
 };
 
+export type OptionValueTypeFromOptionArray<T extends readonly string[]> = T[number];
+
 export enum SimpleComparison {
   Equal = "EQUAL",
   Before = "BEFORE",
