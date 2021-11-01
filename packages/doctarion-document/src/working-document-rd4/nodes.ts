@@ -108,15 +108,25 @@ type WorkingNodeOfType<T extends NodeType> = WorkingNode<T extends NodeType<infe
 
 export type WorkingDocumentNode = WorkingNodeOfType<typeof Document>;
 
-// I'm unsure at this point if it makes any sense to make this interface
-// generic, and provide mapped types so the children and facets are more
-// specific.
-export interface ReadonlyWorkingNode extends Node {
+type NodeChildrenTypeToActualTypeForReadonlyWorkingNode<T extends NodeChildrenType> = T extends NodeChildrenType.None
+  ? []
+  : T extends NodeChildrenType.FancyText
+  ? FancyText
+  : T extends NodeChildrenType.Text
+  ? Text
+  : readonly Node[];
+
+export interface ReadonlyWorkingNode<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>
+  extends Node<SpecificNodeTypeDescription> {
   readonly attachedAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
-  readonly children: readonly ReadonlyWorkingNode[] | Text | FancyText | [];
+  readonly children: NodeChildrenTypeToActualTypeForReadonlyWorkingNode<SpecificNodeTypeDescription["childrenType"]>;
   // eslint-disable-next-line @typescript-eslint/ban-types
-  readonly facets: {};
+  // readonly facets: {}; This should be mapped probably to appropriate working types
   readonly id: NodeId;
   readonly parent?: ReadonlyWorkingNode;
   readonly pathPartFromParent?: PathPart;
 }
+
+type ExtractDescriptionFromNodeType<T> = T extends NodeType<infer X> ? X : never;
+
+export type ReadonlyWorkingDocumentNode = ReadonlyWorkingNode<ExtractDescriptionFromNodeType<typeof Document>>;

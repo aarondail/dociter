@@ -1,4 +1,4 @@
-import { Node, Span } from "../document-model-rd4";
+import { Node, Span } from "../document-model-rd5";
 import {
   CursorNavigator,
   CursorOrientation,
@@ -104,7 +104,7 @@ function findNodeRelativeToCursorForDeletion(
     }
     const [parent, tip] = parentAndTip;
 
-    if (!(parent.node as Node).nodeType.hasTextOrFancyTextChildren) {
+    if (!CommandUtils.doesNodeTypeHaveTextOrFancyText((parent.node as Node).nodeType)) {
       return undefined;
     }
 
@@ -130,7 +130,11 @@ function findNodeRelativeToCursorForDeletion(
       // In the code here, we just handle the case where we are deleting
       // backwards (or forwards) from one InlineText to another inside the
       // same block (e.g. ParagraphBlock)
-      if (parent.node instanceof Span && parentHasPrecedingOrFollowingSibling && navPrime.tip.node instanceof Span) {
+      if (
+        (parent.node as Node).nodeType === Span &&
+        parentHasPrecedingOrFollowingSibling &&
+        (navPrime.tip.node as Node).nodeType === Span
+      ) {
         isBack ? navPrime.navigateToLastDescendantCursorPosition() : navPrime.navigateToFirstDescendantCursorPosition();
         if (isBack && navPrime.cursor.orientation === CursorOrientation.Before) {
           navPrime.changeCursorOrientationFreely(CursorOrientation.After);
@@ -149,7 +153,7 @@ function findNodeRelativeToCursorForDeletion(
       // applied) below...
     } else {
       // TODO we should join spans too...
-      if (parent.node instanceof Span && parent.node.children.length === 1) {
+      if ((parent.node as Node).nodeType === Span && (parent.node as Node).children.length === 1) {
         // In this case we are about to remove the last character in an
         // inline text In this case, we prefer to delete the inline text.
         const navPrime = navigator.toNodeNavigator();

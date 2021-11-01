@@ -1,4 +1,4 @@
-import { Node, NodeChildrenType } from "../document-model-rd4";
+import { Node, NodeChildrenType } from "../document-model-rd5";
 import { Chain, CursorOrientation, PseudoNode } from "../traversal-rd4";
 import { ReadonlyWorkingNode } from "../working-document-rd4";
 
@@ -49,9 +49,9 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
 
     const result = navigator.chain.searchBackwardsAndSplit(
       (n) =>
-        !PseudoNode.isGraphemeOrFancyGrapheme(n) &&
-        ((n as Node).nodeType.childrenType === NodeChildrenType.Blocks ||
-          (n as Node).nodeType.childrenType === NodeChildrenType.BlocksAndSuperBlocks)
+        PseudoNode.isNode(n) &&
+        (n.nodeType.childrenType === NodeChildrenType.Blocks ||
+          n.nodeType.childrenType === NodeChildrenType.BlocksAndSuperBlocks)
       // NodeUtils.isBlockContainer
     )!;
 
@@ -67,7 +67,7 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
       continue;
     }
 
-    if (!CommandUtils.isPseudoNodeABlockContainer(blockContainerNode) || blockIndex === undefined) {
+    if (!CommandUtils.doesNodeTypeHaveBlockChildren(blockContainerNode) || blockIndex === undefined) {
       throw new CommandError("Block container not found ");
     }
 
@@ -84,9 +84,9 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
       navigator.cursor.orientation === CursorOrientation.After
     ) {
       // Make sure we have padded the last node (if we are before or after an insertion point)
-      if (navigator.tip.node instanceof Node && !navigator.tip.node.nodeType.doesNotHaveChildren()) {
+      if (navigator.tip.node instanceof Node && !(navigator.tip.node.nodeType.childrenType === NodeChildrenType.None)) {
         splitChildIndices.push(
-          navigator.cursor.orientation === CursorOrientation.Before ? 0 : navigator.tip.node.children!.length - 1
+          navigator.cursor.orientation === CursorOrientation.Before ? 0 : navigator.tip.node.children.length - 1
         );
       }
       // }

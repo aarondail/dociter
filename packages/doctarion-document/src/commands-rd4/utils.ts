@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Node, NodeCategory } from "../document-model-rd4";
+import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
 import { SimpleComparison } from "../miscUtils";
 import {
   CursorNavigator,
@@ -76,6 +76,37 @@ export const CommandUtils = {
     return dupeIds;
   },
 
+  doesNodeTypeHaveBlockChildren(type: NodeType): boolean {
+    return type.childrenType === NodeChildrenType.Blocks || type.childrenType === NodeChildrenType.BlocksAndSuperBlocks;
+  },
+
+  // This is a copy of a function from the working document utils... I am not
+  // sure where it would be best to share the function so I am duplicating it
+  // for now.
+  doesNodeTypeHaveNodeChildren(type: NodeType): boolean {
+    switch (type.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+      case NodeChildrenType.None:
+        return false;
+      default:
+        return true;
+    }
+  },
+
+  // This is a copy of a function from the working document utils... I am not
+  // sure where it would be best to share the function so I am duplicating it
+  // for now.
+  doesNodeTypeHaveTextOrFancyText(type: NodeType): boolean {
+    switch (type.childrenType) {
+      case NodeChildrenType.FancyText:
+      case NodeChildrenType.Text:
+        return true;
+      default:
+        return false;
+    }
+  },
+
   findAncestorNodeWithNavigator(
     startingNavigator: ReadonlyNodeNavigator<ReadonlyWorkingNode> | ReadonlyCursorNavigator<ReadonlyWorkingNode>,
     predicateOrNode: PseudoNode | ((node: PseudoNode) => boolean)
@@ -97,6 +128,15 @@ export const CommandUtils = {
       }
     }
     return undefined;
+  },
+
+  findAncestorBlockNodeWithNavigator(
+    startingNavigator: ReadonlyNodeNavigator<ReadonlyWorkingNode> | ReadonlyCursorNavigator<ReadonlyWorkingNode>
+  ): { path: Path; node: ReadonlyWorkingNode } | undefined {
+    return this.findAncestorNodeWithNavigator(
+      startingNavigator,
+      (x) => PseudoNode.isNode(x) && x.nodeType.category === NodeCategory.Block
+    );
   },
 
   getAnchorParametersFromInteractorInputPosition(
@@ -121,7 +161,7 @@ export const CommandUtils = {
     navigator: ReadonlyCursorNavigator<ReadonlyWorkingNode>,
     direction: Direction
   ): boolean {
-    const block = CommandUtils.findAncestorNodeWithNavigator(navigator, CommandUtils.isPseudoNodeABlock);
+    const block = CommandUtils.findAncestorBlockNodeWithNavigator(navigator);
     if (!block) {
       return false;
     }
@@ -134,7 +174,7 @@ export const CommandUtils = {
       return true;
     }
 
-    const newBlockMaybe = CommandUtils.findAncestorNodeWithNavigator(n, CommandUtils.isPseudoNodeABlock);
+    const newBlockMaybe = CommandUtils.findAncestorBlockNodeWithNavigator(n);
     return block !== newBlockMaybe;
   },
 
@@ -158,26 +198,6 @@ export const CommandUtils = {
 
     const secondFind = CommandUtils.findAncestorNodeWithNavigator(n, containingNode);
     return firstFind !== secondFind;
-  },
-
-  isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme(node: PseudoNode): boolean {
-    return node instanceof Node && node.nodeType.category === NodeCategory.Inline;
-  },
-
-  isPseudoNodeABlock(node: PseudoNode): boolean {
-    return node instanceof Node && node.nodeType.category === NodeCategory.Block;
-  },
-
-  isPseudoNodeABlockContainer(node: PseudoNode): boolean {
-    return node instanceof Node && node.nodeType.hasBlockChildren();
-  },
-
-  isPseudoNodeAnInlineContainer(node: PseudoNode): boolean {
-    return node instanceof Node && node.nodeType.hasInlineChildren();
-  },
-
-  isPseudoNodeATextOrFancyTextContainer(node: PseudoNode): boolean {
-    return node instanceof Node && node.nodeType.hasTextOrFancyTextChildren();
   },
 
   selectTargets(state: WorkingDocument, target: Target, sort?: boolean): SelectTargetsResult[] {

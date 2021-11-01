@@ -1,5 +1,5 @@
-import { Inline, Node, Paragraph, Span } from "../document-model-rd4";
-import { Text } from "../text-model-rd4";
+import { Node, NodeChildrenType, Paragraph, Span } from "../document-model-rd5";
+import { Text, TextStyleStrip } from "../text-model-rd4";
 import { CursorOrientation, PseudoNode } from "../traversal-rd4";
 import { ReadonlyWorkingNode } from "../working-document-rd4";
 
@@ -18,7 +18,7 @@ interface InsertTextOptions extends InsertOptionsBase {
 }
 
 interface InsertInlineOption extends InsertOptionsBase {
-  readonly inline: Inline;
+  readonly inline: Node;
 }
 
 type InsertOptions = InsertTextOptions | InsertInlineOption;
@@ -59,8 +59,8 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     if (currentPositionIsOnGrapheme) {
       if (
         !target.mainAnchorNavigator.parent ||
-        !(target.mainAnchorNavigator.parent.node instanceof Node) ||
-        !target.mainAnchorNavigator.parent.node.nodeType.hasTextOrFancyTextChildren()
+        !PseudoNode.isNode(target.mainAnchorNavigator.parent.node) ||
+        !CommandUtils.doesNodeTypeHaveTextOrFancyText(target.mainAnchorNavigator.parent.node.nodeType)
       ) {
         throw new CommandError(
           "Found a grapheme whole parent that apparently does not have text which should be impossible"
@@ -114,7 +114,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         // This case is where the cursor/anchor is on a grapheme but we are
         // inserting an inline
         const grandParentNode = target.mainAnchorNavigator.grandParent!.node as ReadonlyWorkingNode;
-        if (!grandParentNode || !CommandUtils.isPseudoNodeAnInlineContainer(grandParentNode)) {
+        if (!grandParentNode || !(grandParentNode.nodeType.childrenType === NodeChildrenType.Inlines)) {
           throw new CommandError("Cant find place to insert inline");
         }
 
@@ -172,7 +172,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         }
       }
     } else {
-      const isEmptyInsertionPoint = node instanceof Node && node.nodeType.hasNodeChildren();
+      const isEmptyInsertionPoint = node instanceof Node && CommandUtils.doesNodeTypeHaveNodeChildren(node.nodeType);
       const insertionIndex =
         target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
           ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
@@ -181,7 +181,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           ? target.mainAnchorNavigator.tip.pathPart!.index! + 0
           : target.mainAnchorNavigator.tip.pathPart!.index! + 1;
 
-      if (CommandUtils.isPseudoNodeATextOrFancyTextContainer(node)) {
+      if (node instanceof Node && CommandUtils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
         if (isText && isEmptyInsertionPoint) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty inline text or inline url link
@@ -194,14 +194,16 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         } else {
           // Similar to above...
           const inline = isText
-            ? new Span(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
+            ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
+                styles: new TextStyleStrip(),
+              })
             : payload.inline;
           const parent = target.mainAnchorNavigator.parent?.node;
-          if (!parent || !CommandUtils.isPseudoNodeAnInlineContainer(parent)) {
+          if (!parent || !(parent instanceof Node) || !(parent.nodeType.childrenType === NodeChildrenType.Inlines)) {
             throw new CommandError("Can not insert Span into non-Inline container");
           }
 
-          state.insertNode(parent as ReadonlyWorkingNode, inline, insertionIndex);
+          state.insertNode(parent, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
@@ -211,11 +213,11 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         }
-      } else if (CommandUtils.isPseudoNodeAnInlineContainer(node)) {
+      } else if (node instanceof Node && node.nodeType.childrenType === NodeChildrenType.Inlines) {
         if (isText && isEmptyInsertionPoint) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty block that contains inlines
-          const newInline = new Span(graphemes);
+          const newInline = new Node(Span, graphemes, { styles: new TextStyleStrip() });
           state.insertNode(node, newInline, 0);
 
           // Move into the InlineText
@@ -227,10 +229,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         } else {
           // Similar to above...
           const inline = isText
-            ? new Span(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
+            ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
+                styles: new TextStyleStrip(),
+              })
             : payload.inline;
 
-          state.insertNode(node as ReadonlyWorkingNode, inline, insertionIndex);
+          state.insertNode(node, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
@@ -239,14 +243,14 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         }
-      } else if (CommandUtils.isPseudoNodeABlockContainer(node)) {
+      } else if (node instanceof Node && CommandUtils.doesNodeTypeHaveBlockChildren(node.nodeType)) {
         // Empty document
-        const newParagraph = new Paragraph([]);
-        const newParagraphId = state.insertNode(node as ReadonlyWorkingNode, newParagraph, 0);
+        const newParagraph = new Node(Paragraph, [], {});
+        const newParagraphId = state.insertNode(node, newParagraph, 0);
 
         if (isText && isEmptyInsertionPoint) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
-          const newInline = new Span(graphemes);
+          const newInline = new Node(Span, graphemes, { styles: new TextStyleStrip() });
           state.insertNode(newParagraphId, newInline, 0);
 
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
@@ -257,7 +261,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         } else {
           // Similar to above...
           const inline = isText
-            ? new Span(typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text)
+            ? new Node(
+                Span,
+                typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text,
+
+                { styles: new TextStyleStrip() }
+              )
             : payload.inline;
           state.insertNode(newParagraphId, inline, insertionIndex);
 

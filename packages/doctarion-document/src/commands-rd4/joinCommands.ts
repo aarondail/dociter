@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-import { LiftingPathMap, Range } from "../traversal-rd4";
+import { Node, NodeCategory } from "../document-model-rd5";
+import { LiftingPathMap, PseudoNode, Range } from "../traversal-rd4";
 import { JoinDirection, ReadonlyWorkingNode } from "../working-document-rd4";
 
 import { Direction, TargetPayload } from "./payloads";
@@ -37,11 +37,14 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
         ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
         : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
 
-      const start = CommandUtils.findAncestorNodeWithNavigator(startNav, CommandUtils.isPseudoNodeABlock);
-      const end = CommandUtils.findAncestorNodeWithNavigator(endNav, CommandUtils.isPseudoNodeABlock);
+      const start = CommandUtils.findAncestorBlockNodeWithNavigator(startNav);
+      const end = CommandUtils.findAncestorBlockNodeWithNavigator(endNav);
       if (!start || !end) {
         break;
       }
+
+      const ignoreThese = (x: PseudoNode) =>
+        PseudoNode.isGraphemeOrFancyGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
 
       new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
         state.document,
@@ -56,11 +59,11 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
             toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
           }
         },
-        CommandUtils.isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme,
-        CommandUtils.isPseudoNodeAnInlineOrGraphemeOrFancyGrapheme
+        ignoreThese,
+        ignoreThese
       );
     } else {
-      const n = CommandUtils.findAncestorNodeWithNavigator(target.mainAnchorNavigator, CommandUtils.isPseudoNodeABlock);
+      const n = CommandUtils.findAncestorBlockNodeWithNavigator(target.mainAnchorNavigator);
       if (n) {
         toJoin.add(n.path, { node: n.node });
       }

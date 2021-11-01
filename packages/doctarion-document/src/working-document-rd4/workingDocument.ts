@@ -36,7 +36,7 @@ import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { Interactor, InteractorId, InteractorParameters, ReadonlyInteractor } from "./interactor";
 import { AnchorPullDirection, JoinDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
-import { NodeId, ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
+import { NodeId, ReadonlyWorkingDocumentNode, ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
@@ -92,7 +92,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public get allAnchors(): ReadonlyMap<AnchorId, ReadonlyWorkingAnchor> {
     return this.anchorLookup;
   }
-  public get document(): ReadonlyWorkingNode {
+  public get document(): ReadonlyWorkingDocumentNode {
     return this.actualDocument;
   }
   public get events(): WorkingDocumentEvents {
