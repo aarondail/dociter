@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
+import { NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
 import { SimpleComparison } from "../miscUtils";
 import {
   CursorNavigator,

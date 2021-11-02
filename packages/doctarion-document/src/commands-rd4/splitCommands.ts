@@ -67,7 +67,7 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
       continue;
     }
 
-    if (!CommandUtils.doesNodeTypeHaveBlockChildren(blockContainerNode) || blockIndex === undefined) {
+    if (!CommandUtils.doesNodeTypeHaveBlockChildren(blockContainerNode.nodeType) || blockIndex === undefined) {
       throw new CommandError("Block container not found ");
     }
 
