@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
+import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
 import { SimpleComparison } from "../miscUtils";
 import {
   CursorNavigator,
@@ -34,6 +34,12 @@ export type SelectTargetsResult = {
   readonly selectionRange?: Range;
   readonly isMainCursorFirst: boolean;
 };
+
+export enum SelectTargetsSort {
+  Unsorted = "UNSORTED",
+  Forward = "FORWARD",
+  Reversed = "REVERSED",
+}
 
 export const CommandUtils = {
   /**
@@ -139,6 +145,15 @@ export const CommandUtils = {
     );
   },
 
+  findAncestorInlineNodeWithNavigator(
+    startingNavigator: ReadonlyNodeNavigator<ReadonlyWorkingNode> | ReadonlyCursorNavigator<ReadonlyWorkingNode>
+  ): { path: Path; node: ReadonlyWorkingNode } | undefined {
+    return this.findAncestorNodeWithNavigator(
+      startingNavigator,
+      (x) => PseudoNode.isNode(x) && x.nodeType.category === NodeCategory.Inline
+    );
+  },
+
   getAnchorParametersFromInteractorInputPosition(
     state: WorkingDocument,
     position: InteractorInputPosition
@@ -200,9 +215,7 @@ export const CommandUtils = {
     return firstFind !== secondFind;
   },
 
-  selectTargets(state: WorkingDocument, target: Target, sort?: boolean): SelectTargetsResult[] {
-    // TODO get rid of firstCursor at some point
-
+  selectTargets(state: WorkingDocument, target: Target, sort: SelectTargetsSort): SelectTargetsResult[] {
     const results: SelectTargetsResult[] = getTargetedInteractors(target, state).map(
       (interactor: ReadonlyInteractor) => {
         const navigators = state.getCursorNavigatorsForInteractor(interactor);
@@ -230,22 +243,93 @@ export const CommandUtils = {
       }
     );
 
-    if (sort && results.length > 1) {
+    if (sort !== SelectTargetsSort.Unsorted && results.length > 1) {
       results.sort((left, right) => {
         const leftFirstCursor = left.isMainCursorFirst ? left.mainAnchorCursor : left.selectionAnchorCursor!;
         const rightFirstCursor = right.isMainCursorFirst ? right.mainAnchorCursor : right.selectionAnchorCursor!;
         const cmp = leftFirstCursor.compareTo(rightFirstCursor);
         switch (cmp) {
           case SimpleComparison.Before:
-            return -1;
+            return sort === SelectTargetsSort.Forward ? -1 : 1;
           case SimpleComparison.After:
-            return 1;
+            return sort === SelectTargetsSort.Forward ? 1 : -1;
           default:
             return 0;
         }
       });
     }
     return results;
+  },
+
+  walkBlocksInSelectionTarget(
+    state: WorkingDocument,
+    target: SelectTargetsResult,
+    callback: (
+      navigator: NodeNavigator<ReadonlyWorkingNode>,
+      context: {
+        readonly start: ReadonlyWorkingNode;
+        readonly end: ReadonlyWorkingNode;
+      }
+    ) => void
+  ): void {
+    if (target.selectionAnchorNavigator === undefined) {
+      return undefined;
+    }
+
+    const [startNav, endNav] = target.isMainCursorFirst
+      ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
+      : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
+
+    const start = CommandUtils.findAncestorBlockNodeWithNavigator(startNav);
+    const end = CommandUtils.findAncestorBlockNodeWithNavigator(endNav);
+    if (!start || !end) {
+      return;
+    }
+    const context = { start: start.node, end: end.node };
+
+    const ignoreThese = (x: PseudoNode) =>
+      PseudoNode.isGraphemeOrFancyGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
+
+    new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
+      state.document,
+      (n) => callback(n, context),
+      ignoreThese,
+      ignoreThese
+    );
+  },
+
+  walkInlinesInSelectionTarget(
+    state: WorkingDocument,
+    target: SelectTargetsResult,
+    callback: (
+      navigator: NodeNavigator<ReadonlyWorkingNode>,
+      context: {
+        readonly start: ReadonlyWorkingNode;
+        readonly end: ReadonlyWorkingNode;
+      }
+    ) => void
+  ): void {
+    if (target.selectionAnchorNavigator === undefined) {
+      return undefined;
+    }
+
+    const [startNav, endNav] = target.isMainCursorFirst
+      ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
+      : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
+
+    const start = CommandUtils.findAncestorInlineNodeWithNavigator(startNav);
+    const end = CommandUtils.findAncestorInlineNodeWithNavigator(endNav);
+    if (!start || !end) {
+      return;
+    }
+    const context = { start: start.node, end: end.node };
+
+    new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
+      state.document,
+      (n) => callback(n, context),
+      PseudoNode.isGraphemeOrFancyGrapheme,
+      PseudoNode.isGraphemeOrFancyGrapheme
+    );
   },
 };
 

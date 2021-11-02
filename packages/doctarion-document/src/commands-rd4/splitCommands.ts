@@ -7,6 +7,8 @@ import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
+import { SelectTargetsSort } from ".";
+
 export enum SplitType {
   Blocks = "BLOCKS",
 }
@@ -17,8 +19,7 @@ interface SplitOptions {
 export type SplitPayload = TargetPayload & Partial<SplitOptions>;
 
 export const split = coreCommand<SplitPayload>("split", (state, services, payload) => {
-  const targets = CommandUtils.selectTargets(state, payload.target);
-  targets.reverse();
+  const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed);
 
   const anchorsToSplit = [];
   for (const target of targets) {

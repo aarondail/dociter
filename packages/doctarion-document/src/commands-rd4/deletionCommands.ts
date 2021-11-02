@@ -13,6 +13,8 @@ import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
+import { SelectTargetsSort } from ".";
+
 interface DeleteOptions {
   /**
    * By default when an interactor is positioned somewhere where the next node
@@ -40,8 +42,8 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
     direction: payload.direction ?? Direction.Backward,
   };
 
-  const targets = CommandUtils.selectTargets(state, payload.target);
-  targets.reverse();
+  const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed);
+
   for (const target of targets) {
     if (target.selectionRange) {
       state.deleteNodesInRange(

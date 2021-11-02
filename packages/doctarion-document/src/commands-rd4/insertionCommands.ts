@@ -7,7 +7,7 @@ import { deleteImplementation } from "./deletionCommands";
 import { CommandError } from "./error";
 import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
-import { CommandUtils } from "./utils";
+import { CommandUtils, SelectTargetsSort } from "./utils";
 
 interface InsertOptionsBase {
   readonly dontCreateNecessaryContainerNodes?: boolean;
@@ -29,7 +29,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
   const isText = isInsertOptionsText(payload);
 
   // TODO sorting..
-  let targets = CommandUtils.selectTargets(state, payload.target, true);
+  let targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed);
   targets.reverse();
 
   // Delete selection first
@@ -42,8 +42,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     }
   }
 
-  targets = anySelections ? CommandUtils.selectTargets(state, payload.target, true) : targets;
-  targets.reverse();
+  targets = anySelections ? CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed) : targets;
 
   for (const target of targets) {
     if (target.selectionAnchorNavigator) {

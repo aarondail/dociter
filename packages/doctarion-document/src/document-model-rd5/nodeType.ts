@@ -13,10 +13,15 @@ export enum NodeCategory {
 
 export enum NodeChildrenType {
   None = "NONE",
+  // Only Inline nodes (see NodeCategory) should ever contain Text
   Text = "TEXT",
+  // Only Inline nodes (see NodeCategory) should ever contain FancyText
   FancyText = "FANCY_TEXT",
+  // Only Block nodes (see NodeCategory) should ever contain Inlines
   Inlines = "INLINES",
+  // Only Super Blocks and Intermediate nodes (see NodeCategory) should ever contain Blocks
   Blocks = "BLOCKS",
+  // Intermediates should always be in a (corresponding, specific) Super Block
   Intermediates = "INTERMEDIATES",
   BlocksAndSuperBlocks = "BLOCKS_AND_SUPER_BLOCKS",
 }

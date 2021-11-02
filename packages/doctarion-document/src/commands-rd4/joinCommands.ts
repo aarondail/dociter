@@ -6,9 +6,12 @@ import { Direction, TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
+import { SelectTargetsSort } from ".";
+
 export enum JoinType {
   Blocks = "BLOCKS",
 }
+
 interface JoinOptions {
   readonly type: JoinType;
   /**
@@ -24,7 +27,7 @@ export type JoinPayload = TargetPayload & Partial<JoinOptions>;
 export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
   const direction = payload.direction ?? Direction.Backward;
 
-  const targets = CommandUtils.selectTargets(state, payload.target);
+  const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Forward);
 
   // Not really sure we need to do this... vs. just iterating through the
   // targets and processing them immediately
@@ -33,35 +36,17 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
   for (const target of targets) {
     // Skip any interactor (or throw error) if the interactor is a selection (for now)
     if (target.selectionAnchorNavigator) {
-      const [startNav, endNav] = target.isMainCursorFirst
-        ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
-        : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
-
-      const start = CommandUtils.findAncestorBlockNodeWithNavigator(startNav);
-      const end = CommandUtils.findAncestorBlockNodeWithNavigator(endNav);
-      if (!start || !end) {
-        break;
-      }
-
-      const ignoreThese = (x: PseudoNode) =>
-        PseudoNode.isGraphemeOrFancyGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
-
-      new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
-        state.document,
-        (n) => {
-          // Skip the start block if we are going backwards, or the end block if
-          // we are going forwards
-          if (direction === Direction.Backward && n.path.equalTo(start.path)) {
-            // Skip
-          } else if (direction === Direction.Forward && n.path.equalTo(end.path)) {
-            // Skip
-          } else {
-            toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
-          }
-        },
-        ignoreThese,
-        ignoreThese
-      );
+      CommandUtils.walkBlocksInSelectionTarget(state, target, (n, { start, end }) => {
+        // Skip the start block if we are going backwards, or the end block if
+        // we are going forwards
+        if (direction === Direction.Backward && n.tip.node === start) {
+          // Skip
+        } else if (direction === Direction.Forward && n.tip.node === end) {
+          // Skip
+        } else {
+          toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
+        }
+      });
     } else {
       const n = CommandUtils.findAncestorBlockNodeWithNavigator(target.mainAnchorNavigator);
       if (n) {

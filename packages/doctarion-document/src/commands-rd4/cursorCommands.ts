@@ -7,8 +7,10 @@ import { CommandServices } from "./services";
 import { coreCommand } from "./types";
 import { CommandUtils } from "./utils";
 
+import { SelectTargetsSort } from ".";
+
 export const moveBack = coreCommand<MovementPayload>("cursor/moveBack", (state, services, payload): void => {
-  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+  for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {
     const n = target.mainAnchorNavigator;
     if (n.navigateToPrecedingCursorPosition()) {
       const p = {
@@ -26,7 +28,7 @@ export const moveBack = coreCommand<MovementPayload>("cursor/moveBack", (state, 
 });
 
 export const moveForward = coreCommand<MovementPayload>("cursor/moveForward", (state, services, payload): void => {
-  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+  for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {
     const n = target.mainAnchorNavigator;
     if (n.navigateToNextCursorPosition()) {
       const p = {
@@ -48,7 +50,7 @@ export const moveVisualDown = coreCommand<MovementPayload>("cursor/moveVisualDow
     return;
   }
 
-  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+  for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {
     moveVisualUpOrDownHelper(state, services, "DOWN", target.interactor, target.mainAnchorNavigator);
   }
 });
@@ -67,7 +69,7 @@ export const moveVisualUp = coreCommand<MovementPayload>("cursor/moveVisualUp", 
     return;
   }
 
-  for (const target of CommandUtils.selectTargets(state, payload.target)) {
+  for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {
     moveVisualUpOrDownHelper(state, services, "UP", target.interactor, target.mainAnchorNavigator);
   }
 });
@@ -86,7 +88,7 @@ export const jump = coreCommand<{ to: InteractorInputPosition } & MovementPayloa
   (state, services, payload): void => {
     const to = CommandUtils.getAnchorParametersFromInteractorInputPosition(state, payload.to);
 
-    for (const target of CommandUtils.selectTargets(state, payload.target)) {
+    for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {
       const p = {
         mainAnchor: to,
         lineMovementHorizontalVisualPosition: undefined,
