@@ -13,6 +13,11 @@ function isEmptyInsertionPoint(node: PseudoNode): boolean {
   return false;
 }
 
+/**
+ * For in between insertion points, we ignore those in case there the preceding
+ * or next sibling element is a Span. Because in this case we prefer to have the
+ * cursor on the Span or its graphemes.
+ */
 function isInBetweenInsertionPoint(node: PseudoNode, adjacentSiblingNode?: PseudoNode): boolean {
   return (
     node instanceof Node &&
@@ -21,7 +26,7 @@ function isInBetweenInsertionPoint(node: PseudoNode, adjacentSiblingNode?: Pseud
     (!adjacentSiblingNode ||
       (adjacentSiblingNode instanceof Node &&
         adjacentSiblingNode.nodeType.category === NodeCategory.Inline &&
-        !(adjacentSiblingNode.nodeType === Span)))
+        adjacentSiblingNode.nodeType !== Span))
   );
 }
 
@@ -33,6 +38,8 @@ export type GetNavigableCursorOrientationsAtResult = {
 
 const CannedGetNavigableCursorAffinitiesAtResult = {
   beforeAfter: { before: true, after: true } as GetNavigableCursorOrientationsAtResult,
+  justAfter: { after: true } as GetNavigableCursorOrientationsAtResult,
+  justBefore: { before: true } as GetNavigableCursorOrientationsAtResult,
   none: {},
 };
 
@@ -42,33 +49,65 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
   const nextSibling = navigator.nextSiblingNode;
 
   if (PseudoNode.isGraphemeOrFancyGrapheme(el)) {
-    return CannedGetNavigableCursorAffinitiesAtResult.beforeAfter;
-  } else {
-    const hasOn =
-      isEmptyInsertionPoint(el) ||
-      (el instanceof Node &&
-        el.nodeType.category === NodeCategory.Inline &&
-        el.nodeType.childrenType === NodeChildrenType.None);
-    const hasBeforeBetweenInsertionPoint = isInBetweenInsertionPoint(el, precedingSibling);
-    const hasAfterBetweenInsertionPoint = isInBetweenInsertionPoint(el, nextSibling);
+    // For text, we generally prefer after orientations. For Spans only suggest
+    // before orientation if the grapheme is the first in the Span and the
+    // preceding parent node (e.g. some other inline node) is NOT a Span OR
+    // there is no preceding parent OR is a Span that has no children (even
+    // though this case is something that shouldn't practically happen when
+    // editing a document).
+    //
+    // For text in other inline nodes, it is simpler and it only matters if it
+    // is the first grapheme in that node.
 
-    if (!hasOn && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
-      return CannedGetNavigableCursorAffinitiesAtResult.none;
-    }
-    if (!hasOn && hasBeforeBetweenInsertionPoint && hasAfterBetweenInsertionPoint) {
-      return CannedGetNavigableCursorAffinitiesAtResult.beforeAfter;
+    const parent = navigator.chain.parent!.node as Node;
+
+    let beforeIsValid;
+    // If there is no preceding sibling to this grapheme, meaning this is the
+    // first grapheme of the parent...
+    if (precedingSibling === undefined) {
+      if (parent.nodeType === Span) {
+        const parentPrecedingSibling = navigator.precedingParentSiblingNode;
+        if (
+          !parentPrecedingSibling ||
+          !((parentPrecedingSibling as Node).nodeType === Span) ||
+          (parentPrecedingSibling as Node).children.length === 0
+        ) {
+          beforeIsValid = true;
+        }
+      } else {
+        beforeIsValid = true;
+      }
     }
 
-    const result: GetNavigableCursorOrientationsAtResult = {};
-    if (hasBeforeBetweenInsertionPoint) {
+    return beforeIsValid
+      ? CannedGetNavigableCursorAffinitiesAtResult.beforeAfter
+      : CannedGetNavigableCursorAffinitiesAtResult.justAfter;
+  }
+
+  // OK the Node is NOT a Grapheme...
+  const hasOn = isEmptyInsertionPoint(el);
+  const hasBeforeBetweenInsertionPoint = isInBetweenInsertionPoint(el, precedingSibling);
+  const hasAfterBetweenInsertionPoint = isInBetweenInsertionPoint(el, nextSibling);
+
+  if (!hasOn && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
+    return CannedGetNavigableCursorAffinitiesAtResult.none;
+  }
+
+  const result: GetNavigableCursorOrientationsAtResult = {};
+  if (hasBeforeBetweenInsertionPoint) {
+    if (precedingSibling) {
+      // In this case we dont set before to true because we know after is true
+      // and we want to prefer after orientations for these insertion
+      // positions... I think?
+    } else {
       result.before = true;
     }
-    if (hasOn) {
-      result.on = true;
-    }
-    if (hasAfterBetweenInsertionPoint) {
-      result.after = true;
-    }
-    return result;
   }
+  if (hasOn) {
+    result.on = true;
+  }
+  if (hasAfterBetweenInsertionPoint) {
+    result.after = true;
+  }
+  return result;
 }
