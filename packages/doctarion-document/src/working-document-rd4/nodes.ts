@@ -1,8 +1,8 @@
 import {
   Document,
-  Facet,
-  FacetConvenienceDictionary,
   FacetType,
+  FacetTypeConvenienceDictionary,
+  FacetValueType,
   Node,
   NodeChildrenType,
   NodeType,
@@ -17,17 +17,13 @@ import { WorkingTextStyleStrip } from "./textStyleStrip";
 
 export type NodeId = string;
 
-// I'm unsure (even though I have done it) if it makes any sense to make this
-// class generic, and provide the mapped types so that the children and facets
-// are more specific.
-
 export class WorkingNode<
   SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription
 > extends Node<SpecificNodeTypeDescription> {
   public attachedAnchors: Map<AnchorId, WorkingAnchor>;
   declare children: NodeChildrenTypeToActualTypeForWorkingNode<SpecificNodeTypeDescription["childrenType"]>;
-  declare facets: SpecificNodeTypeDescription["facets"] extends FacetConvenienceDictionary
-    ? FacetActualTypeDictionaryForWorkingNode<SpecificNodeTypeDescription["facets"]>
+  declare facets: SpecificNodeTypeDescription["facets"] extends FacetTypeConvenienceDictionary
+    ? FacetDictionaryForWorkingNode<SpecificNodeTypeDescription["facets"]>
     : // eslint-disable-next-line @typescript-eslint/ban-types
       {};
   declare nodeType: NodeType<SpecificNodeTypeDescription>;
@@ -61,23 +57,23 @@ type NodeChildrenTypeToActualTypeForWorkingNode<T extends NodeChildrenType> = T 
   ? Grapheme[]
   : WorkingNode[];
 
-type FacetTypeToActualTypeForWorkingNode<T extends FacetType> = T extends FacetType.Anchor
+type FacetValueTypeToActualTypeForWorkingNode<T extends FacetValueType> = T extends FacetValueType.Anchor
   ? WorkingAnchor
-  : T extends FacetType.AnchorOrAnchorRange
+  : T extends FacetValueType.AnchorOrAnchorRange
   ? WorkingAnchor | WorkingAnchorRange
-  : T extends FacetType.AnchorRange
+  : T extends FacetValueType.AnchorRange
   ? WorkingAnchorRange
-  : T extends FacetType.Boolean
+  : T extends FacetValueType.Boolean
   ? boolean
-  : T extends FacetType.EntityId
+  : T extends FacetValueType.EntityId
   ? string
-  : T extends FacetType.Enum
+  : T extends FacetValueType.Enum
   ? string
-  : T extends FacetType.NodeArray
+  : T extends FacetValueType.NodeArray
   ? WorkingNode[]
-  : T extends FacetType.String
+  : T extends FacetValueType.String
   ? string
-  : T extends FacetType.TextStyleStrip
+  : T extends FacetValueType.TextStyleStrip
   ? WorkingTextStyleStrip
   : never;
 
@@ -86,21 +82,21 @@ type FacetTypeToActualTypeForWorkingNode<T extends FacetType> = T extends FacetT
 // (and it'd) be hard to handle `specificIntermediateChildType` for the case of
 // intermediates).
 
-type FacetToActualTypePrimeForWorkingNode<T extends Facet> = T["type"] extends FacetType.Enum
+type FacetTypeToActualTypePrimeForWorkingNode<T extends FacetType> = T["valueType"] extends FacetValueType.Enum
   ? T["options"] extends readonly string[]
     ? OptionValueTypeFromOptionArray<T["options"]>
     : never
-  : FacetTypeToActualTypeForWorkingNode<T["type"]>;
+  : FacetValueTypeToActualTypeForWorkingNode<T["valueType"]>;
 
-type FacetToActualTypeForWorkingNode<T extends Facet> = T["optional"] extends true
-  ? FacetToActualTypePrimeForWorkingNode<T> | undefined
-  : FacetToActualTypePrimeForWorkingNode<T>;
+type FacetTypeToActualTypeForWorkingNode<T extends FacetType> = T["optional"] extends true
+  ? FacetTypeToActualTypePrimeForWorkingNode<T> | undefined
+  : FacetTypeToActualTypePrimeForWorkingNode<T>;
 
-type FacetActualTypeDictionaryForWorkingNode<T extends FacetConvenienceDictionary> = {
-  [property in keyof T]: T[property] extends FacetType
+type FacetDictionaryForWorkingNode<T extends FacetTypeConvenienceDictionary> = {
+  [property in keyof T]: T[property] extends FacetValueType
+    ? FacetValueTypeToActualTypeForWorkingNode<T[property]>
+    : T[property] extends FacetType
     ? FacetTypeToActualTypeForWorkingNode<T[property]>
-    : T[property] extends Facet
-    ? FacetToActualTypeForWorkingNode<T[property]>
     : never;
 };
 
@@ -121,7 +117,7 @@ export interface ReadonlyWorkingNode<SpecificNodeTypeDescription extends NodeTyp
   readonly attachedAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly children: NodeChildrenTypeToActualTypeForReadonlyWorkingNode<SpecificNodeTypeDescription["childrenType"]>;
   // eslint-disable-next-line @typescript-eslint/ban-types
-  // readonly facets: {}; This should be mapped probably to appropriate working types
+  // readonly facets: {}; This should be mapped probably to appropriate working types, but as of yet I am unsure if we need it
   readonly id: NodeId;
   readonly parent?: ReadonlyWorkingNode;
   readonly pathPartFromParent?: PathPart;

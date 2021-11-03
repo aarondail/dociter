@@ -12,6 +12,4 @@ export enum HeaderLevel {
   Three = "THREE",
 }
 
-type ExtractDescriptionFromNodeType<T> = T extends NodeType<infer X> ? X : never;
-
-export type NodeOfType<T extends NodeType> = Node<ExtractDescriptionFromNodeType<T>>;
+export type NodeOfType<T extends NodeType> = Node<T extends NodeType<infer X> ? X : never>;

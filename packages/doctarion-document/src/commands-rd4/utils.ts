@@ -16,7 +16,7 @@ import {
   AnchorParameters,
   InteractorId,
   InteractorStatus,
-  ReadonlyInteractor,
+  ReadonlyWorkingInteractor,
   ReadonlyWorkingNode,
   WorkingDocument,
 } from "../working-document-rd4";
@@ -25,7 +25,7 @@ import { CommandError } from "./error";
 import { Direction, InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 
 export type SelectTargetsResult = {
-  readonly interactor: ReadonlyInteractor;
+  readonly interactor: ReadonlyWorkingInteractor;
   readonly mainAnchorCursor: CursorPath;
   readonly mainAnchorNavigator: CursorNavigator<ReadonlyWorkingNode>;
   readonly selectionAnchorCursor?: CursorPath;
@@ -217,7 +217,7 @@ export const CommandUtils = {
 
   selectTargets(state: WorkingDocument, target: Target, sort: SelectTargetsSort): SelectTargetsResult[] {
     const results: SelectTargetsResult[] = getTargetedInteractors(target, state).map(
-      (interactor: ReadonlyInteractor) => {
+      (interactor: ReadonlyWorkingInteractor) => {
         const navigators = state.getCursorNavigatorsForInteractor(interactor);
         const mainAnchorCursor = navigators.mainAnchor.cursor;
         const selectionAnchorCursor = navigators.selectionAnchor ? navigators.selectionAnchor.cursor : undefined;
@@ -333,7 +333,7 @@ export const CommandUtils = {
   },
 };
 
-function getTargetedInteractors(target: Target, state: WorkingDocument): readonly ReadonlyInteractor[] {
+function getTargetedInteractors(target: Target, state: WorkingDocument): readonly ReadonlyWorkingInteractor[] {
   const untypedIdentifier = target as any;
 
   if (target === undefined) {

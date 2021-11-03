@@ -15,12 +15,15 @@ export class PathPart {
       this.facet = arg1;
       this.index = arg2;
     } else {
-      this.index = arg2;
+      this.index = arg1;
     }
   }
 
   public adjustIndex(offset: number): PathPart {
-    return new PathPart(this.facet!, this.index! + offset);
+    if (this.facet) {
+      return new PathPart(this.facet, this.index! + offset);
+    }
+    return new PathPart(this.index! + offset);
   }
 
   public compareTo(other: PathPart): SimpleComparison {
@@ -54,7 +57,10 @@ export class PathPart {
   }
 
   public setIndex(index: number): PathPart {
-    return new PathPart(this.facet!, index);
+    if (this.facet) {
+      return new PathPart(this.facet, index);
+    }
+    return new PathPart(index);
   }
 
   public toString(): string {

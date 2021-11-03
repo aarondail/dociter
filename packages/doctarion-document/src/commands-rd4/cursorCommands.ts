@@ -1,6 +1,6 @@
 import { Side } from "../miscUtils";
 import { CursorNavigator, CursorOrientation, NodeNavigator } from "../traversal-rd4";
-import { ReadonlyInteractor, WorkingDocument } from "../working-document-rd4";
+import { ReadonlyWorkingInteractor, WorkingDocument } from "../working-document-rd4";
 
 import { InteractorInputPosition, MovementPayload } from "./payloads";
 import { CommandServices } from "./services";
@@ -114,7 +114,7 @@ function moveVisualUpOrDownHelper(
   state: WorkingDocument,
   services: CommandServices,
   direction: "UP" | "DOWN",
-  interactor: ReadonlyInteractor,
+  interactor: ReadonlyWorkingInteractor,
   navigator: CursorNavigator
 ): void {
   const startNavigator = navigator.clone().toNodeNavigator();

@@ -1,4 +1,4 @@
-import { FacetType } from "./facets";
+import { FacetValueType } from "./facets";
 import { NodeOfType } from "./misc";
 import { NodeCategory, NodeChildrenType, NodeType } from "./nodeType";
 
@@ -8,11 +8,11 @@ export const Document = new NodeType({
   childrenType: NodeChildrenType.BlocksAndSuperBlocks,
   facets: {
     annotations: {
-      type: FacetType.NodeArray,
+      valueType: FacetValueType.NodeArray,
       nodeCategory: NodeCategory.Annotation,
     },
     laterals: {
-      type: FacetType.NodeArray,
+      valueType: FacetValueType.NodeArray,
       NodeCategory: NodeCategory.Lateral,
     },
   },
@@ -32,6 +32,6 @@ export const Span = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    styles: FacetType.TextStyleStrip,
+    styles: FacetValueType.TextStyleStrip,
   },
 });

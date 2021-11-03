@@ -3,7 +3,7 @@ import { EventChannel, EventEmitter } from "doctarion-utils";
 import { ReadonlyNodeNavigator } from "../traversal-rd4";
 
 import { ReadonlyWorkingAnchor } from "./anchor";
-import { ReadonlyInteractor } from "./interactor";
+import { ReadonlyWorkingInteractor } from "./interactor";
 // import { NodeEditAdditionalContext } from "./workingDocument";
 
 export interface AnchorOrphanedEventPayload {
@@ -28,13 +28,13 @@ export interface WorkingDocumentEvents {
    * because it is not!
    */
   anchorOrphaned: EventChannel<AnchorOrphanedEventPayload>;
-  interactorAdded: EventChannel<ReadonlyInteractor>;
-  interactorDeleted: EventChannel<ReadonlyInteractor>;
+  interactorAdded: EventChannel<ReadonlyWorkingInteractor>;
+  interactorDeleted: EventChannel<ReadonlyWorkingInteractor>;
   /**
    * This event is fired when an interactor is updated and/or one of its anchors
    * is updated.
    */
-  interactorUpdated: EventChannel<ReadonlyInteractor>;
+  interactorUpdated: EventChannel<ReadonlyWorkingInteractor>;
   nodesJoined: EventChannel<NodesJoinedEventPayload>;
 }
 
@@ -44,9 +44,9 @@ export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
   public readonly anchorOrphaned = new EventEmitter<AnchorOrphanedEventPayload>();
   public readonly anchorUpdated = new EventEmitter<ReadonlyWorkingAnchor>();
 
-  public readonly interactorAdded = new EventEmitter<ReadonlyInteractor>();
-  public readonly interactorDeleted = new EventEmitter<ReadonlyInteractor>();
-  public readonly interactorUpdated = new EventEmitter<ReadonlyInteractor>();
+  public readonly interactorAdded = new EventEmitter<ReadonlyWorkingInteractor>();
+  public readonly interactorDeleted = new EventEmitter<ReadonlyWorkingInteractor>();
+  public readonly interactorUpdated = new EventEmitter<ReadonlyWorkingInteractor>();
 
   public readonly nodesJoined = new EventEmitter<NodesJoinedEventPayload>();
 }

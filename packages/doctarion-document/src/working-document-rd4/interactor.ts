@@ -27,7 +27,7 @@ export interface InteractorParameters {
   readonly name?: string;
 }
 
-export class Interactor {
+export class WorkingInteractor {
   public constructor(
     public id: InteractorId,
     public mainAnchor: WorkingAnchor,
@@ -50,7 +50,7 @@ export class Interactor {
   }
 }
 
-export interface ReadonlyInteractor {
+export interface ReadonlyWorkingInteractor {
   readonly id: InteractorId;
   readonly mainAnchor: ReadonlyWorkingAnchor;
   readonly status: InteractorStatus;

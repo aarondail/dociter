@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { Document, Facet, FacetType, Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
+import {
+  Document,
+  FacetType,
+  FacetValueType,
+  Node,
+  NodeCategory,
+  NodeChildrenType,
+  NodeType,
+} from "../document-model-rd5";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 import {
   CursorNavigator,
@@ -17,8 +25,8 @@ import { AnchorPullDirection } from "./misc";
 import { ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
 
 export const Utils = {
-  canFacetContainNodesOfType(facet: Facet, nodeType: NodeType): boolean {
-    if (facet.type !== FacetType.NodeArray) {
+  canFacetContainNodesOfType(facet: FacetType, nodeType: NodeType): boolean {
+    if (facet.valueType !== FacetValueType.NodeArray) {
       return false;
     }
     if (facet.nodeCategory === undefined) {

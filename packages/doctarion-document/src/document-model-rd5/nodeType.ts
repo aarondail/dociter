@@ -1,6 +1,6 @@
 import lodash from "lodash";
 
-import { FacetConvenienceDictionary, FacetDictionary, FacetType, FacetWithName } from "./facets";
+import { FacetTypeConvenienceDictionary, FacetTypeDictionary, FacetTypeWithName, FacetValueType } from "./facets";
 
 export enum NodeCategory {
   Block = "BLOCK",
@@ -30,21 +30,21 @@ export interface NodeTypeDescription {
   readonly name: string;
   readonly category: NodeCategory;
   readonly childrenType: NodeChildrenType;
-  readonly facets?: FacetConvenienceDictionary;
+  readonly facets?: FacetTypeConvenienceDictionary;
   readonly specificIntermediateChildType?: NodeTypeDescription;
 }
 
 export class NodeType<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription> {
   public readonly category!: NodeCategory;
   public readonly childrenType!: NodeChildrenType;
-  public readonly facets?: FacetDictionary;
+  public readonly facets?: FacetTypeDictionary;
   public readonly name!: string;
   public readonly specificIntermediateChildType?: NodeType;
 
   public constructor(description: SpecificNodeTypeDescription) {
     Object.assign(this, description);
     this.facets = (description.facets
-      ? lodash.mapValues(description.facets, (v) => (FacetType[v as any] ? { type: v } : v))
+      ? lodash.mapValues(description.facets, (v) => (FacetValueType[v as any] ? { type: v } : v))
       : undefined) as any;
 
     // eslint-disable @typescript-eslint/unbound-method
@@ -54,45 +54,45 @@ export class NodeType<SpecificNodeTypeDescription extends NodeTypeDescription = 
     // eslint-enable @typescript-eslint/unbound-method
   }
 
-  public getFacetsThatAreAnchors = (): FacetWithName[] => {
+  public getFacetsThatAreAnchors = (): FacetTypeWithName[] => {
     if (!this.facets) {
       return [];
     }
-    const result: FacetWithName[] = [];
+    const result: FacetTypeWithName[] = [];
     for (const [name, facet] of Object.entries(this.facets)) {
-      switch (facet.type) {
-        case FacetType.Anchor:
-        case FacetType.AnchorOrAnchorRange:
-        case FacetType.AnchorRange:
-          result.push({ name, facet });
+      switch (facet.valueType) {
+        case FacetValueType.Anchor:
+        case FacetValueType.AnchorOrAnchorRange:
+        case FacetValueType.AnchorRange:
+          result.push({ name, type: facet });
       }
     }
     return result;
   };
 
-  public getFacetsThatAreNodeArrays = (): FacetWithName[] => {
+  public getFacetsThatAreNodeArrays = (): FacetTypeWithName[] => {
     if (!this.facets) {
       return [];
     }
-    const result: FacetWithName[] = [];
+    const result: FacetTypeWithName[] = [];
     for (const [name, facet] of Object.entries(this.facets)) {
-      switch (facet.type) {
-        case FacetType.NodeArray:
-          result.push({ name, facet });
+      switch (facet.valueType) {
+        case FacetValueType.NodeArray:
+          result.push({ name, type: facet });
       }
     }
     return result;
   };
 
-  public getFacetsThatAreTextStyleStrips = (): FacetWithName[] => {
+  public getFacetsThatAreTextStyleStrips = (): FacetTypeWithName[] => {
     if (!this.facets) {
       return [];
     }
-    const result: FacetWithName[] = [];
+    const result: FacetTypeWithName[] = [];
     for (const [name, facet] of Object.entries(this.facets)) {
-      switch (facet.type) {
-        case FacetType.TextStyleStrip:
-          result.push({ name, facet });
+      switch (facet.valueType) {
+        case FacetValueType.TextStyleStrip:
+          result.push({ name, type: facet });
       }
     }
     return result;

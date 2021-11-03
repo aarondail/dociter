@@ -1,4 +1,4 @@
-import { FacetType } from "./facets";
+import { FacetValueType } from "./facets";
 import { FloaterPlacement, HeaderLevel } from "./misc";
 import { NodeCategory, NodeChildrenType, NodeType } from "./nodeType";
 
@@ -12,9 +12,9 @@ export const Floater = new NodeType({
   category: NodeCategory.Annotation,
   childrenType: NodeChildrenType.Inlines,
   facets: {
-    anchors: FacetType.AnchorOrAnchorRange,
+    anchors: FacetValueType.AnchorOrAnchorRange,
     placement: {
-      type: FacetType.Enum,
+      valueType: FacetValueType.Enum,
       options: Object.values(FloaterPlacement),
     },
   },
@@ -25,7 +25,7 @@ export const Footer = new NodeType({
   category: NodeCategory.Annotation,
   childrenType: NodeChildrenType.Inlines,
   facets: {
-    anchor: FacetType.Anchor,
+    anchor: FacetValueType.Anchor,
   },
 });
 
@@ -38,7 +38,7 @@ export const AnnotationComment = new NodeType({
   category: NodeCategory.Annotation,
   childrenType: NodeChildrenType.Inlines,
   facets: {
-    anchors: FacetType.AnchorRange,
+    anchors: FacetValueType.AnchorRange,
   },
 });
 
@@ -69,7 +69,7 @@ export const CodeBlock = new NodeType({
   category: NodeCategory.Block,
   childrenType: NodeChildrenType.Inlines,
   facets: {
-    language: FacetType.String,
+    language: FacetValueType.String,
   },
 });
 
@@ -79,7 +79,7 @@ export const Header = new NodeType({
   childrenType: NodeChildrenType.Inlines,
   facets: {
     level: {
-      type: FacetType.Enum,
+      valueType: FacetValueType.Enum,
       options: Object.values(HeaderLevel),
     },
   },
@@ -94,8 +94,8 @@ export const Hyperlink = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    url: FacetType.String,
-    styles: FacetType.TextStyleStrip,
+    url: FacetValueType.String,
+    styles: FacetValueType.TextStyleStrip,
   },
 });
 
@@ -104,7 +104,7 @@ export const EntityReference = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.None,
   facets: {
-    entityId: FacetType.EntityId,
+    entityId: FacetValueType.EntityId,
   },
 });
 
@@ -113,7 +113,7 @@ export const Todo = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    styles: FacetType.TextStyleStrip,
+    styles: FacetValueType.TextStyleStrip,
   },
 });
 
@@ -132,7 +132,7 @@ export const Sidebar = new NodeType({
   category: NodeCategory.Lateral,
   childrenType: NodeChildrenType.Blocks,
   facets: {
-    anchor: FacetType.Anchor,
+    anchor: FacetValueType.Anchor,
   },
 });
 
@@ -141,7 +141,7 @@ export const SideComment = new NodeType({
   category: NodeCategory.Lateral,
   childrenType: NodeChildrenType.Blocks,
   facets: {
-    anchors: FacetType.AnchorOrAnchorRange,
+    anchors: FacetValueType.AnchorOrAnchorRange,
   },
 });
 

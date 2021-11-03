@@ -5,7 +5,7 @@ import {
   AnchorOrientation,
   Document,
   DocumentNode,
-  FacetType,
+  FacetValueType,
   Node,
   NodeChildrenType,
   Span,
@@ -33,7 +33,7 @@ import {
 import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
-import { Interactor, InteractorId, InteractorParameters, ReadonlyInteractor } from "./interactor";
+import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
 import { AnchorPullDirection, JoinDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import { NodeId, ReadonlyWorkingDocumentNode, ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
@@ -43,22 +43,22 @@ import { Utils } from "./utils";
 export interface ReadonlyWorkingDocument {
   readonly allAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly document: ReadonlyWorkingNode;
-  readonly focusedInteractor: ReadonlyInteractor | undefined;
-  readonly interactors: ReadonlyMap<InteractorId, ReadonlyInteractor>;
+  readonly focusedInteractor: ReadonlyWorkingInteractor | undefined;
+  readonly interactors: ReadonlyMap<InteractorId, ReadonlyWorkingInteractor>;
   readonly nodes: ReadonlyMap<NodeId, ReadonlyWorkingNode>;
 
   getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters;
   getAnchorParametersFromCursorPath(cursorPath: CursorPath): AnchorParameters;
   getCursorNavigatorForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorNavigator<ReadonlyWorkingNode>;
   getCursorNavigatorsForInteractor(
-    interactor: ReadonlyInteractor | InteractorId
+    interactor: ReadonlyWorkingInteractor | InteractorId
   ): {
     readonly mainAnchor: CursorNavigator<ReadonlyWorkingNode>;
     readonly selectionAnchor: CursorNavigator<ReadonlyWorkingNode> | undefined;
   };
   getCursorPathForAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): CursorPath;
   getCursorPathsForInteractor(
-    anchor: ReadonlyInteractor | InteractorId
+    anchor: ReadonlyWorkingInteractor | InteractorId
   ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined };
   getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<ReadonlyWorkingNode>;
   getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
@@ -69,7 +69,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   private readonly anchorLookup: Map<AnchorId, WorkingAnchor>;
   private readonly eventEmitters: WorkingDocumentEventEmitter;
   private focusedInteractorId: InteractorId | undefined;
-  private readonly interactorLookup: Map<InteractorId, Interactor>;
+  private readonly interactorLookup: Map<InteractorId, WorkingInteractor>;
   private readonly nodeLookup: Map<NodeId, WorkingNode>;
 
   public constructor(
@@ -78,7 +78,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   ) {
     this.anchorLookup = new Map<AnchorId, WorkingAnchor>();
     this.eventEmitters = new WorkingDocumentEventEmitter();
-    this.interactorLookup = new Map<InteractorId, Interactor>();
+    this.interactorLookup = new Map<InteractorId, WorkingInteractor>();
 
     const { root, newNodes, newAnchors } = createWorkingNode(this.idGenerator, document);
     if (!(root instanceof WorkingNode) || root.nodeType !== Document) {
@@ -98,10 +98,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public get events(): WorkingDocumentEvents {
     return this.eventEmitters;
   }
-  public get focusedInteractor(): ReadonlyInteractor | undefined {
+  public get focusedInteractor(): ReadonlyWorkingInteractor | undefined {
     return this.focusedInteractorId !== undefined ? this.interactors.get(this.focusedInteractorId) : undefined;
   }
-  public get interactors(): ReadonlyMap<InteractorId, ReadonlyInteractor> {
+  public get interactors(): ReadonlyMap<InteractorId, ReadonlyWorkingInteractor> {
     return this.interactorLookup;
   }
   public get nodes(): ReadonlyMap<NodeId, ReadonlyWorkingNode> {
@@ -112,7 +112,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return this.addAnchorPrime(parameters);
   }
 
-  public addInteractor(parameters: InteractorParameters): ReadonlyInteractor {
+  public addInteractor(parameters: InteractorParameters): ReadonlyWorkingInteractor {
     const id = this.idGenerator.generateId("INTERACTOR");
 
     const mainAnchor = this.addAnchorPrime(
@@ -128,7 +128,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         )
       : undefined;
 
-    const newInteractor = new Interactor(
+    const newInteractor = new WorkingInteractor(
       id,
       mainAnchor,
       parameters.status,
@@ -153,7 +153,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.deleteAnchorPrime(anchor);
   }
 
-  public deleteInteractor(interactor: InteractorId | ReadonlyInteractor): void {
+  public deleteInteractor(interactor: InteractorId | ReadonlyWorkingInteractor): void {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
     if (!resolvedInteractor) {
       throw new WorkingDocumentError("Unknown interactor");
@@ -273,7 +273,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public getCursorNavigatorsForInteractor(
-    interactor: ReadonlyInteractor | InteractorId
+    interactor: ReadonlyWorkingInteractor | InteractorId
   ): {
     readonly mainAnchor: CursorNavigator<WorkingNode>;
     readonly selectionAnchor: CursorNavigator<WorkingNode> | undefined;
@@ -317,7 +317,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public getCursorPathsForInteractor(
-    interactor: ReadonlyInteractor | InteractorId
+    interactor: ReadonlyWorkingInteractor | InteractorId
   ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined } {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
     if (!resolvedInteractor) {
@@ -432,7 +432,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       } else if (!isFancy && Utils.doesNodeTypeHaveTextOrFancyText(resolvedNode.nodeType)) {
         throw new WorkingDocumentError("Node cannot have grapheme children");
       }
-    } else if (resolvedFacet && (resolvedFacet.type !== FacetType.String || isFancy)) {
+    } else if (resolvedFacet && (resolvedFacet.valueType !== FacetValueType.String || isFancy)) {
       throw new WorkingDocumentError("Node cannot have text or fancy text in the given facet");
     }
 
@@ -548,29 +548,29 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Unknown facet");
     }
     const valueType = typeof value;
-    switch (resolvedFacet.type) {
-      case FacetType.Boolean:
+    switch (resolvedFacet.valueType) {
+      case FacetValueType.Boolean:
         if (valueType === "boolean" || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(facet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetType.EntityId:
+      case FacetValueType.EntityId:
         if (valueType === "string" || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(facet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetType.String:
+      case FacetValueType.String:
         if (typeof value === "string" || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(facet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetType.Enum:
+      case FacetValueType.Enum:
         if (valueType === "string") {
           if (resolvedFacet.options!.includes(value as string)) {
             resolvedNode.setFacet(facet, value);
@@ -583,7 +583,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetType.TextStyleStrip:
+      case FacetValueType.TextStyleStrip:
         if (value instanceof TextStyleStrip) {
           resolvedNode.setFacet(facet, createWorkingTextStyleStrip(value));
         } else if (valueType === "undefined" && resolvedFacet.optional) {
@@ -592,19 +592,19 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetType.Anchor:
-      case FacetType.AnchorRange:
-      case FacetType.AnchorOrAnchorRange:
+      case FacetValueType.Anchor:
+      case FacetValueType.AnchorRange:
+      case FacetValueType.AnchorOrAnchorRange:
         {
           let convertedValue: WorkingAnchor | WorkingAnchorRange | undefined;
           if (Utils.isAnchorParameters(value)) {
-            if (resolvedFacet.type === FacetType.AnchorRange) {
+            if (resolvedFacet.valueType === FacetValueType.AnchorRange) {
               throw new WorkingDocumentError(`Can not set facet ${facet} to passed value`);
             }
             convertedValue = this.addAnchorPrime(value, "dont-emit-event");
             convertedValue.relatedOriginatingNode = resolvedNode;
           } else if (Utils.isAnchorParametersPair(value)) {
-            if (resolvedFacet.type === FacetType.Anchor) {
+            if (resolvedFacet.valueType === FacetValueType.Anchor) {
               throw new WorkingDocumentError(`Can not set facet ${facet} to passed value`);
             }
             const from = this.addAnchorPrime(value[0], "dont-emit-event");
@@ -638,7 +638,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
         }
         break;
-      case FacetType.NodeArray:
+      case FacetValueType.NodeArray:
         {
           const currentValue = resolvedNode.getFacet(facet);
 
@@ -832,7 +832,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public updateInteractor(
-    interactor: InteractorId | ReadonlyInteractor,
+    interactor: InteractorId | ReadonlyWorkingInteractor,
     parameters: Partial<InteractorParameters>
   ): void {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);

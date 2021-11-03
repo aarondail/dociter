@@ -1,4 +1,4 @@
-import { TextStyle, TextStyleModifier } from "./textStyle";
+import { TextStyleModifier } from "./textStyle";
 
 export interface TextStyleStripEntry {
   readonly graphemeIndex: number;

@@ -5,7 +5,7 @@ import { Anchor, AnchorRange } from "./anchor";
 import { Node } from "./node";
 import { NodeCategory } from "./nodeType";
 
-export enum FacetType {
+export enum FacetValueType {
   Anchor,
   AnchorRange,
   AnchorOrAnchorRange,
@@ -17,34 +17,34 @@ export enum FacetType {
   TextStyleStrip,
 }
 
-export interface Facet {
+export interface FacetType {
   readonly optional?: boolean;
   readonly options?: readonly string[];
-  readonly type: FacetType;
+  readonly valueType: FacetValueType;
   readonly nodeCategory?: NodeCategory;
 }
 
-export type FacetConvenienceDictionary = { readonly [name: string]: FacetType | Facet };
+export type FacetTypeConvenienceDictionary = { readonly [name: string]: FacetValueType | FacetType };
 
-export type FacetDictionary = { readonly [name: string]: Facet };
+export type FacetTypeDictionary = { readonly [name: string]: FacetType };
 
-type FacetTypeToActualType<T extends FacetType> = T extends FacetType.Anchor
+type FacetValueTypeToActualType<T extends FacetValueType> = T extends FacetValueType.Anchor
   ? Anchor
-  : T extends FacetType.AnchorOrAnchorRange
+  : T extends FacetValueType.AnchorOrAnchorRange
   ? Anchor | AnchorRange
-  : T extends FacetType.AnchorRange
+  : T extends FacetValueType.AnchorRange
   ? AnchorRange
-  : T extends FacetType.Boolean
+  : T extends FacetValueType.Boolean
   ? boolean
-  : T extends FacetType.EntityId
+  : T extends FacetValueType.EntityId
   ? string
-  : T extends FacetType.Enum
+  : T extends FacetValueType.Enum
   ? string
-  : T extends FacetType.NodeArray
+  : T extends FacetValueType.NodeArray
   ? readonly Node[]
-  : T extends FacetType.String
+  : T extends FacetValueType.String
   ? string
-  : T extends FacetType.TextStyleStrip
+  : T extends FacetValueType.TextStyleStrip
   ? TextStyleStrip
   : never;
 
@@ -53,22 +53,23 @@ type FacetTypeToActualType<T extends FacetType> = T extends FacetType.Anchor
 // (and it'd) be hard to handle `specificIntermediateChildType` for the case of
 // intermediates).
 
-type FacetToActualTypePrime<T extends Facet> = T["type"] extends FacetType.Enum
+type FacetTypeToActualTypePrime<T extends FacetType> = T["valueType"] extends FacetValueType.Enum
   ? T["options"] extends readonly string[]
     ? OptionValueTypeFromOptionArray<T["options"]>
     : never
-  : FacetTypeToActualType<T["type"]>;
+  : FacetValueTypeToActualType<T["valueType"]>;
 
-type FacetToActualType<T extends Facet> = T["optional"] extends true
-  ? FacetToActualTypePrime<T> | undefined
-  : FacetToActualTypePrime<T>;
+type FacetTypeToActualType<T extends FacetType> = T["optional"] extends true
+  ? FacetTypeToActualTypePrime<T> | undefined
+  : FacetTypeToActualTypePrime<T>;
 
-export type FacetActualTypeDictionary<T extends FacetConvenienceDictionary> = {
-  [property in keyof T]: T[property] extends FacetType
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type FacetDictionary<T extends FacetTypeConvenienceDictionary = {}> = {
+  [property in keyof T]: T[property] extends FacetValueType
+    ? FacetValueTypeToActualType<T[property]>
+    : T[property] extends FacetType
     ? FacetTypeToActualType<T[property]>
-    : T[property] extends Facet
-    ? FacetToActualType<T[property]>
     : never;
 };
 
-export type FacetWithName = { readonly name: string; readonly facet: Facet };
+export type FacetTypeWithName = { readonly name: string; readonly type: FacetType };

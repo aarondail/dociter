@@ -1,7 +1,7 @@
 import { FancyText, Text, TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
-import { FacetActualTypeDictionary, FacetConvenienceDictionary, FacetWithName } from "./facets";
+import { FacetDictionary, FacetTypeConvenienceDictionary, FacetTypeWithName } from "./facets";
 import { NodeChildrenType, NodeType, NodeTypeDescription } from "./nodeType";
 
 type NodeChildrenTypeToActualType<T extends NodeChildrenType> = T extends NodeChildrenType.None
@@ -16,14 +16,14 @@ export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = Node
   public constructor(
     public readonly nodeType: NodeType<SpecificNodeTypeDescription>,
     public readonly children: NodeChildrenTypeToActualType<SpecificNodeTypeDescription["childrenType"]>,
-    public readonly facets: SpecificNodeTypeDescription["facets"] extends FacetConvenienceDictionary
-      ? FacetActualTypeDictionary<SpecificNodeTypeDescription["facets"]>
+    public readonly facets: SpecificNodeTypeDescription["facets"] extends FacetTypeConvenienceDictionary
+      ? FacetDictionary<SpecificNodeTypeDescription["facets"]>
       : // eslint-disable-next-line @typescript-eslint/ban-types
         {}
   ) {}
 
-  getAllFacetAnchors(): readonly [FacetWithName, Anchor | AnchorRange][] {
-    const result: [FacetWithName, Anchor | AnchorRange][] = [];
+  getAllFacetAnchors(): readonly [FacetTypeWithName, Anchor | AnchorRange][] {
+    const result: [FacetTypeWithName, Anchor | AnchorRange][] = [];
     for (const f of this.nodeType.getFacetsThatAreAnchors()) {
       const value = this.getFacet(f.name) as Anchor | AnchorRange;
       if (value) {
@@ -33,8 +33,8 @@ export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = Node
     return result;
   }
 
-  getAllFacetNodes(): readonly [FacetWithName, readonly Node[]][] {
-    const result: [FacetWithName, readonly Node[]][] = [];
+  getAllFacetNodes(): readonly [FacetTypeWithName, readonly Node[]][] {
+    const result: [FacetTypeWithName, readonly Node[]][] = [];
     for (const f of this.nodeType.getFacetsThatAreNodeArrays()) {
       const array = this.getFacet(f.name) as readonly Node[];
       if (array) {
@@ -44,8 +44,8 @@ export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = Node
     return result;
   }
 
-  getAllFacetTextStyleStrips(): readonly [FacetWithName, TextStyleStrip][] {
-    const result: [FacetWithName, TextStyleStrip][] = [];
+  getAllFacetTextStyleStrips(): readonly [FacetTypeWithName, TextStyleStrip][] {
+    const result: [FacetTypeWithName, TextStyleStrip][] = [];
     for (const f of this.nodeType.getFacetsThatAreTextStyleStrips()) {
       const value = this.getFacet(f.name) as TextStyleStrip;
       if (value) {

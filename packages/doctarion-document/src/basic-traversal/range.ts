@@ -5,7 +5,6 @@ import { Document, Node, NodeUtils } from "../document-model";
 
 import { PathComparison } from "./path";
 
-// TODO consider merging this into interactor
 export class Range {
   [immerable] = true;
 
