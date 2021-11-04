@@ -11,10 +11,12 @@ import { SimpleComparison } from "../miscUtils";
 import { Path } from "./path";
 import { PathPart } from "./pathPart";
 
+type PathPartKey = string;
+
 // Note this is mutable.
 interface InteriorNode<ElementType> {
   type: "INTERIOR";
-  childNodes: Map<PathPart, Node<ElementType>>;
+  childNodes: Map<PathPartKey, Node<ElementType>>;
 }
 
 // Note this is mutable.
@@ -52,17 +54,18 @@ export class LiftingPathMap<ElementType> {
     let pIndex = 0;
     while (path.parts.length > pIndex) {
       const nextPart = path.parts[pIndex];
+      const nextPartKey = this.getKey(nextPart);
 
       if (currentNode.type === "INTERIOR") {
-        if (currentNode.childNodes.has(nextPart)) {
-          currentNode = currentNode.childNodes.get(nextPart)!;
+        if (currentNode.childNodes.has(nextPartKey)) {
+          currentNode = currentNode.childNodes.get(nextPartKey)!;
         } else {
           createdNewNodes = true;
           const newChildNode: Node<ElementType> = {
             type: "INTERIOR",
             childNodes: new Map(),
           };
-          currentNode.childNodes.set(nextPart, newChildNode);
+          currentNode.childNodes.set(nextPartKey, newChildNode);
           currentNode = newChildNode;
         }
         pIndex++;
@@ -122,11 +125,12 @@ export class LiftingPathMap<ElementType> {
     // eslint-disable-next-line no-constant-condition
     while (path.parts.length > pIndex) {
       const nextPart = path.parts[pIndex];
+      const nextPartKey = this.getKey(nextPart);
 
       if (currentNode.type === "INTERIOR") {
-        const childIsPresent = currentNode.childNodes.has(nextPart);
+        const childIsPresent = currentNode.childNodes.has(nextPartKey);
         if (childIsPresent) {
-          currentNode = currentNode.childNodes.get(nextPart)!;
+          currentNode = currentNode.childNodes.get(nextPartKey)!;
         } else {
           return undefined;
         }
@@ -165,6 +169,11 @@ export class LiftingPathMap<ElementType> {
       return 0;
     });
     return result;
+  }
+
+  private getKey(part: PathPart): PathPartKey {
+    // This will have to be changed once path parts have string components again
+    return part.toString();
   }
 
   private *traverseNodeAndChildren(node: Node<ElementType>) {

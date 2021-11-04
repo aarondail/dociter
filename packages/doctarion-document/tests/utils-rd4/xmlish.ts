@@ -12,7 +12,7 @@ import {
   Paragraph,
   Span,
 } from "../../src/document-model-rd5";
-import { Text, TextStyle, TextStyleStrip } from "../../src/text-model-rd4";
+import { Text, TextStyleStrip } from "../../src/text-model-rd4";
 
 /**
  * Create a test Document for the tests.
