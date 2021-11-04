@@ -16,19 +16,20 @@
         "build": true
     },
     "cSpell.words": [
-        "Doesnt",
-        "Interactor",
-        "Interactors",
-        "Reparenting",
         "automagically",
         "dedupe",
         "deduping",
         "deduplication",
         "doctarion",
+        "Doesnt",
         "dont",
+        "endregion",
         "immer",
         "immerable",
         "inlines",
-        "interactor's"
+        "Interactor",
+        "interactor's",
+        "Interactors",
+        "Reparenting"
     ]
 }

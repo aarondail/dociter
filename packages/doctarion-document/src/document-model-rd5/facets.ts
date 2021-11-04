@@ -1,4 +1,4 @@
-import { OptionValueTypeFromOptionArray } from "../miscUtils";
+import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../miscUtils";
 import { TextStyleStrip } from "../text-model-rd4";
 
 import { Anchor, AnchorRange } from "./anchor";
@@ -63,13 +63,31 @@ type FacetTypeToActualType<T extends FacetType> = T["optional"] extends true
   ? FacetTypeToActualTypePrime<T> | undefined
   : FacetTypeToActualTypePrime<T>;
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-export type FacetDictionary<T extends FacetTypeConvenienceDictionary = {}> = {
+// This is what we want (dictionary of facet names to actual types) EXCEPT that
+// the optional ones aren't marked truly optional (with a ?). We need the
+// following type to make that work.
+type FacetDictionaryPrimeNonOptional<T extends FacetTypeConvenienceDictionary> = {
   [property in keyof T]: T[property] extends FacetValueType
     ? FacetValueTypeToActualType<T[property]>
     : T[property] extends FacetType
     ? FacetTypeToActualType<T[property]>
     : never;
 };
+
+/**
+ * Mapped type that takes a dictionary type describing facets (i.e., passed to
+ * NodeType when it is constructed) and returns a d dictionary type of facet
+ * names to facet actual types (i.e., to be passed to Nodes).
+ */
+// This complicated type is the same as FacetDictionaryPrimeNonOptional but with
+// the properties marked as optional actually optional.
+//
+// Got this technique from:
+// https://stackoverflow.com/questions/67552360/conditionally-apply-modifier-in-mapped-type-per-property
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type FacetDictionary<T extends FacetTypeConvenienceDictionary = {}> = Intersection<
+  Partial<Pick<FacetDictionaryPrimeNonOptional<T>, Matching<T, { optional: true }>>>,
+  Required<Pick<FacetDictionaryPrimeNonOptional<T>, NonMatching<T, { optional: true }>>>
+>;
 
 export type FacetTypeWithName = { readonly name: string; readonly type: FacetType };

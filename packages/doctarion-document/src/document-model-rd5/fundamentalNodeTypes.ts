@@ -32,6 +32,9 @@ export const Span = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    styles: FacetValueType.TextStyleStrip,
+    styles: {
+      valueType: FacetValueType.TextStyleStrip,
+      optional: true,
+    },
   },
 });

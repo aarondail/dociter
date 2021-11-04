@@ -41,7 +41,7 @@ import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
 export interface ReadonlyWorkingDocument {
-  readonly allAnchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
+  readonly anchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly document: ReadonlyWorkingNode;
   readonly focusedInteractor: ReadonlyWorkingInteractor | undefined;
   readonly interactors: ReadonlyMap<InteractorId, ReadonlyWorkingInteractor>;
@@ -89,7 +89,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.nodeLookup = newNodes;
   }
 
-  public get allAnchors(): ReadonlyMap<AnchorId, ReadonlyWorkingAnchor> {
+  public get anchors(): ReadonlyMap<AnchorId, ReadonlyWorkingAnchor> {
     return this.anchorLookup;
   }
   public get document(): ReadonlyWorkingDocumentNode {

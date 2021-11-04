@@ -8,7 +8,7 @@ import {
   NodeType,
   NodeTypeDescription,
 } from "../document-model-rd5";
-import { OptionValueTypeFromOptionArray } from "../miscUtils";
+import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../miscUtils";
 import { FancyGrapheme, FancyText, Grapheme, Text } from "../text-model-rd4";
 import { PathPart } from "../traversal-rd4";
 
@@ -92,13 +92,32 @@ type FacetTypeToActualTypeForWorkingNode<T extends FacetType> = T["optional"] ex
   ? FacetTypeToActualTypePrimeForWorkingNode<T> | undefined
   : FacetTypeToActualTypePrimeForWorkingNode<T>;
 
-type FacetDictionaryForWorkingNode<T extends FacetTypeConvenienceDictionary> = {
+// This is what we want (dictionary of facet names to actual types) EXCEPT that
+// the optional ones aren't marked truly optional (with a ?). We need the
+// following type to make that work.
+type FacetDictionaryForWorkingNodePrimeNonOptional<T extends FacetTypeConvenienceDictionary> = {
   [property in keyof T]: T[property] extends FacetValueType
     ? FacetValueTypeToActualTypeForWorkingNode<T[property]>
     : T[property] extends FacetType
     ? FacetTypeToActualTypeForWorkingNode<T[property]>
     : never;
 };
+
+/**
+ * Mapped type that takes a dictionary type describing facets (i.e., passed to
+ * NodeType when it is constructed) and returns a d dictionary type of facet
+ * names to facet actual types for a WorkingNode.
+ */
+// This complicated type is the same as FacetDictionaryForWorkingNodePrimeNonOptional but with
+// the properties marked as optional actually optional.
+//
+// Got this technique from:
+// https://stackoverflow.com/questions/67552360/conditionally-apply-modifier-in-mapped-type-per-property
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type FacetDictionaryForWorkingNode<T extends FacetTypeConvenienceDictionary = {}> = Intersection<
+  Partial<Pick<FacetDictionaryForWorkingNodePrimeNonOptional<T>, Matching<T, { optional: true }>>>,
+  Required<Pick<FacetDictionaryForWorkingNodePrimeNonOptional<T>, NonMatching<T, { optional: true }>>>
+>;
 
 type WorkingNodeOfType<T extends NodeType> = WorkingNode<T extends NodeType<infer X> ? X : never>;
 

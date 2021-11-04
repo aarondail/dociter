@@ -1,6 +1,7 @@
 import * as htmlparser from "htmlparser2";
 
 import {
+  Anchor,
   Document,
   DocumentNode,
   FacetDictionary,
@@ -12,7 +13,8 @@ import {
   Paragraph,
   Span,
 } from "../../src/document-model-rd5";
-import { Text, TextStyleStrip } from "../../src/text-model-rd4";
+import { Mutable } from "../../src/miscUtils";
+import { Text, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../../src/text-model-rd4";
 
 /**
  * Create a test Document for the tests.
@@ -27,16 +29,8 @@ export function testDoc(literals: TemplateStringsArray, ...placeholders: string[
   for (let i = 0; i < placeholders.length; i++) {
     result += literals[i];
     result += placeholders[i];
-    // .replace(/&/g, '&amp;')
-    // .replace(/"/g, '&quot;')
-    // .replace(/'/g, '&#39;')
-    // .replace(/</g, '&lt;')
-    // .replace(/>/g, '&gt;');
   }
-
-  // add the last literal
   result += literals[literals.length - 1];
-
   return docFromXmlish(result);
 }
 
@@ -92,8 +86,8 @@ function docFromXmlish(xmlish: string): DocumentNode {
 
           // Fill in default facets
           const f = n.facets as any;
-          if (n.type === Span || n.type === Hyperlink) {
-            f.styles = f.styles ?? new TextStyleStrip();
+          if (n.type === Span && f.styles) {
+            f.styles = textStyleStripFromXmlish(f.styles);
           }
 
           kidsArray.push(
@@ -108,16 +102,7 @@ function docFromXmlish(xmlish: string): DocumentNode {
 
   parser.parseComplete(xmlish);
 
-  return new Node(Document, rootKids, {
-    laterals: [],
-    annotations: [],
-  });
-
-  // const testDoc1 = testDoc`
-  // <h level=ONE> <t>H12</t> </h>
-  // <p> </p>
-  // <p> <url g.com>test</url> </p>
-  // `;
+  return new Node(Document, rootKids, { laterals: [], annotations: [] });
 }
 
 export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: boolean } = {}): string {
@@ -146,12 +131,14 @@ export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: bo
     let attributesString = "";
     if (Object.values(attributes).length > 0) {
       for (const key of Object.keys(attributes).sort()) {
-        const value = attributes[key];
+        let value = attributes[key];
         if (value instanceof TextStyleStrip) {
           if (value.entries.length === 0) {
             continue;
           }
+          value = textStyleStripToXmlish(value);
         }
+
         attributesString += ` ${key}=${value}`;
       }
     }
@@ -181,4 +168,55 @@ export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: bo
 
   // Skip document
   return doc.children.map((x) => nodeToXmlPrime(x, 0)).join("");
+}
+
+function modifierStringToModifiers(s: string) {
+  const m: Mutable<TextStyleModifier> = {};
+  for (let i = 0; i < s.length; i += 2) {
+    const change = s[i] === "+" ? true : null;
+    const x = s[i + 1];
+    switch (x) {
+      case "B":
+        m.bold = change;
+        break;
+      default:
+        throw new Error(`Unknown TextStyleModifier ${x}`);
+    }
+  }
+  return m;
+}
+
+function modifierStringFromModifiers(m: TextStyleModifier): string {
+  let s = "";
+  for (const k of Object.keys(m)) {
+    if (k === "bold") {
+      s += (m[k] === null ? "-" : "+") + "B";
+    } else {
+      throw new Error(`Unknown TextStyleModifier ${k}`);
+    }
+  }
+  return s;
+}
+
+function textStyleStripFromXmlish(s: string): TextStyleStrip {
+  const entries: TextStyleStripEntry[] = [];
+
+  for (const e of s.split(",")) {
+    const [charIndex, modifiers] = e.split(":");
+    const index = parseInt(charIndex, 10);
+    entries.push({
+      graphemeIndex: index,
+      modifier: modifierStringToModifiers(modifiers),
+    });
+  }
+
+  return new TextStyleStrip(...entries);
+}
+
+function textStyleStripToXmlish(strip: TextStyleStrip): string {
+  const s = [];
+  for (const e of strip.entries) {
+    s.push(`${e.graphemeIndex}:${modifierStringFromModifiers(e.modifier)}`);
+  }
+  return s.join(",");
 }

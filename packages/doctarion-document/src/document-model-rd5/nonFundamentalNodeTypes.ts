@@ -93,10 +93,7 @@ export const Hyperlink = new NodeType({
   name: "Hyperlink",
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
-  facets: {
-    url: FacetValueType.String,
-    styles: FacetValueType.TextStyleStrip,
-  },
+  facets: { url: FacetValueType.String },
 });
 
 export const EntityReference = new NodeType({
