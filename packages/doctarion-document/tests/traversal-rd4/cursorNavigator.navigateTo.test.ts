@@ -1,11 +1,11 @@
 import { CursorNavigator, CursorOrientation } from "../../src/traversal-rd4";
 import { testDoc } from "../utils-rd4";
 
-import { TestDocs } from "./cursorNavigator.testUtils";
+import { CursorNavigatorTestUtils } from "./cursorNavigator.testUtils";
 
 describe("navigateTo", () => {
   it("navigates to graphemes in a fleshed out doc", () => {
-    const nav = new CursorNavigator(TestDocs.basicDoc);
+    const nav = new CursorNavigator(CursorNavigatorTestUtils.testDocs.basicDoc);
     nav.navigateTo("1/1/2", CursorOrientation.After);
     expect(nav.cursor.toString()).toEqual("AFTER 1/1/2");
     expect(nav.tip.node).toEqual("R");
@@ -33,7 +33,7 @@ describe("navigateTo", () => {
   });
 
   it("navigates to graphemes and changes orientation in some cases", () => {
-    const nav = new CursorNavigator(TestDocs.basicDoc);
+    const nav = new CursorNavigator(CursorNavigatorTestUtils.testDocs.basicDoc);
     expect(nav.navigateTo("2/2/3", CursorOrientation.Before)).toBeTruthy();
     expect(nav.cursor.toString()).toEqual("AFTER 2/2/2");
     expect(nav.tip.node).toEqual("n");
@@ -44,7 +44,7 @@ describe("navigateTo", () => {
   });
 
   it("navigates to empty insertion points", () => {
-    const nav = new CursorNavigator(TestDocs.basicDocWithEmptyInsertionPoints);
+    const nav = new CursorNavigator(CursorNavigatorTestUtils.testDocs.basicDocWithEmptyInsertionPoints);
     expect(nav.navigateTo("0", CursorOrientation.On)).toBeTruthy();
     expect(nav.cursor.toString()).toEqual("ON 0");
 
@@ -56,7 +56,7 @@ describe("navigateTo", () => {
   });
 
   it("navigates to between insertion points", () => {
-    const nav = new CursorNavigator(TestDocs.basicDocWithBetweenInsertionPoints);
+    const nav = new CursorNavigator(CursorNavigatorTestUtils.testDocs.basicDocWithBetweenInsertionPoints);
 
     // expect(nav.navigateTo("0/0", CursorOrientation.Before)).toBeTruthy();
     // expect(nav.cursor.toString()).toEqual("BEFORE 0/0");
