@@ -463,7 +463,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (Utils.doesNodeTypeHaveNodeChildren(dest.nodeType)) {
       // Move children from one inline to the next
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === JoinDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === JoinDirection.Backward);
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
         const beforeBoundaryNode = dest.children[boundaryChildIndex - 1] as WorkingNode;
         const atBoundaryNode = dest.children[boundaryChildIndex] as WorkingNode;
@@ -1226,14 +1226,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         destArray.unshift(child);
       } else {
         destArray.push(child);
-        child.pathPartFromParent?.adjustIndex(destArrayOriginalLength);
+        child.pathPartFromParent = child.pathPartFromParent?.adjustIndex(destArrayOriginalLength);
       }
       child.parent = destination;
     }
 
     if (prepend) {
       for (let k = sourceArrayOriginalLength; k < destArray.length; k++) {
-        destArray[k].pathPartFromParent?.adjustIndex(sourceArrayOriginalLength);
+        destArray[k].pathPartFromParent = destArray[k].pathPartFromParent?.adjustIndex(sourceArrayOriginalLength);
       }
     }
 

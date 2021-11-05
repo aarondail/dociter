@@ -1,5 +1,5 @@
 import { AnchorOrientation } from "../../src/document-model-rd5";
-import { NodeId, ReadonlyWorkingAnchor, ReadonlyWorkingNode, WorkingDocument } from "../../src/working-document-rd4";
+import { ReadonlyWorkingNode, WorkingDocument } from "../../src/working-document-rd4";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../utils-rd4";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

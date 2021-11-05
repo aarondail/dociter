@@ -129,7 +129,7 @@ type NodeChildrenTypeToActualTypeForReadonlyWorkingNode<T extends NodeChildrenTy
   ? FancyText
   : T extends NodeChildrenType.Text
   ? Text
-  : readonly Node[];
+  : readonly ReadonlyWorkingNode[];
 
 export interface ReadonlyWorkingNode<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>
   extends Node<SpecificNodeTypeDescription> {
