@@ -20,7 +20,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         const current = this.entries[j];
         if (current.graphemeIndex === prior.graphemeIndex) {
           // This mutates current.style
-          mergeStyleModifiers(prior.modifier, current.modifier);
+          applyStyleModifiers(prior.modifier, current.modifier);
           // Delete prior
           this.mutableEntries.splice(j + 1, 1);
         }
@@ -55,17 +55,21 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
   }
 
   public setModifier(graphemeIndex: number, modifier: TextStyleModifier): void {
+    if (Object.keys(modifier).length === 0) {
+      return;
+    }
+
     const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
     if (!r) {
-      this.mutableEntries.push({ modifier, graphemeIndex });
+      this.mutableEntries.unshift({ modifier, graphemeIndex });
       return;
     }
     const { entryIndex: i, exactMatch } = r;
 
     if (exactMatch) {
-      mergeStyleModifiers(modifier, this.mutableEntries[i].modifier);
+      applyStyleModifiers(modifier, this.mutableEntries[i].modifier);
     } else {
-      this.mutableEntries.splice(i - 1, 0, { modifier, graphemeIndex });
+      this.mutableEntries.splice(i + 1, 0, { modifier, graphemeIndex });
     }
   }
 
@@ -122,7 +126,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         deletionEndIndex = j;
         if (modifiedStyle) {
           // Note this mutates e.style
-          mergeStyleModifiers(modifiedStyle, e.modifier);
+          applyStyleModifiers(modifiedStyle, e.modifier);
           modifiedStyle = e.modifier;
         } else {
           modifiedStyle = e.modifier;
@@ -147,7 +151,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         firstNonDeletionIndex !== undefined &&
         this.mutableEntries[firstNonDeletionIndex].graphemeIndex === graphemeIndex
       ) {
-        mergeStyleModifiers(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
+        applyStyleModifiers(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
         // Then delete
         this.mutableEntries.splice(deletionStartIndex, firstNonDeletionIndex - deletionStartIndex);
       } else {
@@ -173,6 +177,56 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     for (let k = i; k < this.mutableEntries.length; k++) {
       this.mutableEntries[k].graphemeIndex += count;
     }
+  }
+
+  public updateForAppend(currentGraphemeCount: number, strip: TextStyleStrip): void {
+    const styleAtFinalCurrentGrapheme = this.resolveStyleAt(currentGraphemeCount);
+
+    // Append entries (using setModifier since that will keep them sorted)
+    for (const entry of strip.entries) {
+      this.setModifier(entry.graphemeIndex + currentGraphemeCount, entry.modifier);
+    }
+
+    const modifierAtBeginningOfAppend = this.getModifierAtExactly(currentGraphemeCount);
+    if (modifierAtBeginningOfAppend) {
+      for (const key of Object.keys(modifierAtBeginningOfAppend)) {
+        delete (styleAtFinalCurrentGrapheme as any)[key];
+      }
+      // Make the style we are going to apply undo the styling from the current (pre-append) strip
+      for (const key of Object.keys(styleAtFinalCurrentGrapheme)) {
+        (styleAtFinalCurrentGrapheme as any)[key] = null;
+      }
+    }
+
+    this.setModifier(currentGraphemeCount, styleAtFinalCurrentGrapheme);
+  }
+
+  public updateForPrepend(prependedGraphemeCount: number, strip: TextStyleStrip): void {
+    if (prependedGraphemeCount === 0) {
+      return;
+    }
+
+    const styleAtFinalCurrentGrapheme = this.getModifierAtExactly(0) || {};
+
+    this.updateDueToGraphemeInsertion(0, prependedGraphemeCount);
+
+    // Prepend entries (using setModifier since that will keep them sorted)
+    for (const entry of strip.entries) {
+      this.setModifier(entry.graphemeIndex, entry.modifier);
+    }
+
+    const modifierAtEndOfPrepend = this.resolveStyleAt(prependedGraphemeCount - 1);
+    for (const key of Object.keys(modifierAtEndOfPrepend)) {
+      if (
+        (styleAtFinalCurrentGrapheme as any)[key] !== undefined &&
+        (styleAtFinalCurrentGrapheme as any)[key] !== null
+      ) {
+        continue;
+      }
+      (styleAtFinalCurrentGrapheme as any)[key] = null;
+    }
+
+    this.setModifier(prependedGraphemeCount, styleAtFinalCurrentGrapheme);
   }
 
   private binarySearchComparator = (entry: TextStyleStripEntry, graphemeIndexAsNeedle: number): number => {
@@ -205,7 +259,7 @@ export interface ReadonlyWorkingTextStyleStrip extends TextStyleStrip {
   // Actually, as of right now there are no differences... maybe there won't be any at all?
 }
 
-function mergeStyleModifiers(source: TextStyleModifier, destination: TextStyleModifier): void {
+function applyStyleModifiers(source: TextStyleModifier, destination: TextStyleModifier): void {
   for (const key of Object.keys(source)) {
     const left = (source as any)[key];
     const right = (destination as any)[key];
@@ -218,11 +272,9 @@ function mergeStyleModifiers(source: TextStyleModifier, destination: TextStyleMo
     } else if (left === false && right === true) {
       continue;
     } else if (left === null) {
-      // This is like "popping" the style, but here the right overrides it with something new
-      continue;
-    } else if (right === null) {
-      // This is like "popping" the style
       delete (destination as any)[key];
+    } else if (right === null) {
+      continue;
     } else {
       // Leave the destination as is
       continue;

@@ -26,7 +26,7 @@ export const TextStyle = {
   applyModifier(style: Mutable<TextStyle>, modifier: TextStyleModifier): void {
     for (const propertyName of Object.keys(modifier)) {
       const styleAsAny = style as any;
-      const value = styleAsAny[propertyName];
+      const value = (modifier as any)[propertyName];
       if (value === null) {
         delete styleAsAny[propertyName];
       } else {
