@@ -686,6 +686,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
+    if (resolvedNode.nodeType === Document) {
+      throw new WorkingDocumentError("Cannot split the Document");
+    }
     if (!resolvedNode.parent || resolvedNode.pathPartFromParent?.index === undefined) {
       throw new WorkingDocumentError("Unknown node parent");
     }
@@ -707,6 +710,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
         if (!Utils.canNodeBeSplit(nav.tip.node)) {
           throw new WorkingDocumentError("Node cannot be split");
+        }
+      } else {
+        if (PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
+          if (childIndex === 0 && splitChildIndices.length === 1) {
+            // This is a no-op (no point in splitting something with text as
+            // children at the first character). There is no content on one
+            // side!
+            return;
+          } else if (childIndex === 0) {
+            // In this case, the split could have some other impact so we try
+            // again just without the last index
+            this.splitNode(node, splitChildIndices.slice(0, childIndex - 1));
+            return;
+          }
         }
       }
     }
@@ -735,13 +752,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       const childIndex = splitChildIndices[i];
 
       const isLastSplit = i === splitChildIndices.length - 1;
-      if (Utils.doesNodeTypeHaveNodeChildren(currentSplitSource.nodeType)) {
-        const splitOutKids = currentSplitSource.children.splice(
-          childIndex,
-          currentSplitSource.children.length - childIndex
-        ) as WorkingNode[];
-        currentSplitDest.children = [...splitOutKids, ...currentSplitDest.children] as any;
 
+      const splitOutKids = currentSplitSource.children.splice(
+        childIndex,
+        currentSplitSource.children.length - childIndex
+      ) as any[];
+      currentSplitDest.children = [...splitOutKids, ...currentSplitDest.children] as any;
+
+      if (Utils.doesNodeTypeHaveNodeChildren(currentSplitSource.nodeType)) {
         if (isLastSplit) {
           Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
         } else {
@@ -783,6 +801,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     }
+  }
+
+  public splitNodeAtPath(path: PathString | Path, splitChildIndices: readonly number[]): void {
+    const node = this.getNodeAtPath(path);
+    if (!node) {
+      throw new WorkingDocumentError("Cannot split on a Grapheme");
+    }
+    this.splitNode(node, splitChildIndices);
   }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, parameters: Partial<AnchorParameters>): void {

@@ -220,5 +220,5 @@ function anchorRangeToWorkingAnchors(
 }
 
 export function createWorkingTextStyleStrip(strip: TextStyleStrip): WorkingTextStyleStrip {
-  return new WorkingTextStyleStrip(lodash.clone(strip.entries));
+  return new WorkingTextStyleStrip(strip.entries);
 }

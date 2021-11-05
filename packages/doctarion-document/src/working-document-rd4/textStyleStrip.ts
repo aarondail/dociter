@@ -1,15 +1,15 @@
 import binarySearch from "binary-search";
+import lodash from "lodash";
 
 import { Mutable } from "../miscUtils";
 import { TextStyle, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../text-model-rd4";
 
-// TODO this class is definitely not done AND needs tests
 export class WorkingTextStyleStrip extends TextStyleStrip {
   private mutableEntries: Mutable<TextStyleStripEntry>[];
 
   public constructor(entries: readonly TextStyleStripEntry[]) {
     super(...entries);
-    this.mutableEntries = this.entries as any;
+    this.mutableEntries = lodash.cloneDeep(this.entries) as any;
 
     this.mutableEntries.sort((a, b) => b.graphemeIndex - a.graphemeIndex);
 
@@ -27,10 +27,13 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         prior = current;
       }
     }
+
+    this.entries = this.mutableEntries;
   }
 
   public clear(): void {
     this.mutableEntries.splice(0, this.entries.length);
+    this.entries = this.mutableEntries;
   }
 
   public getModifierAtExactly(graphemeIndex: number): TextStyleModifier | undefined {
@@ -55,22 +58,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
   }
 
   public setModifier(graphemeIndex: number, modifier: TextStyleModifier): void {
-    if (Object.keys(modifier).length === 0) {
-      return;
-    }
-
-    const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
-    if (!r) {
-      this.mutableEntries.unshift({ modifier, graphemeIndex });
-      return;
-    }
-    const { entryIndex: i, exactMatch } = r;
-
-    if (exactMatch) {
-      applyStyleModifiers(modifier, this.mutableEntries[i].modifier);
-    } else {
-      this.mutableEntries.splice(i + 1, 0, { modifier, graphemeIndex });
-    }
+    this.setModifierPrime(graphemeIndex, modifier, true);
   }
 
   public updateAndSplitAt(splitAtGraphemeIndex: number): WorkingTextStyleStrip {
@@ -87,6 +75,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
       splitBoundaryEntryIndex,
       this.mutableEntries.length - splitBoundaryEntryIndex
     );
+    this.entries = this.mutableEntries;
 
     const split = new WorkingTextStyleStrip([]);
     split.mutableEntries = modifierEntriesToMoveRight;
@@ -102,7 +91,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
       }
     }
 
-    split.setModifier(0, styleAtSplitOnRightSide);
+    split.setModifierPrime(0, styleAtSplitOnRightSide, false);
     return split;
   }
 
@@ -154,6 +143,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         applyStyleModifiers(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
         // Then delete
         this.mutableEntries.splice(deletionStartIndex, firstNonDeletionIndex - deletionStartIndex);
+        this.entries = this.mutableEntries;
       } else {
         // In this case we fake keep the first entry (that we would otherwise
         // delete) and just update it
@@ -162,6 +152,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
 
         if (deletionEndIndex && deletionEndIndex > deletionStartIndex) {
           this.mutableEntries.splice(deletionStartIndex + 1, deletionEndIndex - deletionStartIndex);
+          this.entries = this.mutableEntries;
         }
       }
     }
@@ -184,7 +175,8 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
 
     // Append entries (using setModifier since that will keep them sorted)
     for (const entry of strip.entries) {
-      this.setModifier(entry.graphemeIndex + currentGraphemeCount, entry.modifier);
+      // Note this (importantly!) will clone the entries
+      this.setModifierPrime(entry.graphemeIndex + currentGraphemeCount, entry.modifier, true);
     }
 
     const modifierAtBeginningOfAppend = this.getModifierAtExactly(currentGraphemeCount);
@@ -213,7 +205,8 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
 
     // Prepend entries (using setModifier since that will keep them sorted)
     for (const entry of strip.entries) {
-      this.setModifier(entry.graphemeIndex, entry.modifier);
+      // Note this (importantly!) will clone the entries
+      this.setModifierPrime(entry.graphemeIndex, entry.modifier, true);
     }
 
     const modifierAtEndOfPrepend = this.resolveStyleAt(prependedGraphemeCount - 1);
@@ -251,6 +244,29 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     const i2 = i >= 0 ? i : (i + 1) * -1 - 1;
     if (i2 < this.entries.length && i2 >= 0) {
       return { entryIndex: i2, exactMatch: i >= 0 };
+    }
+  }
+
+  private setModifierPrime(graphemeIndex: number, modifier: TextStyleModifier, cloneNeeded: boolean): void {
+    if (Object.keys(modifier).length === 0) {
+      return;
+    }
+
+    const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
+    if (!r) {
+      this.mutableEntries.unshift({ modifier: cloneNeeded ? lodash.clone(modifier) : modifier, graphemeIndex });
+      return;
+    }
+    const { entryIndex: i, exactMatch } = r;
+
+    if (exactMatch) {
+      applyStyleModifiers(modifier, this.mutableEntries[i].modifier);
+    } else {
+      this.mutableEntries.splice(i + 1, 0, {
+        modifier: cloneNeeded ? lodash.clone(modifier) : modifier,
+        graphemeIndex,
+      });
+      this.entries = this.mutableEntries;
     }
   }
 }
