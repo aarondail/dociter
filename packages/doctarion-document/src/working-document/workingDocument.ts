@@ -54,8 +54,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   private readonly anchors: { [id: string /* AnchorId */]: Anchor | undefined };
   private readonly eventEmitters: WorkingDocumentEventEmitter;
   private readonly interactors: { [id: string /* AnchorId */]: Interactor | undefined };
-  // This big long object may be a poor fit for immer... not sure what to do about it though
-  // private objectNodes: { [id: string /* NodeId */]: immer.Draft<ObjectNode> | undefined };
   private readonly nodeParentIdMap: { [id: string /* NodeId */]: NodeId | undefined };
 
   public constructor(

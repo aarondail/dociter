@@ -5,7 +5,7 @@ export function dumpAnchorsFromWorkingDocument(wd: WorkingDocument): string {
   for (const [, anchor] of wd.anchors.entries()) {
     s += `Anchor: ${anchor.name ?? "∅"} ${anchor.orientation} (${anchor.node.nodeType.name})${wd
       .getNodePath(anchor.node)
-      .toString()}${anchor.graphemeIndex !== undefined ? "᠃" + anchor.graphemeIndex + " " : " "}${
+      .toString()}${anchor.graphemeIndex !== undefined ? "⁙" + anchor.graphemeIndex + " " : " "}${
       anchor.relatedInteractor
         ? anchor.relatedInteractor.name
           ? "intr: " + anchor.relatedInteractor.name + " "

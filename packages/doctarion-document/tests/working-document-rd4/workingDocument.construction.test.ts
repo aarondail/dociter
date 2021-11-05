@@ -47,18 +47,34 @@ describe("construction", () => {
     });
     const wd = new WorkingDocument(doc);
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
-      "Anchor: ∅ BEFORE (Span)1/0᠃2 from: (Floater)annotations:0
-      Anchor: ∅ AFTER (Span)1/0᠃4 from: (Floater)annotations:0
+      "Anchor: ∅ BEFORE (Span)1/0⁙2 from: (Floater)annotations:0
+      Anchor: ∅ AFTER (Span)1/0⁙4 from: (Floater)annotations:0
       Anchor: ∅ ON (Span)3/2 from: (Sidebar)laterals:0
       "
     `);
   });
 
-  it("merges spans that can be merged", () => {
-    const docWithSpansToMerge = testDoc`
+  it("merges spans that can be merged (with anchors being respected)", () => {
+    const docWithSpansThatShouldBeMerged = testDoc`
     <h level=ONE> <s>Header1</s> </h>
-    <p> <s>Here is some text</s> <s>MORE</s> <s>last</s> </p>
-    <p> <s>Paragraph 2</s> <hyperlink url=g.com>GOOG</hyperlink> <s>final sentence</s> </p>
+    <p> <s>AA</s> <s id=1>BB</s> <s>CC</s> </p>
+    <floater anchor="AFTER 1/0⁙1" placement=ABOVE><s></s></floater>
+    <floater anchor="AFTER 1/1⁙1" placement=ABOVE><s></s></floater>
+    <floater anchor="BEFORE 1/2⁙0" placement=ABOVE><s></s></floater>
+    <floater anchor="ON 1/2⁙1" placement=ABOVE><s></s></floater>
     `;
+    const wd = new WorkingDocument(docWithSpansThatShouldBeMerged);
+    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Header1</s> </h>
+      <p> <s>AABBCC</s> </p>
+      "
+    `);
+    expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
+      "Anchor: ∅ AFTER (Span)1/0⁙1 from: (Floater)annotations:0
+      Anchor: ∅ AFTER (Span)1/0⁙3 from: (Floater)annotations:1
+      Anchor: ∅ BEFORE (Span)1/0⁙4 from: (Floater)annotations:2
+      Anchor: ∅ ON (Span)1/0⁙5 from: (Floater)annotations:3
+      "
+    `);
   });
 });

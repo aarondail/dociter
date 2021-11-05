@@ -1,5 +1,4 @@
-import { Node, NodeCategory } from "../document-model-rd5";
-import { LiftingPathMap, PseudoNode, Range } from "../traversal-rd4";
+import { LiftingPathMap } from "../traversal-rd4";
 import { JoinDirection, ReadonlyWorkingNode } from "../working-document-rd4";
 
 import { Direction, TargetPayload } from "./payloads";

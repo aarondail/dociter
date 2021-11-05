@@ -5,9 +5,11 @@ import {
   Document,
   DocumentNode,
   FacetDictionary,
+  Floater,
   Header,
   Hyperlink,
   Node,
+  NodeCategory,
   NodeChildrenType,
   NodeType,
   Paragraph,
@@ -39,6 +41,7 @@ const tagToNodeTypes: Record<string, NodeType> = {
   p: Paragraph,
   s: Span,
   hyperlink: Hyperlink,
+  floater: Floater,
 };
 
 const nodeTypesToTag = new Map(Object.entries(tagToNodeTypes).map(([key, value]) => [value, key]));
@@ -50,6 +53,7 @@ function docFromXmlish(xmlish: string): DocumentNode {
     return currentStack.length > 0 ? currentStack[currentStack.length - 1] : undefined;
   };
   let currentNodeText: string | undefined = undefined;
+  const annotations: Node[] = [];
 
   const parser = new htmlparser.Parser(
     {
@@ -89,10 +93,37 @@ function docFromXmlish(xmlish: string): DocumentNode {
           if (n.type === Span && f.styles) {
             f.styles = textStyleStripFromXmlish(f.styles);
           }
+          if (f.anchor) {
+            const [orientation, anchorRest] = f.anchor.split(" ");
+            let path = anchorRest;
+            let graphemeIndex;
+            if (anchorRest.includes("⁙")) {
+              const x = anchorRest.split("⁙");
+              path = x[0];
+              graphemeIndex = parseInt(x[1], 10);
+            }
+            let nodeAtPath: Node | undefined = undefined;
+            for (const p of path.split("/")) {
+              const pIndex = parseInt(p, 10);
+              if (nodeAtPath) {
+                nodeAtPath = nodeAtPath.children[pIndex] as any;
+              } else {
+                nodeAtPath = rootKids[pIndex];
+              }
+            }
+            f.anchor = new Anchor(nodeAtPath!, orientation, graphemeIndex);
+          }
 
-          kidsArray.push(
-            new Node(n.type, currentNodeText !== undefined ? Text.fromString(currentNodeText) : n.kids, f)
+          const newNode = new Node(
+            n.type,
+            currentNodeText !== undefined ? Text.fromString(currentNodeText) : n.kids,
+            f
           );
+          if (type.category === NodeCategory.Annotation) {
+            annotations.push(newNode);
+          } else {
+            kidsArray.push(newNode);
+          }
         }
         currentNodeText = undefined;
       },
@@ -102,7 +133,7 @@ function docFromXmlish(xmlish: string): DocumentNode {
 
   parser.parseComplete(xmlish);
 
-  return new Node(Document, rootKids, { laterals: [], annotations: [] });
+  return new Node(Document, rootKids, { laterals: [], annotations });
 }
 
 export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: boolean } = {}): string {

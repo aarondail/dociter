@@ -180,7 +180,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
   }
 
   public updateForAppend(currentGraphemeCount: number, strip: TextStyleStrip): void {
-    const styleAtFinalCurrentGrapheme = this.resolveStyleAt(currentGraphemeCount);
+    const styleAtFinalCurrentGrapheme = this.resolveStyleAt(currentGraphemeCount - 1);
 
     // Append entries (using setModifier since that will keep them sorted)
     for (const entry of strip.entries) {
@@ -192,10 +192,11 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
       for (const key of Object.keys(modifierAtBeginningOfAppend)) {
         delete (styleAtFinalCurrentGrapheme as any)[key];
       }
-      // Make the style we are going to apply undo the styling from the current (pre-append) strip
-      for (const key of Object.keys(styleAtFinalCurrentGrapheme)) {
-        (styleAtFinalCurrentGrapheme as any)[key] = null;
-      }
+    }
+
+    // Make the style we are going to apply undo the styling from the current (pre-append) strip
+    for (const key of Object.keys(styleAtFinalCurrentGrapheme)) {
+      (styleAtFinalCurrentGrapheme as any)[key] = null;
     }
 
     this.setModifier(currentGraphemeCount, styleAtFinalCurrentGrapheme);

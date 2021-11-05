@@ -119,7 +119,7 @@ export type FacetDictionaryForWorkingNode<T extends FacetTypeConvenienceDictiona
   Required<Pick<FacetDictionaryForWorkingNodePrimeNonOptional<T>, NonMatching<T, { optional: true }>>>
 >;
 
-type WorkingNodeOfType<T extends NodeType> = WorkingNode<T extends NodeType<infer X> ? X : never>;
+export type WorkingNodeOfType<T extends NodeType> = WorkingNode<T extends NodeType<infer X> ? X : never>;
 
 export type WorkingDocumentNode = WorkingNodeOfType<typeof Document>;
 

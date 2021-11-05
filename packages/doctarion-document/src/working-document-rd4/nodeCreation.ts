@@ -1,21 +1,25 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
-import { Anchor, AnchorRange, Node } from "../document-model-rd5";
+import { Anchor, AnchorRange, Node, Span } from "../document-model-rd5";
 import { TextStyleStrip } from "../text-model-rd4";
 import { PathPart } from "../traversal-rd4";
 
 import { AnchorId, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
-import { NodeId, WorkingDocumentNode, WorkingNode } from "./nodes";
+import { NodeId, WorkingDocumentNode, WorkingNode, WorkingNodeOfType } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 
 export function createWorkingNode(
   idGenerator: FriendlyIdGenerator,
   root: Node,
-  existingNodes?: Map<NodeId, WorkingNode>
+  existingNodes?: Map<NodeId, WorkingNode>,
+  options?: { joinAdjacentSpans: boolean }
 ): { root: WorkingNode; newNodes: Map<NodeId, WorkingNode>; newAnchors: Map<AnchorId, WorkingAnchor> } {
-  const nodeToWorkingNodeMap: Map<Node, WorkingNode> = new Map();
+  const nodeToWorkingNodeMap: Map<
+    Node,
+    { workingNode: WorkingNode; mergedIntoPriorSibling?: boolean; mergedGraphemeOffset?: number }
+  > = new Map();
   const newAnchors: Map<AnchorId, WorkingAnchor> = new Map();
   const newNodes: Map<NodeId, WorkingNode> = new Map();
 
@@ -67,20 +71,47 @@ export function createWorkingNode(
     }
   };
 
+  function mergeAdjacentSpan(priorSpan: WorkingNodeOfType<typeof Span>, newSpan: Node<typeof Span>) {
+    const oldLength = priorSpan.children.length;
+    priorSpan.children.push(...(newSpan.children as any[]));
+    // Merge the styles if any
+    if (newSpan.getFacet("styles")) {
+      if (priorSpan.facets.styles === undefined) {
+        priorSpan.facets.styles = new WorkingTextStyleStrip([]);
+      }
+      priorSpan.facets.styles.updateForAppend(oldLength, newSpan.getFacet("styles") as TextStyleStrip);
+    }
+    // Set this so later we can update anchors on the node (we merged from) properly
+    nodeToWorkingNodeMap.set(newSpan, {
+      workingNode: priorSpan,
+      mergedIntoPriorSibling: true,
+      mergedGraphemeOffset: oldLength,
+    });
+  }
+
   const mapNode = (node: Node): WorkingNode => {
     const id = idGenerator.generateId(node.nodeType.name);
     const newNode = new WorkingNode(node.nodeType, id);
     newNodes.set(id, newNode);
-    nodeToWorkingNodeMap.set(node, newNode);
+    nodeToWorkingNodeMap.set(node, { workingNode: newNode });
 
     {
       let idx = 0;
+      let priorSpanChild: WorkingNodeOfType<typeof Span> | undefined = undefined;
       for (const child of node.children) {
         if (child instanceof Node) {
-          (newNode.children as any[]).push(mapPropertyValue(child, newNode, "children", idx));
+          if (options?.joinAdjacentSpans && child.nodeType === Span && priorSpanChild) {
+            // Merge the child into the existing (priorChild)
+            mergeAdjacentSpan(priorSpanChild, child);
+          } else {
+            const newChild = mapPropertyValue(child, newNode, "children", idx);
+            (newNode.children as any[]).push(newChild);
+            priorSpanChild = child.nodeType === Span ? newChild : undefined;
+          }
         } else {
           // It should be a string or an immutable Emoji or Emblem already
           (newNode.children as any[]).push(child);
+          priorSpanChild = undefined;
         }
         idx++;
       }
@@ -108,12 +139,15 @@ export function createWorkingNode(
       }
       anchorOriginalTarget.attachedAnchors.set(workingAnchor.id, workingAnchor);
     } else {
-      const newTarget = nodeToWorkingNodeMap.get(anchorOriginalTarget);
-      if (!newTarget) {
+      const m = nodeToWorkingNodeMap.get(anchorOriginalTarget);
+      if (!m) {
         throw new WorkingDocumentError("Could not find WorkingNode to assign to new WorkingAnchor");
       }
-      workingAnchor.node = newTarget;
-      newTarget.attachedAnchors.set(workingAnchor.id, workingAnchor);
+      workingAnchor.node = m.workingNode;
+      m.workingNode.attachedAnchors.set(workingAnchor.id, workingAnchor);
+      if (m.mergedIntoPriorSibling && workingAnchor.graphemeIndex !== undefined) {
+        workingAnchor.graphemeIndex += m.mergedGraphemeOffset!;
+      }
     }
   }
 

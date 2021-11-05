@@ -26,6 +26,7 @@ import {
   NodeNavigator,
   Path,
   PathPart,
+  PathString,
   PseudoNode,
   Range,
 } from "../traversal-rd4";
@@ -36,7 +37,14 @@ import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
 import { AnchorPullDirection, JoinDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
-import { NodeId, ReadonlyWorkingDocumentNode, ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
+import {
+  NodeId,
+  ReadonlyWorkingDocumentNode,
+  ReadonlyWorkingNode,
+  WorkingDocumentNode,
+  WorkingNode,
+  WorkingNodeOfType,
+} from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
@@ -61,6 +69,7 @@ export interface ReadonlyWorkingDocument {
     anchor: ReadonlyWorkingInteractor | InteractorId
   ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined };
   getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<ReadonlyWorkingNode>;
+  getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode | undefined;
   getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
 }
 
@@ -72,6 +81,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   private readonly interactorLookup: Map<InteractorId, WorkingInteractor>;
   private readonly nodeLookup: Map<NodeId, WorkingNode>;
 
+  /**
+   * @param document  Note that the Document will merge adjacent Spans automatically.
+   * @param idGenerator
+   */
   public constructor(
     document: DocumentNode,
     private readonly idGenerator: FriendlyIdGenerator = new FriendlyIdGenerator()
@@ -80,7 +93,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters = new WorkingDocumentEventEmitter();
     this.interactorLookup = new Map<InteractorId, WorkingInteractor>();
 
-    const { root, newNodes, newAnchors } = createWorkingNode(this.idGenerator, document);
+    const { root, newNodes, newAnchors } = createWorkingNode(this.idGenerator, document, undefined, {
+      joinAdjacentSpans: true,
+    });
     if (!(root instanceof WorkingNode) || root.nodeType !== Document) {
       throw new WorkingDocumentError("Unexpected could not convert a Document node to its WorkingNode equivalent");
     }
@@ -174,18 +189,19 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], pull);
+    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], pull, true);
   }
 
-  public deleteNodeAtPath(path: Path, pull?: AnchorPullDirection): void {
+  public deleteNodeAtPath(path: PathString | Path, pull?: AnchorPullDirection): void {
     const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull);
+        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull, true);
       } else if (nav.parent && PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
         this.deleteNodesAndGraphemesPrime(
           [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
-          pull
+          pull,
+          true
         );
       }
     } else {
@@ -205,7 +221,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }], pull);
+    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }], pull, true);
   }
 
   public deleteNodesInRange(range: Range, pull?: AnchorPullDirection): void {
@@ -223,16 +239,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     chainsToDelete.reverse();
 
     // This is probably a very inefficient way to deal with text.. and everything
-    for (const chain of chainsToDelete) {
-      if (chain.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: chain.tip.node as WorkingNode }], pull);
-      } else if (chain.parent && PseudoNode.isGraphemeOrFancyGrapheme(chain.tip.node)) {
-        this.deleteNodesAndGraphemesPrime(
-          [{ node: chain.parent.node as WorkingNode, graphemeIndex: chain.tip.pathPart!.index }],
-          pull
-        );
-      }
-    }
+    this.deleteNodesAndGraphemesPrime(
+      chainsToDelete.map((chain) =>
+        chain.tip.node instanceof Node
+          ? { node: chain.tip.node as WorkingNode }
+          : { node: chain.parent!.node as WorkingNode, graphemeIndex: chain.tip.pathPart!.index }
+      ),
+      pull,
+      true
+    );
   }
 
   public getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters {
@@ -331,6 +346,18 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     };
   }
 
+  public getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode | undefined {
+    const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
+    if (!nav.navigateTo(path)) {
+      throw new WorkingDocumentError("Invalid node path");
+    }
+    const tip = nav.tip.node;
+    if (PseudoNode.isNode(tip)) {
+      return tip;
+    }
+    return undefined;
+  }
+
   public getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<WorkingNode> {
     const path = this.getNodePath(node);
     const nav = new NodeNavigator<WorkingNode>(this.actualDocument);
@@ -354,55 +381,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return new Path(...parts);
   }
 
-  public insertNode(
-    parent: NodeId | ReadonlyWorkingNode,
-    node: Node,
-    index: number,
-    facet?: string
-  ): ReadonlyWorkingNode {
-    const resolvedParentNode = this.nodeLookup.get(typeof parent === "string" ? parent : parent.id);
-    if (!resolvedParentNode) {
-      throw new WorkingDocumentError("Unknown parent");
-    }
-    const resolvedFacet = facet !== undefined ? resolvedParentNode.nodeType.facets?.[facet] : undefined;
-    if (facet && !resolvedFacet) {
-      throw new WorkingDocumentError("Unknown facet");
-    }
-
-    // Make sure the parent can contains nodes
-    if (
-      resolvedFacet === undefined &&
-      !Utils.canNodeTypeContainChildrenOfType(resolvedParentNode.nodeType, node.nodeType)
-    ) {
-      throw new WorkingDocumentError("Parent cannot have children of the given type");
-    } else if (resolvedFacet && !Utils.canFacetContainNodesOfType(resolvedFacet, node.nodeType)) {
-      throw new WorkingDocumentError("Parent cannot have nodes of the given type in the given facet");
-    }
-
-    const { root: workingNode, newNodes, newAnchors } = createWorkingNode(this.idGenerator, node, this.nodeLookup);
-
-    for (const node of newNodes.values()) {
-      this.nodeLookup.set(node.id, node);
-    }
-    for (const anchor of newAnchors.values()) {
-      this.anchorLookup.set(anchor.id, anchor);
-      this.eventEmitters.anchorAdded.emit(anchor);
-    }
-
-    if (resolvedFacet) {
-      const facetValue = resolvedParentNode.getFacet(facet!);
-      if (!facetValue) {
-        resolvedParentNode.setFacet(facet!, [workingNode]);
-      } else {
-        (facetValue as WorkingNode[]).splice(index, 0, workingNode);
-      }
-    } else {
-      resolvedParentNode.children.splice(index, 0, workingNode);
-    }
-
-    Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(resolvedParentNode, facet, index);
-
-    return workingNode;
+  public insertNode(parent: NodeId | ReadonlyWorkingNode, node: Node, index: number, facet?: string): void {
+    this.insertNodePrime(parent, node, index, facet, true);
   }
 
   public insertNodeGrapheme(
@@ -494,7 +474,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else if (Utils.doesNodeTypeHaveTextOrFancyText(dest.nodeType)) {
-      this.moveAllNodeGraphemes(source, dest, direction === JoinDirection.Forward);
+      this.moveAllNodeGraphemes(source, dest, direction === JoinDirection.Backward);
     }
 
     for (const { name: facetName } of dest.nodeType.getFacetsThatAreNodeArrays()) {
@@ -517,7 +497,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     this.deleteNodesAndGraphemesPrime(
       [{ node: source }],
-      direction === JoinDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
+      direction === JoinDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward,
+      false // I think its logically impossible for us to have to join spans during this delete and the source is empty at this point... I think
     );
 
     for (const node of toJoinFollowUps) {
@@ -661,7 +642,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           currentValue &&
             this.deleteNodesAndGraphemesPrime(
               currentValue.map((node: WorkingNode) => ({ node })),
-              AnchorPullDirection.Backward
+              AnchorPullDirection.Backward,
+              false // There is no need to join Spans here
             );
 
           if (value) {
@@ -733,12 +715,19 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Node cannot be split");
     }
 
+    if (resolvedNode.nodeType === Span) {
+      // Don't split (JUST) a single Span because we'd just auto merge them
+      return;
+    }
+
     const clone: Node = cloneWorkingNodeAsEmptyRegularNode(resolvedNode);
-    const newWorkingRoot = this.insertNode(
+    const newWorkingRoot = this.insertNodePrime(
       resolvedNode.parent,
       clone,
-      resolvedNode.pathPartFromParent.index + 1
-    ) as WorkingNode;
+      resolvedNode.pathPartFromParent.index + 1,
+      undefined,
+      true
+    ).node;
 
     let currentSplitSource: WorkingNode = resolvedNode;
     let currentSplitDest = newWorkingRoot;
@@ -769,7 +758,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
 
           // Finally insert the new boundary node and set it for the next iteration
-          currentSplitDest = this.insertNode(currentSplitDest, boundaryNodeToAddToDest, 0) as WorkingNode;
+          currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true).node;
           currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
         }
       } else {
@@ -928,42 +917,47 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters.anchorDeleted.emit(resolvedAnchor);
   }
 
+  /**
+   * @param adjacentContiguousLocations These have to be adjacent contiguous locations for this logic to work in all cases.
+   */
   private deleteNodesAndGraphemesPrime(
-    locations: readonly {
+    adjacentContiguousLocations: readonly {
       readonly node: WorkingNode;
       readonly graphemeIndex?: number;
     }[],
-    pull?: AnchorPullDirection
+    pull: AnchorPullDirection | undefined,
+    joinAdjacentSpansIfPossible: boolean
   ): void {
-    if (locations.length < 1) {
+    if (adjacentContiguousLocations.length < 1) {
       return;
     }
 
     // This is needed in case we have orphaned anchors
-    const deletionTarget = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(locations[0].node));
-    if (locations[0].graphemeIndex !== undefined) {
-      deletionTarget.navigateToChild(locations[0].graphemeIndex);
+    const deletionTarget = Utils.getNodeNavigator(
+      this.actualDocument,
+      this.getNodePath(adjacentContiguousLocations[0].node)
+    );
+    if (adjacentContiguousLocations[0].graphemeIndex !== undefined) {
+      deletionTarget.navigateToChild(adjacentContiguousLocations[0].graphemeIndex);
     }
+    const joinAdjacentSpansCandidates: {
+      leftNode: WorkingNodeOfType<typeof Span>;
+      rightNode: WorkingNodeOfType<typeof Span>;
+    }[] = [];
 
     const orphanedAnchors = new Set<WorkingAnchor>();
     const removedAnchors = new Set<WorkingAnchor>();
 
-    for (const { node, graphemeIndex } of locations) {
+    for (const { node, graphemeIndex } of adjacentContiguousLocations) {
       if (!this.nodeLookup.has(node.id)) {
         continue;
       }
 
       if (graphemeIndex === undefined) {
+        // Update parent to remove node
         this.removeNodeFromParent(node);
-      } else {
-        if (!Utils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
-          return;
-        }
-        node.children.splice(graphemeIndex, 1);
-      }
-
-      if (graphemeIndex === undefined) {
-        // traverseNodeSubTree also yields the passed in node for convenience
+        // Delete the node and all its descendant nodes...
+        // Note traverseNodeSubTree also yields the passed in node for convenience
         for (const descendantNode of Utils.traverseNodeSubTree(node)) {
           if (!this.nodeLookup.has(descendantNode.id)) {
             continue;
@@ -976,7 +970,30 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             removedAnchors.add(anchor);
           }
         }
+        // Special logic to merge Spans
+        if (
+          joinAdjacentSpansIfPossible &&
+          node.parent &&
+          node.parent.nodeType.childrenType === NodeChildrenType.Inlines &&
+          node.pathPartFromParent &&
+          !node.pathPartFromParent.facet &&
+          node.pathPartFromParent.index !== undefined &&
+          node.pathPartFromParent.index > 0 &&
+          node.pathPartFromParent.index < node.parent.children.length
+        ) {
+          const i = node.pathPartFromParent.index;
+          const leftNode = node.parent.children[i - 1] as WorkingNodeOfType<typeof Span>;
+          const rightNode = node.parent.children[i] as WorkingNodeOfType<typeof Span>;
+          if (leftNode.nodeType === Span && rightNode.nodeType === Span) {
+            joinAdjacentSpansCandidates.push({ leftNode, rightNode });
+          }
+        }
       } else {
+        if (!Utils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
+          throw new WorkingDocumentError("Node unexpectedly does not have grapheme children");
+        }
+        node.children.splice(graphemeIndex, 1);
+
         for (const anchor of node.attachedAnchors.values()) {
           if (anchor.graphemeIndex !== undefined) {
             if (anchor.graphemeIndex === graphemeIndex) {
@@ -1012,6 +1029,97 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       deletionTarget,
       pull ?? AnchorPullDirection.Backward
     );
+
+    // Join any Spans that might be join-able now
+    for (const { leftNode, rightNode } of joinAdjacentSpansCandidates) {
+      // Make sure both nodes still exist...
+      if (this.nodeLookup.has(leftNode.id) && this.nodeLookup.has(rightNode.id)) {
+        // And join
+        this.joinSiblingIntoNode(leftNode, JoinDirection.Forward);
+      }
+    }
+  }
+
+  private insertNodePrime(
+    parent: NodeId | ReadonlyWorkingNode,
+    node: Node,
+    index: number,
+    facet: string | undefined,
+    joinNodeToAdjacentSpansIfPossible: boolean
+  ): { node: WorkingNode; existingNodeUpdatedInsteadOfInserted?: boolean } {
+    const resolvedParentNode = this.nodeLookup.get(typeof parent === "string" ? parent : parent.id);
+    if (!resolvedParentNode) {
+      throw new WorkingDocumentError("Unknown parent");
+    }
+    const resolvedFacet = facet !== undefined ? resolvedParentNode.nodeType.facets?.[facet] : undefined;
+    if (facet && !resolvedFacet) {
+      throw new WorkingDocumentError("Unknown facet");
+    }
+    if (index < 0) {
+      throw new WorkingDocumentError("Insertion index must be non-negative");
+    }
+
+    // Make sure the parent can contains nodes
+    if (
+      resolvedFacet === undefined &&
+      !Utils.canNodeTypeContainChildrenOfType(resolvedParentNode.nodeType, node.nodeType)
+    ) {
+      throw new WorkingDocumentError("Parent cannot have children of the given type");
+    } else if (resolvedFacet && !Utils.canFacetContainNodesOfType(resolvedFacet, node.nodeType)) {
+      throw new WorkingDocumentError("Parent cannot have nodes of the given type in the given facet");
+    }
+
+    const { root: workingNode, newNodes, newAnchors } = createWorkingNode(this.idGenerator, node, this.nodeLookup, {
+      joinAdjacentSpans: true,
+    });
+
+    if (resolvedFacet) {
+      const facetValue = resolvedParentNode.getFacet(facet!);
+      if (!facetValue) {
+        resolvedParentNode.setFacet(facet!, [workingNode]);
+      } else {
+        const facetNodeArray = facetValue as WorkingNode[];
+        if (index > facetNodeArray.length) {
+          throw new WorkingDocumentError(`Insertion index ${index} is larger than the limit ${facetNodeArray.length}`);
+        }
+        facetNodeArray.splice(index, 0, workingNode);
+      }
+    } else {
+      if (index > resolvedParentNode.children.length) {
+        throw new WorkingDocumentError(
+          `Insertion index ${index} is larger than the limit ${resolvedParentNode.children.length}`
+        );
+      }
+      resolvedParentNode.children.splice(index, 0, workingNode);
+    }
+
+    for (const node of newNodes.values()) {
+      this.nodeLookup.set(node.id, node);
+    }
+    for (const anchor of newAnchors.values()) {
+      this.anchorLookup.set(anchor.id, anchor);
+      this.eventEmitters.anchorAdded.emit(anchor);
+    }
+
+    Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(resolvedParentNode, facet, index);
+
+    // Special case handling for Spans that are adjacent to other spans... this
+    // could probably be handled in such a way as to avoid the insertion and
+    // logic above but this is less code.
+    if (joinNodeToAdjacentSpansIfPossible && node.nodeType === Span) {
+      if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
+        const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
+        this.joinSiblingIntoNode(other, JoinDirection.Backward);
+        return { node: other, existingNodeUpdatedInsteadOfInserted: true };
+      }
+      if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
+        const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
+        this.joinSiblingIntoNode(other, JoinDirection.Forward);
+        return { node: other, existingNodeUpdatedInsteadOfInserted: true };
+      }
+    }
+
+    return { node: workingNode };
   }
 
   private moveAllNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
@@ -1043,7 +1151,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // Update text style strips if they exist
     for (const { name: facetName } of destination.nodeType.getFacetsThatAreTextStyleStrips()) {
       let destStrip = destination.getFacet(facetName) as WorkingTextStyleStrip | undefined;
-      const sourceStrip = source.getFacet(facetName);
+      const sourceStrip = source.getFacet(facetName) as WorkingTextStyleStrip | undefined;
 
       if (!destStrip && !sourceStrip) {
         continue;
@@ -1054,13 +1162,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
 
       if (prepend) {
-        destStrip.updateDueToGraphemeInsertion(0, sourceArrayOriginalLength);
-      }
-
-      if (sourceStrip && sourceStrip instanceof WorkingTextStyleStrip) {
-        for (const entry of sourceStrip.entries) {
-          destStrip.setModifier(entry.graphemeIndex + (prepend ? 0 : destArrayOriginalLength), entry.modifier);
-        }
+        destStrip.updateForPrepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+      } else {
+        destStrip.updateForAppend(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
       }
 
       if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
