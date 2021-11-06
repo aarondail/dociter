@@ -136,7 +136,7 @@ function docFromXmlish(xmlish: string): DocumentNode {
   return new Node(Document, rootKids, { laterals: [], annotations });
 }
 
-export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: boolean } = {}): string {
+export function nodeToXmlish(node: Node, { includeIds }: { includeIds?: boolean } = {}): string {
   const padAndAddNewline = (text: string, indentation: number) => {
     let s = "";
     for (let i = 0; i < indentation; i++) {
@@ -146,17 +146,17 @@ export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: bo
     return s;
   };
 
-  const nodeToXmlPrime = (node: Node, indentation: number) => {
+  const nodeToXmlPrime = (n: Node, indentation: number) => {
     let s = "";
-    const tag = nodeTypesToTag.get(node.nodeType);
+    const tag = nodeTypesToTag.get(n.nodeType);
     if (!tag) {
-      throw new Error(`Could not find tag for NodeType ${node.nodeType.name}`);
+      throw new Error(`Could not find tag for NodeType ${n.nodeType.name}`);
     }
 
-    const attributes = node.facets as any;
+    const attributes = n.facets as any;
 
-    if (includeIds && (node as any).id) {
-      attributes.id = (node as any).id;
+    if (includeIds && (n as any).id) {
+      attributes.id = (n as any).id;
     }
 
     let attributesString = "";
@@ -175,21 +175,18 @@ export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: bo
     }
 
     const startTag = `<${tag}${attributesString}>`;
-    if (
-      node.nodeType.childrenType === NodeChildrenType.FancyText ||
-      node.nodeType.childrenType === NodeChildrenType.Text
-    ) {
-      s += padAndAddNewline(`${startTag}${Text.toString(node.children as Text)}</${tag}>`, indentation);
-    } else if (node.nodeType.childrenType === NodeChildrenType.Inlines) {
+    if (n.nodeType.childrenType === NodeChildrenType.FancyText || n.nodeType.childrenType === NodeChildrenType.Text) {
+      s += padAndAddNewline(`${startTag}${Text.toString(n.children as Text)}</${tag}>`, indentation);
+    } else if (n.nodeType.childrenType === NodeChildrenType.Inlines) {
       let kidString = "";
-      for (const k of node.children) {
+      for (const k of n.children) {
         kidString += nodeToXmlPrime(k as any, 0);
       }
       kidString = kidString.split("\n").join(" ");
       s += padAndAddNewline(`${startTag} ${kidString}</${tag}>`, indentation);
     } else {
       s += padAndAddNewline(startTag, indentation);
-      for (const k of node.children) {
+      for (const k of n.children) {
         s += nodeToXmlPrime(k as any, indentation + 2);
       }
       s += padAndAddNewline(`</${tag}>`, indentation);
@@ -197,8 +194,16 @@ export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: bo
     return s;
   };
 
+  const r = nodeToXmlPrime(node, 0);
+  if (r.endsWith("\n")) {
+    return r.slice(0, r.length - 1);
+  }
+  return r;
+}
+
+export function docToXmlish(doc: DocumentNode, { includeIds }: { includeIds?: boolean } = {}): string {
   // Skip document
-  return doc.children.map((x) => nodeToXmlPrime(x, 0)).join("");
+  return doc.children.map((x) => nodeToXmlish(x, { includeIds })).join("\n");
 }
 
 function modifierStringToModifiers(s: string) {

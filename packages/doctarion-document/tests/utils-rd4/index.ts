@@ -1,2 +1,2 @@
 export * from "./dumpAnchorsFromWorkingDocument";
-export { docToXmlish, testDoc } from "./xmlish";
+export { docToXmlish, nodeToXmlish, testDoc } from "./xmlish";

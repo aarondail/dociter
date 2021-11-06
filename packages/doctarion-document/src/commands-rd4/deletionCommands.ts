@@ -1,4 +1,4 @@
-import { Node, Span } from "../document-model-rd5";
+import { Document, Node, Span } from "../document-model-rd5";
 import {
   CursorNavigator,
   CursorOrientation,
@@ -57,6 +57,10 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
 
       const result = findNodeRelativeToCursorForDeletion(mainAnchorNavigator, options);
       if (result?.nodeToDelete) {
+        // Don't try to delete the document node
+        if ((result.nodeToDelete.tip.node as Node)?.nodeType === Document) {
+          continue;
+        }
         // Individual node deletion
         state.deleteAtPath(
           result.nodeToDelete.path,

@@ -50,7 +50,7 @@ import { Utils } from "./utils";
 
 export interface ReadonlyWorkingDocument {
   readonly anchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
-  readonly document: ReadonlyWorkingNode;
+  readonly document: ReadonlyWorkingDocumentNode;
   readonly focusedInteractor: ReadonlyWorkingInteractor | undefined;
   readonly interactors: ReadonlyMap<InteractorId, ReadonlyWorkingInteractor>;
   readonly nodes: ReadonlyMap<NodeId, ReadonlyWorkingNode>;
@@ -881,11 +881,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         if (resolvedInteractor.selectionAnchor) {
           this.updateAnchor(resolvedInteractor.selectionAnchor, parameters.selectionAnchor);
         } else {
-          const selectionAnchor = this.addAnchor(
-            parameters.name
-              ? { ...parameters.selectionAnchor, name: parameters.name + "-SELECTION" }
-              : parameters.selectionAnchor
-          ) as WorkingAnchor;
+          const selectionAnchor = this.addAnchor({
+            ...parameters.selectionAnchor,
+            name: parameters.name
+              ? parameters.name + "-SELECTION"
+              : resolvedInteractor?.name
+              ? resolvedInteractor.name + "-SELECTION"
+              : undefined,
+          }) as WorkingAnchor;
           resolvedInteractor.selectionAnchor = selectionAnchor;
           selectionAnchor.relatedInteractor = resolvedInteractor;
         }
