@@ -49,8 +49,7 @@ describe("construction", () => {
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
       "Anchor: ∅ BEFORE (Span:N)1/0⁙2 from: (Floater)annotations:0
       Anchor: ∅ AFTER (Span:A)1/0⁙4 from: (Floater)annotations:0
-      Anchor: ∅ ON (Span)3/2 from: (Sidebar)laterals:0
-      "
+      Anchor: ∅ ON (Span)3/2 from: (Sidebar)laterals:0"
     `);
   });
 
@@ -73,8 +72,7 @@ describe("construction", () => {
       "Anchor: ∅ AFTER (Span:A)1/0⁙1 from: (Floater)annotations:0
       Anchor: ∅ AFTER (Span:B)1/0⁙3 from: (Floater)annotations:1
       Anchor: ∅ BEFORE (Span:C)1/0⁙4 from: (Floater)annotations:2
-      Anchor: ∅ ON (Span:C)1/0⁙5 from: (Floater)annotations:3
-      "
+      Anchor: ∅ ON (Span:C)1/0⁙5 from: (Floater)annotations:3"
     `);
   });
 });

@@ -176,8 +176,7 @@ describe("splitNodeAtPath", () => {
       Anchor: 5 AFTER (Span:A)0/0⁙0 
       Anchor: 6 AFTER (Span:C)0/0⁙2 
       Anchor: 7 AFTER (Span:D)1/0⁙0 
-      Anchor: 8 AFTER (Span:F)1/0⁙2 
-      "
+      Anchor: 8 AFTER (Span:F)1/0⁙2 "
     `);
   });
 });

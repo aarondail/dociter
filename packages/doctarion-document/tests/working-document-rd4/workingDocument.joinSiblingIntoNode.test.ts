@@ -60,8 +60,7 @@ describe("joinSiblingIntoNode", () => {
       "Anchor: H BEFORE (Span:e)0/0⁙1 
       Anchor: A BEFORE (Span:A)1/0⁙4 
       Anchor: C BEFORE (Span:C)1/0⁙9 
-      Anchor: D BEFORE (Span:D)1/2⁙0 
-      "
+      Anchor: D BEFORE (Span:D)1/2⁙0 "
     `);
   });
 

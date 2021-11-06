@@ -1,8 +1,11 @@
-import { WorkingDocument } from "../../src/working-document-rd4";
+import { ReadonlyWorkingDocument } from "../../src/working-document-rd4";
 
-export function dumpAnchorsFromWorkingDocument(wd: WorkingDocument): string {
+export function dumpAnchorsFromWorkingDocument(wd: ReadonlyWorkingDocument): string {
   let s = "";
   for (const [, anchor] of wd.anchors.entries()) {
+    if (s) {
+      s += "\n";
+    }
     s += `Anchor: ${anchor.name ?? "∅"} ${anchor.orientation} (${anchor.node.nodeType.name}${
       anchor.graphemeIndex !== undefined ? ":" + anchor.node.children[anchor.graphemeIndex] : ""
     })${wd.getNodePath(anchor.node).toString()}${
@@ -17,7 +20,7 @@ export function dumpAnchorsFromWorkingDocument(wd: WorkingDocument): string {
       anchor.relatedOriginatingNode
         ? "from: (" + anchor.relatedOriginatingNode.nodeType.name + ")" + wd.getNodePath(anchor.relatedOriginatingNode)
         : ""
-    }\n`;
+    }`;
   }
   return s;
 }
