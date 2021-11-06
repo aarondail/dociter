@@ -389,8 +389,17 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return new Path(...parts);
   }
 
-  public insertNode(parent: NodeId | ReadonlyWorkingNode, node: Node, index: number, facet?: string): void {
-    this.insertNodePrime(parent, node, index, facet, true);
+  /**
+   * Note in the case of Spans, this may result in an existing Span being
+   * updated (and returned) rather than a new Span actually being created.
+   */
+  public insertNode(
+    parent: NodeId | ReadonlyWorkingNode,
+    node: Node,
+    index: number,
+    facet?: string
+  ): ReadonlyWorkingNode {
+    return this.insertNodePrime(parent, node, index, facet, true).workingNode;
   }
 
   public insertNodeGrapheme(
@@ -760,7 +769,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedNode.pathPartFromParent.index + 1,
       undefined,
       true
-    ).node;
+    ).workingNode;
 
     let currentSplitSource: WorkingNode = resolvedNode;
     let currentSplitDest = newWorkingRoot;
@@ -792,7 +801,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
 
           // Finally insert the new boundary node and set it for the next iteration
-          currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true).node;
+          currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true)
+            .workingNode;
           currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
         }
       } else {
@@ -1080,7 +1090,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     index: number,
     facet: string | undefined,
     joinNodeToAdjacentSpansIfPossible: boolean
-  ): { node: WorkingNode; existingNodeUpdatedInsteadOfInserted?: boolean } {
+  ): { workingNode: WorkingNode; existingNodeUpdatedInsteadOfInserted?: boolean } {
     const resolvedParentNode = this.nodeLookup.get(typeof parent === "string" ? parent : parent.id);
     if (!resolvedParentNode) {
       throw new WorkingDocumentError("Unknown parent");
@@ -1144,16 +1154,16 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
         this.joinSiblingIntoNode(other, JoinDirection.Backward);
-        return { node: other, existingNodeUpdatedInsteadOfInserted: true };
+        return { workingNode: other, existingNodeUpdatedInsteadOfInserted: true };
       }
       if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
         this.joinSiblingIntoNode(other, JoinDirection.Forward);
-        return { node: other, existingNodeUpdatedInsteadOfInserted: true };
+        return { workingNode: other, existingNodeUpdatedInsteadOfInserted: true };
       }
     }
 
-    return { node: workingNode };
+    return { workingNode: workingNode };
   }
 
   private moveAllGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
