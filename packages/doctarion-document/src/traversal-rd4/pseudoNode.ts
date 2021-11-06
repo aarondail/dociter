@@ -11,7 +11,7 @@ export const PseudoNode = {
     return undefined;
   },
 
-  isGraphemeOrFancyGrapheme(node: PseudoNode<any>): node is Grapheme {
+  isGrapheme(node: PseudoNode<any>): node is Grapheme {
     return !(node instanceof Node);
   },
 

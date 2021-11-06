@@ -288,7 +288,7 @@ export const CommandUtils = {
     const context = { start: start.node, end: end.node };
 
     const ignoreThese = (x: PseudoNode) =>
-      PseudoNode.isGraphemeOrFancyGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
+      PseudoNode.isGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
 
     new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
       state.document,
@@ -327,8 +327,8 @@ export const CommandUtils = {
     new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
       state.document,
       (n) => callback(n, context),
-      PseudoNode.isGraphemeOrFancyGrapheme,
-      PseudoNode.isGraphemeOrFancyGrapheme
+      PseudoNode.isGrapheme,
+      PseudoNode.isGrapheme
     );
   },
 };

@@ -68,9 +68,10 @@ export interface ReadonlyWorkingDocument {
   getCursorPathsForInteractor(
     anchor: ReadonlyWorkingInteractor | InteractorId
   ): { readonly mainAnchor: CursorPath; readonly selectionAnchor: CursorPath | undefined };
+  getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode;
   getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<ReadonlyWorkingNode>;
-  getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode | undefined;
   getNodePath(node: NodeId | ReadonlyWorkingNode): Path;
+  getNodeOrGraphemeAtPath(path: Path | PathString): PseudoNode<ReadonlyWorkingNode>;
 }
 
 export class WorkingDocument implements ReadonlyWorkingDocument {
@@ -168,6 +169,23 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.deleteAnchorPrime(anchor);
   }
 
+  public deleteAtPath(path: PathString | Path, pull?: AnchorPullDirection): void {
+    const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
+    if (nav.navigateTo(path)) {
+      if (nav.tip.node instanceof Node) {
+        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull, true);
+      } else if (nav.parent && PseudoNode.isGrapheme(nav.tip.node)) {
+        this.deleteNodesAndGraphemesPrime(
+          [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
+          pull,
+          true
+        );
+      }
+    } else {
+      throw new WorkingDocumentError("Invalid path");
+    }
+  }
+
   public deleteInteractor(interactor: InteractorId | ReadonlyWorkingInteractor): void {
     const resolvedInteractor = this.interactorLookup.get(typeof interactor === "string" ? interactor : interactor.id);
     if (!resolvedInteractor) {
@@ -192,23 +210,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], pull, true);
   }
 
-  public deleteNodeAtPath(path: PathString | Path, pull?: AnchorPullDirection): void {
-    const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
-    if (nav.navigateTo(path)) {
-      if (nav.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull, true);
-      } else if (nav.parent && PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
-        this.deleteNodesAndGraphemesPrime(
-          [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
-          pull,
-          true
-        );
-      }
-    } else {
-      throw new WorkingDocumentError("Invalid node path");
-    }
-  }
-
   /**
    * This deletes a Grapheme (or FancyGrapheme) from a node.
    */
@@ -224,7 +225,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }], pull, true);
   }
 
-  public deleteNodesInRange(range: Range, pull?: AnchorPullDirection): void {
+  public deleteRange(range: Range, pull?: AnchorPullDirection): void {
     const chainsToDelete = range.getChainsCoveringRange(this.actualDocument);
     if (chainsToDelete.length === 0) {
       return;
@@ -252,7 +253,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public getAnchorParametersFromCursorNavigator(cursorNavigator: CursorNavigator): AnchorParameters {
     const node = cursorNavigator.tip.node;
-    if (PseudoNode.isGraphemeOrFancyGrapheme(node)) {
+    if (PseudoNode.isGrapheme(node)) {
       const parent = cursorNavigator.parent?.node;
       if (!parent) {
         throw new WorkingDocumentError("Grapheme lacks parent");
@@ -346,16 +347,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     };
   }
 
-  public getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode | undefined {
+  public getNodeAtPath(path: Path | PathString): ReadonlyWorkingNode {
     const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (!nav.navigateTo(path)) {
-      throw new WorkingDocumentError("Invalid node path");
+      throw new WorkingDocumentError("Invalid path");
     }
-    const tip = nav.tip.node;
-    if (PseudoNode.isNode(tip)) {
-      return tip;
+    if (!PseudoNode.isNode(nav.tip.node)) {
+      throw new WorkingDocumentError("Path points to a Grapheme");
     }
-    return undefined;
+    return nav.tip.node;
   }
 
   public getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<WorkingNode> {
@@ -365,6 +365,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Invalid node path");
     }
     return nav;
+  }
+
+  public getNodeOrGraphemeAtPath(path: Path | PathString): PseudoNode<ReadonlyWorkingNode> {
+    const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
+    if (!nav.navigateTo(path)) {
+      throw new WorkingDocumentError("Invalid path");
+    }
+    return nav.tip.node;
   }
 
   public getNodePath(node: NodeId | ReadonlyWorkingNode): Path {
@@ -474,7 +482,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else if (Utils.doesNodeTypeHaveTextOrFancyText(dest.nodeType)) {
-      this.moveAllNodeGraphemes(source, dest, direction === JoinDirection.Backward);
+      this.moveAllGraphemes(source, dest, direction === JoinDirection.Backward);
     }
 
     for (const { name: facetName } of dest.nodeType.getFacetsThatAreNodeArrays()) {
@@ -681,6 +689,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
+  public splitAtPath(path: PathString | Path, splitChildIndices: readonly number[]): void {
+    const node = this.getNodeOrGraphemeAtPath(path);
+    if (!PseudoNode.isNode(node)) {
+      throw new WorkingDocumentError("Cannot split on a Grapheme");
+    }
+    this.splitNode(node, splitChildIndices);
+  }
+
   public splitNode(node: NodeId | ReadonlyWorkingNode, splitChildIndices: readonly number[]): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
@@ -712,7 +728,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           throw new WorkingDocumentError("Node cannot be split");
         }
       } else {
-        if (PseudoNode.isGraphemeOrFancyGrapheme(nav.tip.node)) {
+        if (PseudoNode.isGrapheme(nav.tip.node)) {
           if (childIndex === 0 && splitChildIndices.length === 1) {
             // This is a no-op (no point in splitting something with text as
             // children at the first character). There is no content on one
@@ -801,14 +817,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     }
-  }
-
-  public splitNodeAtPath(path: PathString | Path, splitChildIndices: readonly number[]): void {
-    const node = this.getNodeAtPath(path);
-    if (!node) {
-      throw new WorkingDocumentError("Cannot split on a Grapheme");
-    }
-    this.splitNode(node, splitChildIndices);
   }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, parameters: Partial<AnchorParameters>): void {
@@ -1148,7 +1156,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return { node: workingNode };
   }
 
-  private moveAllNodeGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
+  private moveAllGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
     const destArray = destination.children as Grapheme[];
     const sourceArray = source.children as Grapheme[];
     const destArrayOriginalLength = destArray.length;

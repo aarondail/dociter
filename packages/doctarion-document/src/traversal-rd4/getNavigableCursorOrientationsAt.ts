@@ -48,7 +48,7 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
   const precedingSibling = navigator.precedingSiblingNode;
   const nextSibling = navigator.nextSiblingNode;
 
-  if (PseudoNode.isGraphemeOrFancyGrapheme(el)) {
+  if (PseudoNode.isGrapheme(el)) {
     // For text, we generally prefer after orientations. For Spans only suggest
     // before orientation if the grapheme is the first in the Span and the
     // preceding parent node (e.g. some other inline node) is NOT a Span OR

@@ -46,7 +46,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
 
   for (const target of targets) {
     if (target.selectionRange) {
-      state.deleteNodesInRange(
+      state.deleteRange(
         target.selectionRange,
         target.isMainCursorFirst ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
       );
@@ -58,7 +58,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
       const result = findNodeRelativeToCursorForDeletion(mainAnchorNavigator, options);
       if (result?.nodeToDelete) {
         // Individual node deletion
-        state.deleteNodeAtPath(
+        state.deleteAtPath(
           result.nodeToDelete.path,
           options.direction === Direction.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
         );
@@ -99,7 +99,7 @@ function findNodeRelativeToCursorForDeletion(
   const orientation = navigator.cursor.orientation;
 
   const currentNode = navigator.tip.node;
-  if (PseudoNode.isGraphemeOrFancyGrapheme(currentNode)) {
+  if (PseudoNode.isGrapheme(currentNode)) {
     const parentAndTip = navigator.chain.getParentAndTipIfPossible();
     if (!parentAndTip) {
       return undefined;

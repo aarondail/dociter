@@ -6,11 +6,11 @@ import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 describe("deleteNodeAtPath", () => {
   it("basically works", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.deleteNodeAtPath("0/0/1");
-    wd.deleteNodeAtPath("1/0/0");
-    wd.deleteNodeAtPath("1/0/3");
-    wd.deleteNodeAtPath("1/0/5");
-    wd.deleteNodeAtPath("2");
+    wd.deleteAtPath("0/0/1");
+    wd.deleteAtPath("1/0/0");
+    wd.deleteAtPath("1/0/3");
+    wd.deleteAtPath("1/0/5");
+    wd.deleteAtPath("2");
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
       <p> <s styles=6:+B>MNNAB</s> </p>
@@ -21,16 +21,16 @@ describe("deleteNodeAtPath", () => {
 
   it("deleting document works correctly", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    expect(() => wd.deleteNodeAtPath("")).toThrow();
+    expect(() => wd.deleteAtPath("")).toThrow();
   });
 
   it("merge spans that can be merged", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.deleteNodeAtPath("0");
-    wd.deleteNodeAtPath("0");
-    wd.deleteNodeAtPath("0");
+    wd.deleteAtPath("0");
+    wd.deleteAtPath("0");
+    wd.deleteAtPath("0");
     // This is the important
-    wd.deleteNodeAtPath("0/1");
+    wd.deleteAtPath("0/1");
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>CCDD</s> </p>
       "

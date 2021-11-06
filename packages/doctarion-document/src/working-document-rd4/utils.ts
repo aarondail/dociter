@@ -79,7 +79,7 @@ export const Utils = {
 
     const n = new CursorNavigator<ReadonlyWorkingNode>(document);
     if (n.navigateFreelyTo(deletionTarget.path, CursorOrientation.On)) {
-      if (PseudoNode.isGraphemeOrFancyGrapheme(originalNode)) {
+      if (PseudoNode.isGrapheme(originalNode)) {
         if (n.parent?.node === originalParent) {
           const currentIndex = n.tip.pathPart?.index;
           isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();

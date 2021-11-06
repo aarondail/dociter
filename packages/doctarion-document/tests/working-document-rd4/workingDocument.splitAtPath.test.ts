@@ -7,7 +7,7 @@ import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 describe("splitNodeAtPath", () => {
   it("is a no-op on a Span", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("1/0", [2]);
+    wd.splitAtPath("1/0", [2]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -19,7 +19,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on an Hyperlink (middle)", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("3/1", [3]);
+    wd.splitAtPath("3/1", [3]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -31,7 +31,7 @@ describe("splitNodeAtPath", () => {
 
   it("no-op on Hyperlink first character", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("3/1", [0]);
+    wd.splitAtPath("3/1", [0]);
     // wd.splitNodeAtPath("3/1", [5]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
@@ -44,7 +44,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on Hyperlink last character", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("3/1", [5]);
+    wd.splitAtPath("3/1", [5]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -56,7 +56,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on an Paragraph, targeting an empty Hyperlink", () => {
     const wd = new WorkingDocument(testDoc`<p> <s>A</s> <hyperlink url=test.com /> <s>B</s> </p>`);
-    wd.splitNodeAtPath("0", [1]);
+    wd.splitAtPath("0", [1]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>A</s> </p>
       <p> <hyperlink url=test.com></hyperlink> <s>B</s> </p>
@@ -66,7 +66,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on an Paragraph, targeting inside a Span", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("1", [0, 3]);
+    wd.splitAtPath("1", [0, 3]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s>MMN</s> </p>
@@ -79,7 +79,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on an Paragraph, targeting the edge of a Span", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("3", [2, 0]);
+    wd.splitAtPath("3", [2, 0]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -92,7 +92,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on an Paragraph, targeting a Span directly", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("3", [2]);
+    wd.splitAtPath("3", [2]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -105,14 +105,14 @@ describe("splitNodeAtPath", () => {
 
   it("works on an empty Paragraph", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    expect(() => wd.splitNodeAtPath("2", [])).toThrowErrorMatchingInlineSnapshot(
+    expect(() => wd.splitAtPath("2", [])).toThrowErrorMatchingInlineSnapshot(
       `"Cannot split a node without specifying which child to split at"`
     );
   });
 
   it("works on the edge of a Paragraph", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("1", [0, 0]);
+    wd.splitAtPath("1", [0, 0]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> </p>
@@ -127,7 +127,7 @@ describe("splitNodeAtPath", () => {
 
   it("works on a Header", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.splitNodeAtPath("0", [0, 1]);
+    wd.splitAtPath("0", [0, 1]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>H</s> </h>
       <h level=ONE> <s styles=undefined>eader1</s> </h>
@@ -140,12 +140,12 @@ describe("splitNodeAtPath", () => {
 
   it("fails on an Grapheme", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    expect(() => wd.splitNodeAtPath("0/0/1", [])).toThrowErrorMatchingInlineSnapshot(`"Cannot split on a Grapheme"`);
+    expect(() => wd.splitAtPath("0/0/1", [])).toThrowErrorMatchingInlineSnapshot(`"Cannot split on a Grapheme"`);
   });
 
   it("fails on the Document", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    expect(() => wd.splitNodeAtPath("", [0, 0, 1])).toThrowErrorMatchingInlineSnapshot(`"Cannot split the Document"`);
+    expect(() => wd.splitAtPath("", [0, 0, 1])).toThrowErrorMatchingInlineSnapshot(`"Cannot split the Document"`);
   });
 
   it("anchors are updated when splitting a Paragraph", () => {
@@ -161,7 +161,7 @@ describe("splitNodeAtPath", () => {
     wd.addAnchor({ name: "7", node: spanNode, orientation: AnchorOrientation.After, graphemeIndex: 3 });
     wd.addAnchor({ name: "8", node: spanNode, orientation: AnchorOrientation.After, graphemeIndex: 5 });
 
-    wd.splitNodeAtPath("0", [0, 3]);
+    wd.splitAtPath("0", [0, 3]);
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>ABC</s> </p>

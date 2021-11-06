@@ -53,7 +53,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     const direction = Direction.Forward; // payload.direction || FlowDirection.Backward;
     const isForward = direction === Direction.Forward;
 
-    const currentPositionIsOnGrapheme = PseudoNode.isGraphemeOrFancyGrapheme(node);
+    const currentPositionIsOnGrapheme = PseudoNode.isGrapheme(node);
 
     if (currentPositionIsOnGrapheme) {
       if (

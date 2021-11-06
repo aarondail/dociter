@@ -43,13 +43,13 @@ describe("joinSiblingIntoNode", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
     const o = { orientation: AnchorOrientation.Before };
 
-    wd.addAnchor({ ...o, name: "H", node: wd.getNodeAtPath("0/0")!, graphemeIndex: 1 });
-    wd.addAnchor({ ...o, name: "A", node: wd.getNodeAtPath("1/0")!, graphemeIndex: 4 });
-    wd.addAnchor({ ...o, name: "C", node: wd.getNodeAtPath("3/0")!, graphemeIndex: 1 });
-    wd.addAnchor({ ...o, name: "D", node: wd.getNodeAtPath("3/2")!, graphemeIndex: 0 });
+    wd.addAnchor({ ...o, name: "H", node: wd.getNodeAtPath("0/0"), graphemeIndex: 1 });
+    wd.addAnchor({ ...o, name: "A", node: wd.getNodeAtPath("1/0"), graphemeIndex: 4 });
+    wd.addAnchor({ ...o, name: "C", node: wd.getNodeAtPath("3/0"), graphemeIndex: 1 });
+    wd.addAnchor({ ...o, name: "D", node: wd.getNodeAtPath("3/2"), graphemeIndex: 0 });
 
-    wd.joinSiblingIntoNode(wd.getNodeAtPath("1")!, JoinDirection.Forward);
-    wd.joinSiblingIntoNode(wd.getNodeAtPath("1")!, JoinDirection.Forward);
+    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), JoinDirection.Forward);
+    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), JoinDirection.Forward);
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
