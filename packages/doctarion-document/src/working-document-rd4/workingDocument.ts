@@ -46,7 +46,7 @@ import {
   WorkingNodeOfType,
 } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
-import { Utils } from "./utils";
+import { ContiguousOrderedInternalDocumentLocationArray, Utils } from "./utils";
 
 export interface ReadonlyWorkingDocument {
   readonly anchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
@@ -173,9 +173,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
-        this.deleteNodesAndGraphemesPrime([{ node: nav.tip.node as WorkingNode }], pull, true);
+        this.deletePrime([{ node: nav.tip.node as WorkingNode }], pull, true);
       } else if (nav.parent && PseudoNode.isGrapheme(nav.tip.node)) {
-        this.deleteNodesAndGraphemesPrime(
+        this.deletePrime(
           [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
           pull,
           true
@@ -207,7 +207,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode }], pull, true);
+    this.deletePrime([{ node: resolvedNode }], pull, true);
   }
 
   /**
@@ -222,7 +222,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deleteNodesAndGraphemesPrime([{ node: resolvedNode, graphemeIndex }], pull, true);
+    this.deletePrime([{ node: resolvedNode, graphemeIndex }], pull, true);
   }
 
   public deleteRange(range: Range, pull?: AnchorPullDirection): void {
@@ -237,10 +237,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Range seems invalid");
     }
 
-    chainsToDelete.reverse();
-
     // This is probably a very inefficient way to deal with text.. and everything
-    this.deleteNodesAndGraphemesPrime(
+    this.deletePrime(
       chainsToDelete.map((chain) =>
         chain.tip.node instanceof Node
           ? { node: chain.tip.node as WorkingNode }
@@ -361,7 +359,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public getNodeNavigator(node: NodeId | ReadonlyWorkingNode): NodeNavigator<WorkingNode> {
     const path = this.getNodePath(node);
     const nav = new NodeNavigator<WorkingNode>(this.actualDocument);
-    if (nav.navigateTo(path)) {
+    if (!nav.navigateTo(path)) {
       throw new WorkingDocumentError("Invalid node path");
     }
     return nav;
@@ -380,13 +378,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    let tip: WorkingNode | undefined = resolvedNode;
-    const parts = [];
-    while (tip && tip.pathPartFromParent) {
-      parts.unshift(tip.pathPartFromParent);
-      tip = tip.parent;
-    }
-    return new Path(...parts);
+    return Utils.getNodePath(resolvedNode);
   }
 
   /**
@@ -512,7 +504,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
 
-    this.deleteNodesAndGraphemesPrime(
+    this.deletePrime(
       [{ node: source }],
       direction === JoinDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward,
       false // I think its logically impossible for us to have to join spans during this delete and the source is empty at this point... I think
@@ -656,12 +648,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             }
           }
 
-          currentValue &&
-            this.deleteNodesAndGraphemesPrime(
-              currentValue.map((node: WorkingNode) => ({ node })),
+          currentValue?.map((node: WorkingNode) =>
+            this.deletePrime(
+              [{ node }],
               AnchorPullDirection.Backward,
               false // There is no need to join Spans here
-            );
+            )
+          );
 
           if (value) {
             resolvedNode.setFacet(facet, []);
@@ -858,9 +851,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedAnchor.name = parameters.name;
     }
 
-    this.eventEmitters.anchorUpdated.emit(resolvedAnchor);
-    if (resolvedAnchor.relatedInteractor) {
-      this.eventEmitters.interactorUpdated.emit(resolvedAnchor.relatedInteractor);
+    if (!resolvedAnchor.transient) {
+      this.eventEmitters.anchorUpdated.emit(resolvedAnchor);
+      if (resolvedAnchor.relatedInteractor) {
+        this.eventEmitters.interactorUpdated.emit(resolvedAnchor.relatedInteractor);
+      }
     }
   }
 
@@ -924,19 +919,31 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.eventEmitters.interactorUpdated.emit(resolvedInteractor);
   }
 
-  private addAnchorPrime(parameters: AnchorParameters, option?: "dont-emit-event"): WorkingAnchor {
-    const { node, orientation, graphemeIndex, name } = parameters;
+  private addAnchorPrime(
+    parameters: AnchorParameters & { transient?: boolean },
+    option?: "dont-emit-event"
+  ): WorkingAnchor {
+    const { node, orientation, graphemeIndex, name, transient } = parameters;
     const nodeId = typeof node === "string" ? node : node.id;
     const resolvedNode = this.nodeLookup.get(nodeId);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Node could not be found in document");
     }
     const anchorId = this.idGenerator.generateId("ANCHOR");
-    const anchor = new WorkingAnchor(anchorId, resolvedNode, orientation, graphemeIndex, name);
+    const anchor = new WorkingAnchor(
+      anchorId,
+      resolvedNode,
+      orientation,
+      graphemeIndex,
+      name,
+      undefined,
+      undefined,
+      transient
+    );
     this.anchorLookup.set(anchorId, anchor);
     resolvedNode.attachedAnchors.set(anchorId, anchor);
 
-    if (option !== "dont-emit-event") {
+    if (option !== "dont-emit-event" && !anchor.transient) {
       this.eventEmitters.anchorAdded.emit(anchor);
     }
 
@@ -961,121 +968,180 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.anchorLookup.delete(id);
     resolvedAnchor.node.attachedAnchors.delete(id);
 
-    this.eventEmitters.anchorDeleted.emit(resolvedAnchor);
+    if (!resolvedAnchor.transient) {
+      this.eventEmitters.anchorDeleted.emit(resolvedAnchor);
+    }
   }
 
   /**
-   * @param adjacentContiguousLocations These have to be adjacent contiguous locations for this logic to work in all cases.
+   * @param contiguousOrderedLocationArray These have to be adjacent contiguous
+   * locations for this logic to work in all cases. These probably should be in
+   * reverse order too.
    */
-  private deleteNodesAndGraphemesPrime(
-    adjacentContiguousLocations: readonly {
-      readonly node: WorkingNode;
-      readonly graphemeIndex?: number;
-    }[],
+  private deletePrime(
+    contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
     pull: AnchorPullDirection | undefined,
     joinAdjacentSpansIfPossible: boolean
   ): void {
-    if (adjacentContiguousLocations.length < 1) {
+    if (contiguousOrderedLocationArray.length < 1) {
       return;
     }
 
-    // This is needed in case we have orphaned anchors
-    const deletionTarget = Utils.getNodeNavigator(
-      this.actualDocument,
-      this.getNodePath(adjacentContiguousLocations[0].node)
-    );
-    if (adjacentContiguousLocations[0].graphemeIndex !== undefined) {
-      deletionTarget.navigateToChild(adjacentContiguousLocations[0].graphemeIndex);
-    }
     const joinAdjacentSpansCandidates: {
       leftNode: WorkingNodeOfType<typeof Span>;
       rightNode: WorkingNodeOfType<typeof Span>;
     }[] = [];
 
-    const orphanedAnchors = new Set<WorkingAnchor>();
-    const removedAnchors = new Set<WorkingAnchor>();
+    const anchorsPointingToDeletedNodes = new Set<WorkingAnchor>();
+    const anchorsOriginatingFromDeletedNodes = new Set<WorkingAnchor>();
 
-    for (const { node, graphemeIndex } of adjacentContiguousLocations) {
-      if (!this.nodeLookup.has(node.id)) {
-        continue;
-      }
-
-      if (graphemeIndex === undefined) {
-        // Update parent to remove node
-        this.removeNodeFromParent(node);
-        // Delete the node and all its descendant nodes...
-        // Note traverseNodeSubTree also yields the passed in node for convenience
-        for (const descendantNode of Utils.traverseNodeSubTree(node)) {
-          if (!this.nodeLookup.has(descendantNode.id)) {
-            continue;
-          }
-          this.nodeLookup.delete(descendantNode.id);
-          for (const [, anchor] of node.attachedAnchors) {
-            orphanedAnchors.add(anchor);
-          }
-          for (const anchor of Utils.traverseAllAnchorsOriginatingFrom(node)) {
-            removedAnchors.add(anchor);
-          }
-        }
-        // Special logic to merge Spans
-        if (
-          joinAdjacentSpansIfPossible &&
-          node.parent &&
-          node.parent.nodeType.childrenType === NodeChildrenType.Inlines &&
-          node.pathPartFromParent &&
-          !node.pathPartFromParent.facet &&
-          node.pathPartFromParent.index !== undefined &&
-          node.pathPartFromParent.index > 0 &&
-          node.pathPartFromParent.index < node.parent.children.length
-        ) {
-          const i = node.pathPartFromParent.index;
-          const leftNode = node.parent.children[i - 1] as WorkingNodeOfType<typeof Span>;
-          const rightNode = node.parent.children[i] as WorkingNodeOfType<typeof Span>;
-          if (leftNode.nodeType === Span && rightNode.nodeType === Span) {
-            joinAdjacentSpansCandidates.push({ leftNode, rightNode });
-          }
-        }
-      } else {
-        if (!Utils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
-          throw new WorkingDocumentError("Node unexpectedly does not have grapheme children");
-        }
-        node.children.splice(graphemeIndex, 1);
-
-        for (const anchor of node.attachedAnchors.values()) {
-          if (anchor.graphemeIndex !== undefined) {
-            if (anchor.graphemeIndex === graphemeIndex) {
-              orphanedAnchors.add(anchor);
-            } else if (anchor.graphemeIndex > graphemeIndex) {
-              anchor.graphemeIndex--;
-            }
-          }
-        }
-
-        for (const [, strip] of node.getAllFacetTextStyleStrips()) {
-          (strip as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
-        }
-      }
-    }
-
-    // Note these are all node-to-node anchors
-    for (const anchor of removedAnchors) {
-      this.deleteAnchorPrime(anchor, "bypass-originating-node-check");
-    }
-
-    // These may be node-to-node and interactor anchors
-    const orphanedAnchorsNeedingRepositioning = [];
-    for (const anchor of orphanedAnchors) {
-      if (removedAnchors.has(anchor)) {
-        continue;
-      }
-      orphanedAnchorsNeedingRepositioning.push(anchor);
-      this.eventEmitters.anchorOrphaned.emit({ anchor, deletionTarget });
-    }
-    this.repositionOrphanedAnchors(
-      orphanedAnchorsNeedingRepositioning,
-      deletionTarget,
+    // This is info related to where we will reposition anchors that are within
+    // the delete location array... it isn't the final location per se. Because
+    // we have to do some adjustment after the deletions to get the best final
+    // location.
+    const anchorRelocationInfo = Utils.getClosestAdjacentOrParentLocationOutsideOfLocationArray(
+      contiguousOrderedLocationArray,
+      this.actualDocument,
       pull ?? AnchorPullDirection.Backward
     );
+    // This has to be deleted before we are done
+    const anchorRelocationAnchor = this.addAnchorPrime({
+      ...anchorRelocationInfo.location,
+      orientation: AnchorOrientation.On,
+      transient: true,
+    });
+
+    try {
+      for (const { node, graphemeIndex } of lodash.reverse(contiguousOrderedLocationArray)) {
+        if (!this.nodeLookup.has(node.id)) {
+          continue;
+        }
+
+        if (graphemeIndex === undefined) {
+          const isDocument = this.actualDocument === node;
+          // Update parent to remove node
+          !isDocument && this.removeNodeFromParent(node);
+          // Delete the node and all its descendant nodes...
+          // Note traverseNodeSubTree also yields the passed in node for convenience
+          for (const descendantNode of Utils.traverseNodeSubTree(node)) {
+            if (!this.nodeLookup.has(descendantNode.id) || descendantNode === this.actualDocument) {
+              continue;
+            }
+            this.nodeLookup.delete(descendantNode.id);
+            for (const [, anchor] of descendantNode.attachedAnchors) {
+              anchorsPointingToDeletedNodes.add(anchor);
+            }
+            for (const anchor of Utils.traverseAllAnchorsOriginatingFrom(descendantNode)) {
+              anchorsOriginatingFromDeletedNodes.add(anchor);
+            }
+          }
+          if (isDocument) {
+            node.children = [];
+          }
+
+          // Special logic to merge Spans
+          if (
+            joinAdjacentSpansIfPossible &&
+            node.parent &&
+            node.parent.nodeType.childrenType === NodeChildrenType.Inlines &&
+            node.pathPartFromParent &&
+            !node.pathPartFromParent.facet &&
+            node.pathPartFromParent.index !== undefined &&
+            node.pathPartFromParent.index > 0 &&
+            node.pathPartFromParent.index < node.parent.children.length
+          ) {
+            const i = node.pathPartFromParent.index;
+            const leftNode = node.parent.children[i - 1] as WorkingNodeOfType<typeof Span>;
+            const rightNode = node.parent.children[i] as WorkingNodeOfType<typeof Span>;
+            if (leftNode.nodeType === Span && rightNode.nodeType === Span) {
+              joinAdjacentSpansCandidates.push({ leftNode, rightNode });
+            }
+          }
+        } else {
+          if (!Utils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
+            throw new WorkingDocumentError("Node unexpectedly does not have grapheme children");
+          }
+          node.children.splice(graphemeIndex, 1);
+
+          for (const anchor of node.attachedAnchors.values()) {
+            if (anchor.graphemeIndex !== undefined) {
+              if (anchor.graphemeIndex === graphemeIndex) {
+                anchorsPointingToDeletedNodes.add(anchor);
+              } else if (anchor.graphemeIndex > graphemeIndex) {
+                anchor.graphemeIndex--;
+              }
+            }
+          }
+
+          for (const [, strip] of node.getAllFacetTextStyleStrips()) {
+            (strip as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
+          }
+        }
+      }
+
+      // Note these are all node-to-node anchors
+      for (const anchor of anchorsOriginatingFromDeletedNodes) {
+        this.deleteAnchorPrime(anchor, "bypass-originating-node-check");
+      }
+
+      // These may be node-to-node and interactor anchors
+      const orphanedAnchorsNeedingRepositioning = [];
+      for (const anchor of anchorsPointingToDeletedNodes) {
+        if (anchorsOriginatingFromDeletedNodes.has(anchor)) {
+          continue;
+        }
+        orphanedAnchorsNeedingRepositioning.push(anchor);
+        // this.eventEmitters.anchorOrphaned.emit({ anchor });
+        if (anchorRelocationAnchor === anchor) {
+          throw new Error("Unexpectedly found the orphan relocation anchor");
+        }
+      }
+
+      // Decide on the orphaned anchor's new position
+      let orphanedAnchorRelocationNavUpdatedPosition: AnchorParameters;
+      {
+        const c = this.getCursorNavigatorForAnchor(anchorRelocationAnchor);
+        if ((c.tip.node as Node)?.children && anchorRelocationInfo.type === "parent") {
+          pull === AnchorPullDirection.Backward
+            ? c.navigateToFirstDescendantCursorPosition()
+            : c.navigateToLastDescendantCursorPosition();
+        } else if ((c.tip.node as Node)?.children) {
+          pull === AnchorPullDirection.Backward
+            ? c.navigateToLastDescendantCursorPosition()
+            : c.navigateToFirstDescendantCursorPosition();
+
+          // Special edge case that we wanna handle in the case where there are
+          // spans to be joined and instead of landing BEFORE the first grapheme
+          // in the span we landed after it (because there is a Span preceding
+          // it which will be joined below).
+          if (
+            joinAdjacentSpansIfPossible &&
+            pull === AnchorPullDirection.Forward &&
+            PseudoNode.isGrapheme(c.tip.node) &&
+            c.cursor.orientation === AnchorOrientation.After &&
+            c.tip.pathPart?.index === 0 &&
+            // Not sure this is necessary... though we could check joinAdjacentSpansCandidates here too...
+            (c.parent?.node as Node).nodeType === Span &&
+            (c.toNodeNavigator().precedingParentSiblingNode as Node).nodeType === Span
+          ) {
+            c.navigateToPrecedingCursorPosition();
+          }
+        } else {
+          pull === AnchorPullDirection.Backward
+            ? Utils.navigateCursorNavigatorToLastCursorPositionOnTheSameNode(c)
+            : Utils.navigateCursorNavigatorToFirstCursorPositionOnTheSameNode(c);
+        }
+        orphanedAnchorRelocationNavUpdatedPosition = this.getAnchorParametersFromCursorNavigator(c);
+      }
+
+      for (const anchor of orphanedAnchorsNeedingRepositioning) {
+        this.updateAnchor(anchor.id, orphanedAnchorRelocationNavUpdatedPosition);
+      }
+    } finally {
+      if (anchorRelocationAnchor) {
+        this.deleteAnchorPrime(anchorRelocationAnchor);
+      }
+    }
 
     // Join any Spans that might be join-able now
     for (const { leftNode, rightNode } of joinAdjacentSpansCandidates) {
@@ -1318,29 +1384,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else {
-      // This must be the document, so don't really delete it
-      throw new WorkingDocumentError("Cannot delete document root node");
-    }
-  }
-
-  private repositionOrphanedAnchors(
-    anchors: WorkingAnchor[],
-    deletionTarget: NodeNavigator,
-    direction: AnchorPullDirection
-  ): void {
-    if (anchors.length === 0) {
-      return;
-    }
-
-    const postDeleteCursor = Utils.determineCursorPositionAfterDeletion(this.actualDocument, deletionTarget, direction);
-    // Minor fixup for selections... ideally wouldn't have to do this
-    // if (Array.isArray(deletionTarget)) {
-    //   postDeleteCursor.navigateToNextCursorPosition();
-    // }
-
-    const postDeleteAnchor = this.getAnchorParametersFromCursorNavigator(postDeleteCursor);
-    for (const anchor of anchors) {
-      this.updateAnchor(anchor.id, postDeleteAnchor);
+      // This must be the document, so don't really do anything
+      throw new WorkingDocumentError("Cannot remove document from parent, as there is no parent");
     }
   }
 }

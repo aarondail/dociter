@@ -75,14 +75,13 @@ describe("forwards", () => {
     `);
     editor.execute(Commands.delete({ direction: Direction.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:E)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:E)3/1⁙0 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
       `"<p> <s>CC</s> <hyperlink url=g.com>E</hyperlink> <s>DD</s> </p>"`
     );
 
     // Now delete the last character, should leave cursor ON the Hyperlink
-    editor.execute(Commands.moveBack({}));
     editor.execute(Commands.delete({ direction: Direction.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN ON (Hyperlink)3/1 intr: ᯼ "`

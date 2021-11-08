@@ -21,7 +21,8 @@ export class WorkingAnchor extends Anchor {
     public graphemeIndex?: number,
     public name?: string,
     public relatedInteractor?: WorkingInteractor,
-    public relatedOriginatingNode?: WorkingNode
+    public relatedOriginatingNode?: WorkingNode,
+    public transient?: boolean
   ) {
     super(node, orientation, graphemeIndex);
   }

@@ -1,28 +1,31 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import {
-  Document,
-  FacetType,
-  FacetValueType,
-  Node,
-  NodeCategory,
-  NodeChildrenType,
-  NodeType,
-} from "../document-model-rd5";
+import { Document, FacetType, FacetValueType, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
+import { SimpleComparison } from "../miscUtils";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
-import {
-  CursorNavigator,
-  CursorOrientation,
-  CursorPath,
-  NodeNavigator,
-  Path,
-  PathPart,
-  PseudoNode,
-} from "../traversal-rd4";
+import { Chain, CursorNavigator, CursorOrientation, NodeNavigator, Path, PathPart, PseudoNode } from "../traversal-rd4";
 
 import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { AnchorPullDirection } from "./misc";
-import { ReadonlyWorkingNode, WorkingDocumentNode, WorkingNode } from "./nodes";
+import { WorkingDocumentNode, WorkingNode } from "./nodes";
+
+// ----------------------------------------------------------------------------
+// These are helper types and functions that are not meant to be exposed to
+// other code
+// ----------------------------------------------------------------------------
+
+/**
+ * Internal meaning not to be exposed outside this folder.
+ */
+export interface InternalDocumentLocation {
+  readonly node: WorkingNode;
+  readonly graphemeIndex?: number;
+}
+
+/**
+ * Internal meaning not to be exposed outside this folder.
+ */
+export type ContiguousOrderedInternalDocumentLocationArray = readonly InternalDocumentLocation[];
 
 export const Utils = {
   canFacetContainNodesOfType(facet: FacetType, nodeType: NodeType): boolean {
@@ -66,76 +69,6 @@ export const Utils = {
     }
     return false;
   },
-  determineCursorPositionAfterDeletion(
-    document: WorkingDocumentNode,
-    deletionTarget: NodeNavigator,
-    direction: AnchorPullDirection
-  ): CursorNavigator {
-    // The node that the `originalPosition` navigator is pointed to is now
-    // deleted, along with (possibly) its parent and grandparent.
-    const originalNode = deletionTarget.tip.node;
-    const originalParent = deletionTarget.parent?.node;
-    const isBack = direction === AnchorPullDirection.Backward;
-
-    const n = new CursorNavigator<ReadonlyWorkingNode>(document);
-    if (n.navigateFreelyTo(deletionTarget.path, CursorOrientation.On)) {
-      if (PseudoNode.isGrapheme(originalNode)) {
-        if (n.parent?.node === originalParent) {
-          const currentIndex = n.tip.pathPart?.index;
-          isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-
-          // This fixes a bug where we navigate but the only thing that changed is
-          // the CursorOrientation
-          if (
-            n.tip.pathPart &&
-            n.tip.pathPart.index === currentIndex &&
-            n.cursor.orientation === (isBack ? CursorOrientation.Before : CursorOrientation.After) &&
-            (isBack ? n.toNodeNavigator().navigateToPrecedingSibling() : n.toNodeNavigator().navigateToNextSibling())
-          ) {
-            isBack ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-          }
-          return n;
-        }
-        // OK we were able to navigate to the same cursor location but a different
-        // node or parent node
-        n.navigateFreelyToParent();
-      }
-
-      if (n.navigateFreelyToPrecedingSibling()) {
-        if (
-          direction === AnchorPullDirection.Forward &&
-          n.tip.node instanceof Node &&
-          n.tip.node.nodeType.category !== NodeCategory.Inline &&
-          n.navigateFreelyToNextSibling()
-        ) {
-          n.navigateToFirstDescendantCursorPosition();
-        } else {
-          n.navigateToLastDescendantCursorPosition();
-        }
-      } else {
-        n.navigateToFirstDescendantCursorPosition();
-      }
-    } else {
-      // Try one level higher as a fallback
-      const p = deletionTarget.path.withoutTip();
-      if (n.navigateFreelyTo(new CursorPath(p, CursorOrientation.On))) {
-        n.navigateToLastDescendantCursorPosition();
-      } else {
-        // OK try one more level higher again
-        const p2 = deletionTarget.path.withoutTip().withoutTip();
-        if (n.navigateFreelyTo(new CursorPath(p2, CursorOrientation.On))) {
-          // Not sure this is really right...
-          n.navigateToLastDescendantCursorPosition();
-        } else {
-          // Not sure this is really right...
-          if (!n.navigateFreelyToDocumentNode() || !n.navigateToFirstDescendantCursorPosition()) {
-            throw new WorkingDocumentError("Could not refresh navigator is not a valid cursor");
-          }
-        }
-      }
-    }
-    return n;
-  },
   doesNodeTypeHaveNodeChildren(type: NodeType): boolean {
     switch (type.childrenType) {
       case NodeChildrenType.FancyText:
@@ -155,12 +88,53 @@ export const Utils = {
         return false;
     }
   },
+  getClosestAdjacentOrParentLocationOutsideOfLocationArray(
+    contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
+    document: WorkingDocumentNode,
+    direction: AnchorPullDirection
+  ): { location: InternalDocumentLocation; type: "sibling" | "parent" } {
+    if (contiguousOrderedLocationArray.length === 0) {
+      throw new WorkingDocumentError("Did not expect the location array to be empty");
+    }
+    const isBack = direction === AnchorPullDirection.Backward;
+    const location = contiguousOrderedLocationArray[isBack ? 0 : contiguousOrderedLocationArray.length - 1];
+
+    const nav = Utils.getNodeNavigator(document, Utils.getNodePath(location.node));
+    if (location.graphemeIndex !== undefined) {
+      nav.navigateToChild(location.graphemeIndex);
+    }
+
+    // This will not jump to a cursor position in another node
+    if (isBack ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling()) {
+      if (location.graphemeIndex !== undefined) {
+        const node = nav.parent?.node as WorkingNode;
+        return { location: { node, graphemeIndex: nav.tip.pathPart!.index }, type: "sibling" };
+      } else {
+        const node = nav.tip.node as WorkingNode;
+        return { location: { node }, type: "sibling" };
+      }
+    } else {
+      // Note this can be the document
+      nav.navigateToParent();
+      const node = nav.tip.node as WorkingNode;
+      return { location: { node }, type: "parent" };
+    }
+  },
   getNodeNavigator(document: WorkingDocumentNode, path: Path): NodeNavigator<WorkingNode> {
     const n = new NodeNavigator(document);
     if (!n.navigateTo(path)) {
       throw new WorkingDocumentError("Could not navigate to node.");
     }
     return n;
+  },
+  getNodePath(node: WorkingNode): Path {
+    let tip: WorkingNode | undefined = node;
+    const parts = [];
+    while (tip && tip.pathPartFromParent) {
+      parts.unshift(tip.pathPartFromParent);
+      tip = tip.parent;
+    }
+    return new Path(...parts);
   },
   isAnchorParameters(value: any): value is AnchorParameters {
     return value.node !== undefined && value.orientation !== undefined;
@@ -171,6 +145,23 @@ export const Utils = {
     }
     return false;
   },
+  isChainPointingToTheSameNode(left: Chain, right: Chain): boolean {
+    if (PseudoNode.isNode(left.tip.node)) {
+      return left.tip.node === right.tip.node;
+    } else {
+      const p = left.parent?.node;
+      if (
+        p &&
+        p === right.parent?.node &&
+        left.tip.pathPart &&
+        right.tip.pathPart &&
+        left.tip.pathPart.compareTo(right.tip.pathPart) === SimpleComparison.Equal
+      ) {
+        return true;
+      }
+      return false;
+    }
+  },
   isFancyGrapheme(value: any): value is FancyGrapheme {
     return typeof value === "string" || value instanceof Emoji || value instanceof Emblem;
   },
@@ -179,6 +170,72 @@ export const Utils = {
   },
   isText(value: any): value is Text {
     return Array.isArray(value) && !value.find((x) => typeof x !== "string");
+  },
+  navigateCursorNavigatorToFirstCursorPositionOnTheSameNode(nav: CursorNavigator): void {
+    const clone = nav.clone();
+    const reference = nav.chain;
+    if (!nav.navigateToPrecedingCursorPosition()) {
+      return;
+    }
+    if (Utils.isChainPointingToTheSameNode(reference, nav.chain)) {
+      if (nav.cursor.orientation === CursorOrientation.On) {
+        throw new WorkingDocumentError("We maybe should handle this but we dont right now");
+      }
+      return;
+    }
+    if (!nav.navigateToNextCursorPosition() || !Utils.isChainPointingToTheSameNode(reference, nav.chain)) {
+      nav.navigateFreelyTo(clone.cursor);
+      return;
+    }
+    return;
+  },
+  navigateCursorNavigatorToLastCursorPositionOnTheSameNode(nav: CursorNavigator): void {
+    const clone = nav.clone();
+    const reference = nav.chain;
+    if (!nav.navigateToNextCursorPosition()) {
+      return;
+    }
+    if (Utils.isChainPointingToTheSameNode(reference, nav.chain)) {
+      if (nav.cursor.orientation === CursorOrientation.On) {
+        throw new WorkingDocumentError("We maybe should handle this but we dont right now");
+      }
+      return;
+    }
+    if (!nav.navigateToPrecedingCursorPosition() || !Utils.isChainPointingToTheSameNode(reference, nav.chain)) {
+      nav.navigateFreelyTo(clone.cursor);
+      return;
+    }
+    return;
+  },
+  navigateCursorNavigatorToNextCursorPositionOnADifferentNode(nav: CursorNavigator): boolean {
+    const chain = nav.chain;
+    if (!nav.navigateToNextCursorPosition()) {
+      return false;
+    }
+    if (Utils.isChainPointingToTheSameNode(chain, nav.chain)) {
+      if (!nav.navigateToNextCursorPosition()) {
+        return false;
+      }
+      if (Utils.isChainPointingToTheSameNode(chain, nav.chain)) {
+        throw new WorkingDocumentError("Navigating twice still didn't result in a new node or the end of the document");
+      }
+    }
+    return true;
+  },
+  navigateCursorNavigatorToPrecedingCursorPositionOnADifferentNode(nav: CursorNavigator): boolean {
+    const chain = nav.chain;
+    if (!nav.navigateToPrecedingCursorPosition()) {
+      return false;
+    }
+    if (Utils.isChainPointingToTheSameNode(chain, nav.chain)) {
+      if (!nav.navigateToPrecedingCursorPosition()) {
+        return false;
+      }
+      if (Utils.isChainPointingToTheSameNode(chain, nav.chain)) {
+        throw new WorkingDocumentError("Navigating twice still didn't result in a new node or the end of the document");
+      }
+    }
+    return true;
   },
   *traverseAllAnchorsOriginatingFrom(node: WorkingNode): Iterable<WorkingAnchor> {
     for (const [, anchorOrRange] of node.getAllFacetAnchors()) {

@@ -8,8 +8,6 @@ import { ReadonlyWorkingInteractor } from "./interactor";
 
 export interface AnchorOrphanedEventPayload {
   readonly anchor: ReadonlyWorkingAnchor;
-  readonly deletionTarget: ReadonlyNodeNavigator | [ReadonlyNodeNavigator, ReadonlyNodeNavigator];
-  // readonly deletionAdditionalContext?: NodeEditAdditionalContext;
 }
 
 export interface NodesJoinedEventPayload {
@@ -21,13 +19,6 @@ export interface WorkingDocumentEvents {
   anchorAdded: EventEmitter<ReadonlyWorkingAnchor>;
   anchorDeleted: EventEmitter<ReadonlyWorkingAnchor>;
   anchorUpdated: EventEmitter<ReadonlyWorkingAnchor>;
-  /**
-   * This event is fired when an anchor is orphaned due to a node deletion.
-   * Orphaned, meaning the node the anchor is on, or one of its parent nodes was
-   * deleted. Note this does not mean the anchor is automatically deleted,
-   * because it is not!
-   */
-  anchorOrphaned: EventChannel<AnchorOrphanedEventPayload>;
   interactorAdded: EventChannel<ReadonlyWorkingInteractor>;
   interactorDeleted: EventChannel<ReadonlyWorkingInteractor>;
   /**
@@ -41,7 +32,6 @@ export interface WorkingDocumentEvents {
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
   public readonly anchorAdded = new EventEmitter<ReadonlyWorkingAnchor>();
   public readonly anchorDeleted = new EventEmitter<ReadonlyWorkingAnchor>();
-  public readonly anchorOrphaned = new EventEmitter<AnchorOrphanedEventPayload>();
   public readonly anchorUpdated = new EventEmitter<ReadonlyWorkingAnchor>();
 
   public readonly interactorAdded = new EventEmitter<ReadonlyWorkingInteractor>();
