@@ -11,14 +11,12 @@ describe("joinSiblingIntoNode", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
     wd.joinSiblingIntoNode(wd.document.children[2], JoinDirection.Backward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -28,14 +26,12 @@ describe("joinSiblingIntoNode", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
     wd.joinSiblingIntoNode(wd.document.children[1], JoinDirection.Forward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -53,8 +49,7 @@ describe("joinSiblingIntoNode", () => {
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
       "Anchor: H BEFORE (Span:e)0/0⁙1 

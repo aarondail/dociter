@@ -22,8 +22,7 @@ describe("construction", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -65,8 +64,7 @@ describe("construction", () => {
     const wd = new WorkingDocument(docWithSpansThatShouldBeMerged);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s>AABBCC</s> </p>
-      "
+      <p> <s>AABBCC</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
       "Anchor: ∅ AFTER (Span:A)1/0⁙1 from: (Floater)annotations:0

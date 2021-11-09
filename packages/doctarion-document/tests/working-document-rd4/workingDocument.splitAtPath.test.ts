@@ -12,8 +12,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -24,8 +23,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOO</hyperlink> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOO</hyperlink> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -37,8 +35,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -49,8 +46,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGL</hyperlink> <hyperlink url=g.com>E</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGL</hyperlink> <hyperlink url=g.com>E</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -59,8 +55,7 @@ describe("splitNodeAtPath", () => {
     wd.splitAtPath("0", [1]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>A</s> </p>
-      <p> <hyperlink url=test.com></hyperlink> <s>B</s> </p>
-      "
+      <p> <hyperlink url=test.com></hyperlink> <s>B</s> </p>"
     `);
   });
 
@@ -72,8 +67,7 @@ describe("splitNodeAtPath", () => {
       <p> <s>MMN</s> </p>
       <p> <s styles=3:+B>NAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -85,8 +79,7 @@ describe("splitNodeAtPath", () => {
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> </p>
-      <p> <s>DD</s> </p>
-      "
+      <p> <s>DD</s> </p>"
     `);
   });
 
@@ -98,8 +91,7 @@ describe("splitNodeAtPath", () => {
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> </p>
-      <p> <s>DD</s> </p>
-      "
+      <p> <s>DD</s> </p>"
     `);
   });
 
@@ -118,8 +110,7 @@ describe("splitNodeAtPath", () => {
       <p> </p>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
     // Note to future self, we should also be able to do this from the
     // later/right side of the paragraph...
@@ -133,8 +124,7 @@ describe("splitNodeAtPath", () => {
       <h level=ONE> <s styles=undefined>eader1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
@@ -165,8 +155,7 @@ describe("splitNodeAtPath", () => {
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>ABC</s> </p>
-      <p> <s styles=0:+B>DEFG</s> </p>
-      "
+      <p> <s styles=0:+B>DEFG</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
       "Anchor: 1 BEFORE (Span:A)0/0⁙0 

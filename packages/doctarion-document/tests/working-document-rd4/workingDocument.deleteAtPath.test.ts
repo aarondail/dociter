@@ -14,14 +14,14 @@ describe("deleteNodeAtPath", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
       <p> <s styles=6:+B>MNNAB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      "
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
   });
 
   it("deleting document works correctly", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    expect(() => wd.deleteAtPath("")).toThrow();
+    wd.deleteAtPath("");
+    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`""`);
   });
 
   it("merge spans that can be merged", () => {
@@ -31,9 +31,6 @@ describe("deleteNodeAtPath", () => {
     wd.deleteAtPath("0");
     // This is the important
     wd.deleteAtPath("0/1");
-    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
-      "<p> <s>CCDD</s> </p>
-      "
-    `);
+    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`"<p> <s>CCDD</s> </p>"`);
   });
 });
