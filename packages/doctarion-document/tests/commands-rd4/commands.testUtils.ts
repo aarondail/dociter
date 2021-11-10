@@ -1,6 +1,6 @@
 /* eslint-disable jest/no-export */
 import { Commands } from "../../src/commands-rd4";
-import { Editor } from "../../src/editor-rd4";
+import { Editor, EditorConfig } from "../../src/editor-rd4";
 import { testDoc } from "../utils-rd4";
 
 export const CommandsTestUtils = {
@@ -13,9 +13,11 @@ export const CommandsTestUtils = {
 `,
   },
 
-  getEditorForBasicDoc(): Editor {
-    const editor = new Editor({ document: CommandsTestUtils.testDocs.basicDoc });
-    editor.execute(Commands.updateInteractor({ id: editor.state.focusedInteractor!.id, name: "᯼" }));
+  getEditorForBasicDoc(options?: Omit<EditorConfig, "document">): Editor {
+    const editor = new Editor({ document: CommandsTestUtils.testDocs.basicDoc, ...options });
+    if (editor.state.focusedInteractor) {
+      editor.execute(Commands.updateInteractor({ id: editor.state.focusedInteractor.id, name: "᯼" }));
+    }
     return editor;
   },
 };
