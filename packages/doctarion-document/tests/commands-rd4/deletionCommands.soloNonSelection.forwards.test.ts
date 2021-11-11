@@ -1,4 +1,5 @@
-import { Commands, Direction } from "../../src/commands-rd4";
+import { Commands } from "../../src/commands-rd4";
+import { FlowDirection } from "../../src/miscUtils";
 import { CursorOrientation } from "../../src/traversal-rd4";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../utils-rd4";
 
@@ -13,7 +14,7 @@ describe("forwards", () => {
     // Jump to the first O in the "GOOGLE" text of the url link
     // Note the cursor would be at: GO|OGLE
     editor.execute(Commands.jump({ to: { path: "3/1/1", orientation: After } }));
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: ᯼ "`
     );
@@ -21,9 +22,9 @@ describe("forwards", () => {
       `"<p> <s>CC</s> <hyperlink url=g.com>GOGLE</hyperlink> <s>DD</s> </p>"`
     );
 
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: ᯼ "`
@@ -33,7 +34,7 @@ describe("forwards", () => {
     );
 
     // Note this is a no-op (because movement is disallowed by default)
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: ᯼ "`
@@ -43,7 +44,7 @@ describe("forwards", () => {
     );
 
     // This will move teh cursor but not change the doc
-    editor.execute(Commands.delete({ direction: Direction.Forward, allowMovementInBoundaryCases: true }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward, allowMovementInBoundaryCases: true }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:D)3/2⁙0 intr: ᯼ "`
@@ -56,7 +57,7 @@ describe("forwards", () => {
   it("stops at the beginning of the doc", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/2/1", orientation: After } }));
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:D)3/2⁙1 intr: ᯼ "`
     );
@@ -73,7 +74,7 @@ describe("forwards", () => {
       "Anchor: ᯼-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: ᯼ 
       Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "
     `);
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Hyperlink:E)3/1⁙0 intr: ᯼ "`
     );
@@ -82,7 +83,7 @@ describe("forwards", () => {
     );
 
     // Now delete the last character, should leave cursor ON the Hyperlink
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN ON (Hyperlink)3/1 intr: ᯼ "`
     );
@@ -91,7 +92,7 @@ describe("forwards", () => {
     );
 
     // And this should delete the Hyperlink (and join the Spans)
-    editor.execute(Commands.delete({ direction: Direction.Forward }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:C)3/0⁙1 intr: ᯼ "`
     );
@@ -101,7 +102,7 @@ describe("forwards", () => {
   it("joins blocks when on edge, with appropriate options", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "1/0/7", orientation: After } }));
-    editor.execute(Commands.delete({ direction: Direction.Forward, allowJoiningBlocksInBoundaryCases: true }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:B)1/0⁙7 intr: ᯼ "`
     );
@@ -111,7 +112,7 @@ describe("forwards", () => {
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
 
-    editor.execute(Commands.delete({ direction: Direction.Forward, allowJoiningBlocksInBoundaryCases: true }));
+    editor.execute(Commands.delete({ direction: FlowDirection.Forward, allowJoiningBlocksInBoundaryCases: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:B)1/0⁙7 intr: ᯼ "`
     );

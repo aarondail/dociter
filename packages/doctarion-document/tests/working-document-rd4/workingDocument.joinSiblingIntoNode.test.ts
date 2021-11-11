@@ -1,5 +1,6 @@
 import { AnchorOrientation } from "../../src/document-model-rd5";
-import { JoinDirection, WorkingDocument } from "../../src/working-document-rd4";
+import { FlowDirection } from "../../src/miscUtils";
+import { WorkingDocument } from "../../src/working-document-rd4";
 import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils-rd4";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
@@ -7,13 +8,13 @@ import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 describe("joinSiblingIntoNode", () => {
   it("works on Paragraphs backwards and merges Spans", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.joinSiblingIntoNode(wd.document.children[3], JoinDirection.Backward);
+    wd.joinSiblingIntoNode(wd.document.children[3], FlowDirection.Backward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
-    wd.joinSiblingIntoNode(wd.document.children[2], JoinDirection.Backward);
+    wd.joinSiblingIntoNode(wd.document.children[2], FlowDirection.Backward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
@@ -22,13 +23,13 @@ describe("joinSiblingIntoNode", () => {
 
   it("works on Paragraphs forwards and merges Spans", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
-    wd.joinSiblingIntoNode(wd.document.children[1], JoinDirection.Forward);
+    wd.joinSiblingIntoNode(wd.document.children[1], FlowDirection.Forward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);
-    wd.joinSiblingIntoNode(wd.document.children[1], JoinDirection.Forward);
+    wd.joinSiblingIntoNode(wd.document.children[1], FlowDirection.Forward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
@@ -44,8 +45,8 @@ describe("joinSiblingIntoNode", () => {
     wd.addAnchor({ ...o, name: "C", node: wd.getNodeAtPath("3/0"), graphemeIndex: 1 });
     wd.addAnchor({ ...o, name: "D", node: wd.getNodeAtPath("3/2"), graphemeIndex: 0 });
 
-    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), JoinDirection.Forward);
-    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), JoinDirection.Forward);
+    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), FlowDirection.Forward);
+    wd.joinSiblingIntoNode(wd.getNodeAtPath("1"), FlowDirection.Forward);
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>

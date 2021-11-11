@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Document, FacetType, FacetValueType, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
-import { SimpleComparison } from "../miscUtils";
+import { FlowDirection, SimpleComparison } from "../miscUtils";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 import { Chain, CursorNavigator, CursorOrientation, NodeNavigator, Path, PathPart, PseudoNode } from "../traversal-rd4";
 
 import { AnchorParameters, WorkingAnchor, WorkingAnchorRange } from "./anchor";
 import { WorkingDocumentError } from "./error";
-import { AnchorPullDirection } from "./misc";
 import { WorkingDocumentNode, WorkingNode } from "./nodes";
 
 // ----------------------------------------------------------------------------
@@ -96,12 +95,12 @@ export const Utils = {
   getClosestAdjacentOrParentLocationOutsideOfLocationArray(
     contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
     document: WorkingDocumentNode,
-    direction: AnchorPullDirection
+    direction: FlowDirection
   ): { location: InternalDocumentLocation; type: ParentOrSibling } {
     if (contiguousOrderedLocationArray.length === 0) {
       throw new WorkingDocumentError("Did not expect the location array to be empty");
     }
-    const isBack = direction === AnchorPullDirection.Backward;
+    const isBack = direction === FlowDirection.Backward;
     const location = contiguousOrderedLocationArray[isBack ? 0 : contiguousOrderedLocationArray.length - 1];
 
     const nav = Utils.getNodeNavigator(document, Utils.getNodePath(location.node));

@@ -1,11 +1,12 @@
 import { Node, NodeChildrenType, Paragraph, Span } from "../document-model-rd5";
+import { FlowDirection } from "../miscUtils";
 import { Text, TextStyleStrip } from "../text-model-rd4";
 import { CursorOrientation, PseudoNode } from "../traversal-rd4";
 import { ReadonlyWorkingNode } from "../working-document-rd4";
 
 import { deleteImplementation } from "./deletionCommands";
 import { CommandError } from "./error";
-import { Direction, TargetPayload } from "./payloads";
+import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils, SelectTargetsSort } from "./utils";
 
@@ -50,8 +51,8 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     }
     const node = target.mainAnchorNavigator.tip.node;
 
-    const direction = Direction.Forward; // payload.direction || FlowDirection.Backward;
-    const isForward = direction === Direction.Forward;
+    const direction = FlowDirection.Forward;
+    const isForward = direction === FlowDirection.Forward;
 
     const currentPositionIsOnGrapheme = PseudoNode.isGrapheme(node);
 

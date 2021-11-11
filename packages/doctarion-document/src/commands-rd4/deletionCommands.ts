@@ -1,4 +1,5 @@
 import { Document, Node, Span } from "../document-model-rd5";
+import { FlowDirection } from "../miscUtils";
 import {
   CursorNavigator,
   CursorOrientation,
@@ -9,11 +10,9 @@ import {
 import { AnchorPullDirection } from "../working-document-rd4";
 
 import { JoinType, join } from "./joinCommands";
-import { Direction, TargetPayload } from "./payloads";
+import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
-import { CommandUtils } from "./utils";
-
-import { SelectTargetsSort } from ".";
+import { CommandUtils, SelectTargetsSort } from "./utils";
 
 interface DeleteOptions {
   /**
@@ -30,7 +29,7 @@ interface DeleteOptions {
    * to instead behave like a joining operation.
    */
   readonly allowJoiningBlocksInBoundaryCases: boolean;
-  readonly direction: Direction;
+  readonly direction: FlowDirection;
 }
 
 export type DeletePayload = TargetPayload & Partial<DeleteOptions>;
@@ -39,7 +38,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
   const options: DeleteOptions = {
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     allowJoiningBlocksInBoundaryCases: payload.allowJoiningBlocksInBoundaryCases ?? false,
-    direction: payload.direction ?? Direction.Backward,
+    direction: payload.direction ?? FlowDirection.Backward,
   };
 
   const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed);
@@ -64,7 +63,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
         // Individual node deletion
         state.deleteAtPath(
           result.nodeToDelete.path,
-          options.direction === Direction.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
+          options.direction === FlowDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward
         );
       } else if (result?.justMoveTo) {
         // Just move the anchor/interactor
@@ -98,7 +97,7 @@ function findNodeRelativeToCursorForDeletion(
 ):
   | { readonly justMoveTo?: CursorNavigator; readonly nodeToDelete?: NodeNavigator; readonly joinInstead?: boolean }
   | undefined {
-  const isBack = options.direction === Direction.Backward;
+  const isBack = options.direction === FlowDirection.Backward;
   const nodeToDelete = navigator.toNodeNavigator();
   const orientation = navigator.cursor.orientation;
 

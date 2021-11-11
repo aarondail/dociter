@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
-import { SimpleComparison } from "../miscUtils";
+import { FlowDirection, SimpleComparison } from "../miscUtils";
 import {
   CursorNavigator,
   CursorOrientation,
@@ -22,7 +22,7 @@ import {
 } from "../working-document-rd4";
 
 import { CommandError } from "./error";
-import { Direction, InteractorInputPosition, InteractorTargets, Target } from "./payloads";
+import { InteractorInputPosition, InteractorTargets, Target } from "./payloads";
 
 export type SelectTargetsResult = {
   readonly interactor: ReadonlyWorkingInteractor;
@@ -174,7 +174,7 @@ export const CommandUtils = {
 
   isCursorNavigatorAtEdgeOfBlock(
     navigator: ReadonlyCursorNavigator<ReadonlyWorkingNode>,
-    direction: Direction
+    direction: FlowDirection
   ): boolean {
     const block = CommandUtils.findAncestorBlockNodeWithNavigator(navigator);
     if (!block) {
@@ -183,8 +183,8 @@ export const CommandUtils = {
 
     const n = navigator.clone();
     if (
-      (direction === Direction.Backward && !n.navigateToPrecedingCursorPosition()) ||
-      (direction === Direction.Forward && !n.navigateToNextCursorPosition())
+      (direction === FlowDirection.Backward && !n.navigateToPrecedingCursorPosition()) ||
+      (direction === FlowDirection.Forward && !n.navigateToNextCursorPosition())
     ) {
       return true;
     }
@@ -196,7 +196,7 @@ export const CommandUtils = {
   isCursorNavigatorAtEdgeOfContainingNode(
     navigator: ReadonlyCursorNavigator<ReadonlyWorkingNode>,
     containingNode: ReadonlyWorkingNode,
-    direction: Direction
+    direction: FlowDirection
   ): boolean {
     const firstFind = CommandUtils.findAncestorNodeWithNavigator(navigator, containingNode);
     if (!firstFind) {
@@ -205,8 +205,8 @@ export const CommandUtils = {
 
     const n = navigator.clone();
     if (
-      (direction === Direction.Backward && !n.navigateToPrecedingCursorPosition()) ||
-      (direction === Direction.Forward && !n.navigateToNextCursorPosition())
+      (direction === FlowDirection.Backward && !n.navigateToPrecedingCursorPosition()) ||
+      (direction === FlowDirection.Forward && !n.navigateToNextCursorPosition())
     ) {
       return true;
     }

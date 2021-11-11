@@ -1,11 +1,10 @@
+import { FlowDirection } from "../miscUtils";
 import { LiftingPathMap } from "../traversal-rd4";
-import { JoinDirection, ReadonlyWorkingNode } from "../working-document-rd4";
+import { ReadonlyWorkingNode } from "../working-document-rd4";
 
-import { Direction, TargetPayload } from "./payloads";
+import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
-import { CommandUtils } from "./utils";
-
-import { SelectTargetsSort } from ".";
+import { CommandUtils, SelectTargetsSort } from "./utils";
 
 export enum JoinType {
   Blocks = "BLOCKS",
@@ -18,13 +17,13 @@ interface JoinOptions {
    * does affect whether the children are joined into the first selected block,
    * or the last.
    */
-  readonly direction: Direction;
+  readonly direction: FlowDirection;
 }
 
 export type JoinPayload = TargetPayload & Partial<JoinOptions>;
 
 export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
-  const direction = payload.direction ?? Direction.Backward;
+  const direction = payload.direction ?? FlowDirection.Backward;
 
   const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Forward);
 
@@ -38,9 +37,9 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
       CommandUtils.walkBlocksInSelectionTarget(state, target, (n, { start, end }) => {
         // Skip the start block if we are going backwards, or the end block if
         // we are going forwards
-        if (direction === Direction.Backward && n.tip.node === start) {
+        if (direction === FlowDirection.Backward && n.tip.node === start) {
           // Skip
-        } else if (direction === Direction.Forward && n.tip.node === end) {
+        } else if (direction === FlowDirection.Forward && n.tip.node === end) {
           // Skip
         } else {
           toJoin.add(n.path, { node: n.tip.node as ReadonlyWorkingNode });
@@ -58,9 +57,6 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
   toJoinElements.reverse();
   for (const { elements } of toJoinElements) {
     const sourceNode = elements[0]!.node;
-    state.joinSiblingIntoNode(
-      sourceNode,
-      direction === Direction.Backward ? JoinDirection.Backward : JoinDirection.Forward
-    );
+    state.joinSiblingIntoNode(sourceNode, direction);
   }
 });

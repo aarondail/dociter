@@ -10,6 +10,7 @@ import {
   NodeChildrenType,
   Span,
 } from "../document-model-rd5";
+import { FlowDirection } from "../miscUtils";
 import {
   FancyGrapheme,
   FancyText,
@@ -42,7 +43,7 @@ import {
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
-import { AnchorPullDirection, JoinDirection } from "./misc";
+import { AnchorPullDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import {
   NodeId,
@@ -467,7 +468,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public joinSiblingIntoNode(node: NodeId | ReadonlyWorkingNode, direction: JoinDirection): void {
+  public joinSiblingIntoNode(node: NodeId | ReadonlyWorkingNode, direction: FlowDirection): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
@@ -475,7 +476,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
     const destNav = nav.clone();
 
-    if (!(direction === JoinDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
+    if (!(direction === FlowDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
       throw new WorkingDocumentError("Could not find sibling node to join to");
     }
 
@@ -490,7 +491,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (Utils.doesNodeTypeHaveNodeChildren(dest.nodeType)) {
       // Move children from one inline to the next
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === JoinDirection.Backward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === FlowDirection.Backward);
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
         const beforeBoundaryNode = dest.children[boundaryChildIndex - 1] as WorkingNode;
         const atBoundaryNode = dest.children[boundaryChildIndex] as WorkingNode;
@@ -501,11 +502,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else if (Utils.doesNodeTypeHaveTextOrFancyText(dest.nodeType)) {
-      this.moveAllGraphemes(source, dest, direction === JoinDirection.Backward);
+      this.moveAllGraphemes(source, dest, direction === FlowDirection.Backward);
     }
 
     for (const { name: facetName } of dest.nodeType.getFacetsThatAreNodeArrays()) {
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facetName, direction === JoinDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facetName, direction === FlowDirection.Forward);
 
       // Again, special handling for spans
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
@@ -524,12 +525,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     this.deletePrime(
       [{ node: source }],
-      direction === JoinDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward,
+      direction === FlowDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward,
       false // I think its logically impossible for us to have to join spans during this delete and the source is empty at this point... I think
     );
 
     for (const node of toJoinFollowUps) {
-      this.joinSiblingIntoNode(node, JoinDirection.Forward);
+      this.joinSiblingIntoNode(node, FlowDirection.Forward);
     }
   }
 
@@ -1030,7 +1031,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const anchorRelocationInfo = Utils.getClosestAdjacentOrParentLocationOutsideOfLocationArray(
       contiguousOrderedLocationArray,
       this.actualDocument,
-      pull ?? AnchorPullDirection.Backward
+      pull === AnchorPullDirection.Forward ? FlowDirection.Forward : FlowDirection.Backward
     );
     // This has to be deleted before we are done
     const anchorRelocationAnchor = this.addAnchorPrime({
@@ -1148,7 +1149,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             PseudoNode.isGrapheme(c.tip.node) &&
             c.cursor.orientation === AnchorOrientation.After &&
             c.tip.pathPart?.index === 0 &&
-            // Not sure this is necessary... though we could check joinAdjacentSpansCandidates here too...
             (c.parent?.node as Node).nodeType === Span &&
             (c.toNodeNavigator().precedingParentSiblingNode as Node).nodeType === Span
           ) {
@@ -1176,7 +1176,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       // Make sure both nodes still exist...
       if (this.nodeLookup.has(leftNode.id) && this.nodeLookup.has(rightNode.id)) {
         // And join
-        this.joinSiblingIntoNode(leftNode, JoinDirection.Forward);
+        this.joinSiblingIntoNode(leftNode, FlowDirection.Forward);
       }
     }
   }
@@ -1250,12 +1250,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (joinNodeToAdjacentSpansIfPossible && node.nodeType === Span) {
       if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
-        this.joinSiblingIntoNode(other, JoinDirection.Backward);
+        this.joinSiblingIntoNode(other, FlowDirection.Backward);
         return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
       }
       if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
-        this.joinSiblingIntoNode(other, JoinDirection.Forward);
+        this.joinSiblingIntoNode(other, FlowDirection.Forward);
         return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
       }
     }

@@ -1,4 +1,5 @@
-import { Commands, Direction, InteractorTargets } from "../../src/commands-rd4";
+import { Commands, InteractorTargets } from "../../src/commands-rd4";
+import { FlowDirection } from "../../src/miscUtils";
 import { CursorOrientation } from "../../src/traversal-rd4";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../utils-rd4";
 
@@ -15,7 +16,7 @@ describe("delete with multiple interactors", () => {
     editor.execute(Commands.addInteractor({ at: { path: "1/0/3", orientation: After } }));
     // After the G in the URL link
     editor.execute(Commands.addInteractor({ at: { path: "3/1/0", orientation: After } }));
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
@@ -29,9 +30,9 @@ describe("delete with multiple interactors", () => {
       Anchor: ∅ BEFORE (Hyperlink:O)3/1⁙0 intr: ∅"
     `);
 
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>ader1</s> </h>
@@ -55,7 +56,7 @@ describe("delete with multiple interactors", () => {
     // GOGGLE|
     editor.execute(Commands.addInteractor({ at: { path: "3/1/5", orientation: After } }));
 
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
       `"<p> <s>CC</s> <hyperlink url=g.com>GOL</hyperlink> <s>DD</s> </p>"`
     );
@@ -65,13 +66,13 @@ describe("delete with multiple interactors", () => {
       Anchor: ∅ AFTER (Hyperlink:L)3/1⁙2 intr: ∅"
     `);
 
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
       `"<p> <s>CC</s> <hyperlink url=g.com></hyperlink> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ ON (Hyperlink)3/1 intr: ∅"`);
 
-    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: Direction.Backward }));
+    editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(`"<p> <s>CCDD</s> </p>"`);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ∅ AFTER (Span:C)3/0⁙1 intr: ∅"`

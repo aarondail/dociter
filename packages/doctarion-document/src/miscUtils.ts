@@ -42,6 +42,11 @@ export type NonMatching<T, SomeInterface> = {
 
 //#endregion Mapped Types Helpers for Making Mapped Types with (Conditionally) Optional Properties
 
+export enum FlowDirection {
+  Backward = "BACKWARD",
+  Forward = "FORWARD",
+}
+
 export enum SimpleComparison {
   Equal = "EQUAL",
   Before = "BEFORE",
@@ -49,15 +54,15 @@ export enum SimpleComparison {
   Incomparable = "INCOMPARABLE",
 }
 
+export enum Side {
+  Left = "LEFT",
+  Right = "RIGHT",
+}
+
 // From: https://fettblog.eu/typescript-hasownproperty/
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function hasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
   return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-export enum Side {
-  Left = "LEFT",
-  Right = "RIGHT",
 }
 
 type NoConflict<A extends Record<string | symbol, unknown>, B extends string | number | symbol> = {
