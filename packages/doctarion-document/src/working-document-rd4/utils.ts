@@ -27,6 +27,11 @@ export interface InternalDocumentLocation {
  */
 export type ContiguousOrderedInternalDocumentLocationArray = readonly InternalDocumentLocation[];
 
+export enum ParentOrSibling {
+  Parent = "PARENT",
+  Sibling = "SIBLING",
+}
+
 export const Utils = {
   canFacetContainNodesOfType(facet: FacetType, nodeType: NodeType): boolean {
     if (facet.valueType !== FacetValueType.NodeArray) {
@@ -92,7 +97,7 @@ export const Utils = {
     contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
     document: WorkingDocumentNode,
     direction: AnchorPullDirection
-  ): { location: InternalDocumentLocation; type: "sibling" | "parent" } {
+  ): { location: InternalDocumentLocation; type: ParentOrSibling } {
     if (contiguousOrderedLocationArray.length === 0) {
       throw new WorkingDocumentError("Did not expect the location array to be empty");
     }
@@ -108,16 +113,16 @@ export const Utils = {
     if (isBack ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling()) {
       if (location.graphemeIndex !== undefined) {
         const node = nav.parent?.node as WorkingNode;
-        return { location: { node, graphemeIndex: nav.tip.pathPart!.index }, type: "sibling" };
+        return { location: { node, graphemeIndex: nav.tip.pathPart!.index }, type: ParentOrSibling.Sibling };
       } else {
         const node = nav.tip.node as WorkingNode;
-        return { location: { node }, type: "sibling" };
+        return { location: { node }, type: ParentOrSibling.Sibling };
       }
     } else {
       // Note this can be the document
       nav.navigateToParent();
       const node = nav.tip.node as WorkingNode;
-      return { location: { node }, type: "parent" };
+      return { location: { node }, type: ParentOrSibling.Parent };
     }
   },
   getNodeNavigator(document: WorkingDocumentNode, path: Path): NodeNavigator<WorkingNode> {

@@ -31,7 +31,14 @@ import {
   Range,
 } from "../traversal-rd4";
 
-import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import {
+  AnchorId,
+  AnchorParameters,
+  ReadonlyWorkingAnchor,
+  WorkingAnchor,
+  WorkingAnchorRange,
+  WorkingAnchorType,
+} from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
@@ -46,7 +53,7 @@ import {
   WorkingNodeOfType,
 } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
-import { ContiguousOrderedInternalDocumentLocationArray, Utils } from "./utils";
+import { ContiguousOrderedInternalDocumentLocationArray, ParentOrSibling, Utils } from "./utils";
 
 export interface ReadonlyWorkingDocument {
   readonly anchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
@@ -125,22 +132,28 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   public addAnchor(parameters: AnchorParameters): ReadonlyWorkingAnchor {
-    return this.addAnchorPrime(parameters);
+    return this.addAnchorPrime({ ...parameters, type: WorkingAnchorType.Free });
   }
 
   public addInteractor(parameters: InteractorParameters): ReadonlyWorkingInteractor {
     const id = this.idGenerator.generateId("INTERACTOR");
 
     const mainAnchor = this.addAnchorPrime(
-      parameters.name ? { ...parameters.mainAnchor, name: parameters.name + "-MAIN" } : parameters.mainAnchor,
-      "dont-emit-event"
+      {
+        ...parameters.mainAnchor,
+        name: parameters.name ? parameters.name + "-MAIN" : undefined,
+        type: WorkingAnchorType.Interactor,
+      },
+      { dontEmitAddedEvent: true }
     );
     const selectionAnchor = parameters.selectionAnchor
       ? this.addAnchorPrime(
-          parameters.name
-            ? { ...parameters.selectionAnchor, name: parameters.name + "-SELECTION" }
-            : parameters.selectionAnchor,
-          "dont-emit-event"
+          {
+            ...parameters.selectionAnchor,
+            name: parameters.name ? parameters.name + "-SELECTION" : undefined,
+            type: WorkingAnchorType.Interactor,
+          },
+          { dontEmitAddedEvent: true }
         )
       : undefined;
 
@@ -191,9 +204,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedInteractor) {
       throw new WorkingDocumentError("Unknown interactor");
     }
-    this.deleteAnchorPrime(resolvedInteractor.mainAnchor, "bypass-interactor-check");
+    this.deleteAnchorPrime(resolvedInteractor.mainAnchor, { bypassInteractorCheck: true });
     if (resolvedInteractor.selectionAnchor) {
-      this.deleteAnchorPrime(resolvedInteractor.selectionAnchor, "bypass-interactor-check");
+      this.deleteAnchorPrime(resolvedInteractor.selectionAnchor, { bypassInteractorCheck: true });
     }
     this.interactorLookup.delete(resolvedInteractor.id);
     this.eventEmitters.interactorDeleted.emit(resolvedInteractor);
@@ -591,14 +604,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
             if (resolvedFacet.valueType === FacetValueType.AnchorRange) {
               throw new WorkingDocumentError(`Can not set facet ${facet} to passed value`);
             }
-            convertedValue = this.addAnchorPrime(value, "dont-emit-event");
+            convertedValue = this.addAnchorPrime(
+              { ...value, type: WorkingAnchorType.Node },
+              { dontEmitAddedEvent: true }
+            );
             convertedValue.relatedOriginatingNode = resolvedNode;
           } else if (Utils.isAnchorParametersPair(value)) {
             if (resolvedFacet.valueType === FacetValueType.Anchor) {
               throw new WorkingDocumentError(`Can not set facet ${facet} to passed value`);
             }
-            const from = this.addAnchorPrime(value[0], "dont-emit-event");
-            const to = this.addAnchorPrime(value[1], "dont-emit-event");
+            const from = this.addAnchorPrime(
+              { ...value[0], type: WorkingAnchorType.Node },
+              { dontEmitAddedEvent: true }
+            );
+            const to = this.addAnchorPrime({ ...value[1], type: WorkingAnchorType.Node }, { dontEmitAddedEvent: true });
             from.relatedOriginatingNode = resolvedNode;
             to.relatedOriginatingNode = resolvedNode;
             convertedValue = new WorkingAnchorRange(from, to);
@@ -851,7 +870,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedAnchor.name = parameters.name;
     }
 
-    if (!resolvedAnchor.transient) {
+    if (resolvedAnchor.type !== WorkingAnchorType.Transient) {
       this.eventEmitters.anchorUpdated.emit(resolvedAnchor);
       if (resolvedAnchor.relatedInteractor) {
         this.eventEmitters.interactorUpdated.emit(resolvedAnchor.relatedInteractor);
@@ -876,20 +895,21 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         if (resolvedInteractor.selectionAnchor) {
           this.updateAnchor(resolvedInteractor.selectionAnchor, parameters.selectionAnchor);
         } else {
-          const selectionAnchor = this.addAnchor({
+          const selectionAnchor = this.addAnchorPrime({
             ...parameters.selectionAnchor,
+            type: WorkingAnchorType.Interactor,
             name: parameters.name
               ? parameters.name + "-SELECTION"
               : resolvedInteractor?.name
               ? resolvedInteractor.name + "-SELECTION"
               : undefined,
-          }) as WorkingAnchor;
+          });
           resolvedInteractor.selectionAnchor = selectionAnchor;
           selectionAnchor.relatedInteractor = resolvedInteractor;
         }
       } else {
         if (resolvedInteractor.selectionAnchor) {
-          this.deleteAnchorPrime(resolvedInteractor.selectionAnchor, "bypass-interactor-check");
+          this.deleteAnchorPrime(resolvedInteractor.selectionAnchor, { bypassInteractorCheck: true });
           resolvedInteractor.selectionAnchor = undefined;
         }
       }
@@ -920,10 +940,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   }
 
   private addAnchorPrime(
-    parameters: AnchorParameters & { transient?: boolean },
-    option?: "dont-emit-event"
+    parameters: AnchorParameters & { type: WorkingAnchorType },
+    options?: { dontEmitAddedEvent?: boolean }
   ): WorkingAnchor {
-    const { node, orientation, graphemeIndex, name, transient } = parameters;
+    const { node, orientation, graphemeIndex, name, type } = parameters;
     const nodeId = typeof node === "string" ? node : node.id;
     const resolvedNode = this.nodeLookup.get(nodeId);
     if (!resolvedNode) {
@@ -935,15 +955,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedNode,
       orientation,
       graphemeIndex,
+      type,
       name,
       undefined,
-      undefined,
-      transient
+      undefined
     );
     this.anchorLookup.set(anchorId, anchor);
     resolvedNode.attachedAnchors.set(anchorId, anchor);
 
-    if (option !== "dont-emit-event" && !anchor.transient) {
+    if (!options?.dontEmitAddedEvent && anchor.type !== WorkingAnchorType.Transient) {
       this.eventEmitters.anchorAdded.emit(anchor);
     }
 
@@ -952,23 +972,26 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   private deleteAnchorPrime(
     anchor: ReadonlyWorkingAnchor | AnchorId,
-    option?: "bypass-interactor-check" | "bypass-originating-node-check"
+    options?: {
+      bypassInteractorCheck?: boolean;
+      bypassOriginatingNodeCheck?: boolean;
+    }
   ): void {
     const id = typeof anchor === "string" ? anchor : anchor.id;
     const resolvedAnchor = this.anchorLookup.get(id);
     if (!resolvedAnchor) {
       throw new WorkingDocumentError("Could not find anchor");
     }
-    if (resolvedAnchor.relatedInteractor && !(option === "bypass-interactor-check")) {
+    if (resolvedAnchor.relatedInteractor && !options?.bypassInteractorCheck) {
       throw new WorkingDocumentError("Cannot delete anchor without deleting related interactor");
     }
-    if (resolvedAnchor.relatedOriginatingNode && !(option === "bypass-originating-node-check")) {
+    if (resolvedAnchor.relatedOriginatingNode && !options?.bypassOriginatingNodeCheck) {
       throw new WorkingDocumentError("Cannot delete anchor that originates from a node");
     }
     this.anchorLookup.delete(id);
     resolvedAnchor.node.attachedAnchors.delete(id);
 
-    if (!resolvedAnchor.transient) {
+    if (resolvedAnchor.type !== WorkingAnchorType.Transient) {
       this.eventEmitters.anchorDeleted.emit(resolvedAnchor);
     }
   }
@@ -1008,7 +1031,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const anchorRelocationAnchor = this.addAnchorPrime({
       ...anchorRelocationInfo.location,
       orientation: AnchorOrientation.On,
-      transient: true,
+      type: WorkingAnchorType.Transient,
     });
 
     try {
@@ -1081,7 +1104,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
       // Note these are all node-to-node anchors
       for (const anchor of anchorsOriginatingFromDeletedNodes) {
-        this.deleteAnchorPrime(anchor, "bypass-originating-node-check");
+        this.deleteAnchorPrime(anchor, { bypassOriginatingNodeCheck: true });
       }
 
       // These may be node-to-node and interactor anchors
@@ -1101,7 +1124,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       let orphanedAnchorRelocationNavUpdatedPosition: AnchorParameters;
       {
         const c = this.getCursorNavigatorForAnchor(anchorRelocationAnchor);
-        if ((c.tip.node as Node)?.children && anchorRelocationInfo.type === "parent") {
+        if ((c.tip.node as Node)?.children && anchorRelocationInfo.type === ParentOrSibling.Parent) {
           pull === AnchorPullDirection.Backward
             ? c.navigateToFirstDescendantCursorPosition()
             : c.navigateToLastDescendantCursorPosition();

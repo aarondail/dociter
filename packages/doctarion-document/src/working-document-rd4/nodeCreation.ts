@@ -1,5 +1,6 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
+import { WorkingAnchorType } from ".";
 
 import { Anchor, AnchorRange, Node, Span } from "../document-model-rd5";
 import { TextStyleStrip } from "../text-model-rd4";
@@ -202,6 +203,7 @@ function anchorToWorkingAnchor(
     anchor.node as any, // Yes this is wrong but will be fixed up (see section around fixing up anchor target nodes above)
     anchor.orientation,
     anchor.graphemeIndex,
+    WorkingAnchorType.Node,
     undefined,
     undefined,
     originNode

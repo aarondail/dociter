@@ -12,17 +12,23 @@ export interface AnchorParameters {
   readonly name?: string;
 }
 
+export enum WorkingAnchorType {
+  Node = "NODE",
+  Interactor = "INTERACTOR",
+  Transient = "TRANSIENT",
+  Free = "FREE",
+}
+
 export class WorkingAnchor extends Anchor {
-  // implements AnchorPosition {
   public constructor(
     public id: AnchorId,
     public node: WorkingNode,
     public orientation: AnchorOrientation,
-    public graphemeIndex?: number,
+    public graphemeIndex: number | undefined,
+    public type: WorkingAnchorType,
     public name?: string,
     public relatedInteractor?: WorkingInteractor,
-    public relatedOriginatingNode?: WorkingNode,
-    public transient?: boolean
+    public relatedOriginatingNode?: WorkingNode
   ) {
     super(node, orientation, graphemeIndex);
   }
@@ -33,6 +39,7 @@ export interface ReadonlyWorkingAnchor extends Anchor {
   readonly node: ReadonlyWorkingNode;
   readonly orientation: AnchorOrientation;
   readonly graphemeIndex?: number;
+  readonly type: WorkingAnchorType;
   readonly name?: string;
   readonly relatedInteractor?: ReadonlyWorkingInteractor;
   readonly relatedOriginatingNode?: ReadonlyWorkingNode;
