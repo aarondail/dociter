@@ -245,12 +245,13 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
       } else if (node instanceof Node && CommandUtils.doesNodeTypeHaveBlockChildren(node.nodeType)) {
         // Empty document
         const newParagraph = new Node(Paragraph, [], {});
-        const newParagraphId = state.insertNode(node, newParagraph, 0);
+        const insertionResult = state.insertNode(node, newParagraph, 0);
+        const actualNewParagraph = insertionResult.workingNode;
 
         if (isText && isEmptyInsertionPoint) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           const newInline = new Node(Span, graphemes, { styles: new TextStyleStrip() });
-          state.insertNode(newParagraphId, newInline, 0);
+          state.insertNode(actualNewParagraph, newInline, 0);
 
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
           state.updateInteractor(target.interactor.id, {
@@ -267,7 +268,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
                 { styles: new TextStyleStrip() }
               )
             : payload.inline;
-          state.insertNode(newParagraphId, inline, insertionIndex);
+          state.insertNode(actualNewParagraph, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
           state.updateInteractor(target.interactor.id, {

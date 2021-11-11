@@ -55,6 +55,16 @@ import {
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { ContiguousOrderedInternalDocumentLocationArray, ParentOrSibling, Utils } from "./utils";
 
+export enum InsertOrJoin {
+  Insert = "INSERT",
+  Join = "JOIN",
+}
+
+export interface InsertNodeResult {
+  readonly workingNode: ReadonlyWorkingNode;
+  readonly insertionHandledBy: InsertOrJoin;
+}
+
 export interface ReadonlyWorkingDocument {
   readonly anchors: ReadonlyMap<AnchorId, ReadonlyWorkingAnchor>;
   readonly document: ReadonlyWorkingDocumentNode;
@@ -398,13 +408,8 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
    * Note in the case of Spans, this may result in an existing Span being
    * updated (and returned) rather than a new Span actually being created.
    */
-  public insertNode(
-    parent: NodeId | ReadonlyWorkingNode,
-    node: Node,
-    index: number,
-    facet?: string
-  ): ReadonlyWorkingNode {
-    return this.insertNodePrime(parent, node, index, facet, true).workingNode;
+  public insertNode(parent: NodeId | ReadonlyWorkingNode, node: Node, index: number, facet?: string): InsertNodeResult {
+    return this.insertNodePrime(parent, node, index, facet, true);
   }
 
   public insertNodeGrapheme(
@@ -781,7 +786,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedNode.pathPartFromParent.index + 1,
       undefined,
       true
-    ).workingNode;
+    ).workingNode as WorkingNode;
 
     let currentSplitSource: WorkingNode = resolvedNode;
     let currentSplitDest = newWorkingRoot;
@@ -814,7 +819,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
           // Finally insert the new boundary node and set it for the next iteration
           currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true)
-            .workingNode;
+            .workingNode as WorkingNode;
           currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
         }
       } else {
@@ -1182,7 +1187,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     index: number,
     facet: string | undefined,
     joinNodeToAdjacentSpansIfPossible: boolean
-  ): { workingNode: WorkingNode; existingNodeUpdatedInsteadOfInserted?: boolean } {
+  ): InsertNodeResult {
     const resolvedParentNode = this.nodeLookup.get(typeof parent === "string" ? parent : parent.id);
     if (!resolvedParentNode) {
       throw new WorkingDocumentError("Unknown parent");
@@ -1246,16 +1251,16 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
         this.joinSiblingIntoNode(other, JoinDirection.Backward);
-        return { workingNode: other, existingNodeUpdatedInsteadOfInserted: true };
+        return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
       }
       if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
         this.joinSiblingIntoNode(other, JoinDirection.Forward);
-        return { workingNode: other, existingNodeUpdatedInsteadOfInserted: true };
+        return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
       }
     }
 
-    return { workingNode: workingNode };
+    return { workingNode: workingNode, insertionHandledBy: InsertOrJoin.Insert };
   }
 
   private moveAllGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {

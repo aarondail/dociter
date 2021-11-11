@@ -1,12 +1,11 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
-import { WorkingAnchorType } from ".";
 
 import { Anchor, AnchorRange, Node, Span } from "../document-model-rd5";
 import { TextStyleStrip } from "../text-model-rd4";
 import { PathPart } from "../traversal-rd4";
 
-import { AnchorId, WorkingAnchor, WorkingAnchorRange } from "./anchor";
+import { AnchorId, WorkingAnchor, WorkingAnchorRange, WorkingAnchorType } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { NodeId, WorkingDocumentNode, WorkingNode, WorkingNodeOfType } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
