@@ -216,7 +216,7 @@ describe("insert should insert text", () => {
     );
     editor.execute(Commands.insert({ text: "QST" }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Span:Q)0/2⁙0 intr: ∅"`
+      `"Anchor: ∅ AFTER (Span:T)0/2⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
       `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
@@ -226,72 +226,37 @@ describe("insert should insert text", () => {
     editor.execute(Commands.jump({ to: { path: "0/2/0", orientation: Before } }));
     editor.execute(Commands.insert({ text: "QST" }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Span:Q)0/2⁙0 intr: ∅"`
+      `"Anchor: ∅ AFTER (Span:T)0/2⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
       `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
     );
   });
 
-  //   it("between inline url link and the end of a paragraph successfully successfully", () => {
-  //     const editor = CommandsTestUtils.getEditorForBasicDoc();
-  //     editor.execute(Commands.jump({ to: { path: "4/1", orientation: After } }));
-  //     editor.execute(
-  //       Commands.insert({
-  //         text: "QST",
-  //         target: InteractorTargets.Focused,
-  //         allowCreationOfNewInlineTextAndParagrahsIfNeeded: true,
-  //       })
-  //     );
-  //     expect(debugState(editor)).toEqual(`
-  // CURSOR: 4/2/2 |>
-  // SLICE:  PARAGRAPH > TEXT {} > "QST"`);
-  //   });
+  it("around a Span without creating a new Span", () => {
+    let editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0", orientation: Before } }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:M)1/0⁙0 intr: ᯼ "`
+    );
+    editor.execute(Commands.insert({ text: "QST", target: InteractorTargets.Focused }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:T)1/0⁙2 intr: ᯼ "`
+    );
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s styles=9:+B>QSTMMNNAABB</s> </p>"`
+    );
 
-  //   it("but does not insert new text between two inline texts", () => {
-  //     const editor = CommandsTestUtils.getEditorForBasicDoc();
-  //     editor.execute(Commands.jump({ to: { path: "1/0", orientation: After } }));
-  //     editor.execute(
-  //       Commands.insert({
-  //         text: "QST",
-  //         target: InteractorTargets.Focused,
-  //         allowCreationOfNewInlineTextAndParagrahsIfNeeded: true,
-  //       })
-  //     );
-  //     expect(debugState(editor)).not.toEqual(`
-  // CURSOR: 1/1/2 |>
-  // SLICE:  PARAGRAPH > TEXT {} > "QST"`);
-  //   });
-
-  //   it("but does not insert new text before an inline text", () => {
-  //     const editor = CommandsTestUtils.getEditorForBasicDoc();
-  //     editor.execute(Commands.jump({ to: { path: "0/0", orientation: Before } }));
-  //     editor.execute(
-  //       Commands.insert({
-  //         text: "QST",
-  //         target: InteractorTargets.Focused,
-  //         allowCreationOfNewInlineTextAndParagrahsIfNeeded: true,
-  //       })
-  //     );
-  //     expect(debugState(editor)).not.toEqual(`
-  // CURSOR: 0/0/2 |>
-  // SLICE:  PARAGRAPH > TEXT {} > "QST"`);
-  //   });
-
-  //   it("but does not insert new text after an inline text", () => {
-  //     const editor = CommandsTestUtils.getEditorForBasicDoc();
-  //     editor.execute(Commands.jump({ to: { path: "0/0", orientation: After } }));
-  //     editor.execute(
-  //       Commands.insert({
-  //         text: "QST",
-  //         target: InteractorTargets.Focused,
-  //         allowCreationOfNewInlineTextAndParagrahsIfNeeded: true,
-  //       })
-  //     );
-  //     expect(debugState(editor)).not.toEqual(`
-  // CURSOR: 0/1/2 |>
-  // SLICE:  PARAGRAPH > TEXT {} > "QST"`);
-  //   });
+    editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0", orientation: After } }));
+    editor.execute(Commands.insert({ text: "QST", target: InteractorTargets.Focused }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:T)1/0⁙10 intr: ᯼ "`
+    );
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s styles=6:+B>MMNNAABBQST</s> </p>"`
+    );
+  });
 });
 
 // describe("insert should insert a Hyperlink", () => {

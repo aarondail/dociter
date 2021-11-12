@@ -461,9 +461,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     for (const [, anchor] of resolvedNode.attachedAnchors) {
       if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= index) {
-        this.updateAnchor(anchor, {
-          graphemeIndex: anchor.graphemeIndex + text.length,
-        });
+        // This arguably makes this class know a little too much about valid
+        // cursor positions
+        if (anchor.orientation !== AnchorOrientation.Before) {
+          this.updateAnchor(anchor, { graphemeIndex: anchor.graphemeIndex + text.length });
+        } else {
+          if (text.length === 1) {
+            this.updateAnchor(anchor, { orientation: AnchorOrientation.After });
+          } else {
+            this.updateAnchor(anchor, {
+              orientation: AnchorOrientation.After,
+              graphemeIndex: anchor.graphemeIndex + text.length - 1,
+            });
+          }
+        }
       }
     }
   }

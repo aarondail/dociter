@@ -159,13 +159,12 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     this.currentOrientation = temp.currentOrientation;
 
     const positions = getDetailedNavigableCursorOrientationsAt(this.nodeNavigator);
+    const classification = positions[this.currentOrientation];
 
-    if (positions[this.currentOrientation] === CursorOrientationClassification.Deemphasized) {
-      if (this.currentOrientation === CursorOrientation.Before) {
-        this.navigateToPrecedingCursorPosition();
-      } else {
-        this.navigateToNextCursorPosition();
-      }
+    if (classification === CursorOrientationClassification.PreferBackward) {
+      this.navigateToPrecedingCursorPosition();
+    } else if (classification === CursorOrientationClassification.PreferForward) {
+      this.navigateToNextCursorPosition();
     } else if (!positions[this.currentOrientation]) {
       // Jiggle cursor so it finds an appropriate spot to land on
       this.navigateToNextCursorPosition();

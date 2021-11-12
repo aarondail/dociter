@@ -14,33 +14,60 @@ function isEmptyInsertionPoint(node: PseudoNode): boolean {
   return false;
 }
 
-/**
- * For in between insertion points, we ignore those in case there the preceding
- * or next sibling element is a Span. Because in this case we prefer to have the
- * cursor on the Span or its graphemes.
- */
-function isInBetweenInsertionPoint(
+function hasBeforeInBetweenInsertionPoint(
   node: PseudoNode,
-  adjacentSiblingNode?: PseudoNode
+  priorSiblingNode?: PseudoNode
 ): CursorOrientationClassification | undefined {
-  if (node instanceof Node && node.nodeType.category === NodeCategory.Inline && !(node.nodeType === Span)) {
-    if (!adjacentSiblingNode) {
-      return CursorOrientationClassification.Valid;
-    }
-    if (adjacentSiblingNode instanceof Node && adjacentSiblingNode.nodeType.category === NodeCategory.Inline) {
-      if (adjacentSiblingNode.nodeType !== Span) {
+  if (node instanceof Node && node.nodeType.category === NodeCategory.Inline) {
+    if (node.nodeType === Span) {
+      return CursorOrientationClassification.PreferForward;
+    } else {
+      if (!priorSiblingNode) {
         return CursorOrientationClassification.Valid;
-      } else {
-        return CursorOrientationClassification.Deemphasized;
       }
+      if (priorSiblingNode instanceof Node) {
+        if (priorSiblingNode.nodeType === Span) {
+          return CursorOrientationClassification.PreferBackward;
+        } else {
+          return CursorOrientationClassification.Valid;
+        }
+      }
+      return undefined;
     }
-    return undefined;
+  }
+}
+
+function hasAfterInBetweenInsertionPoint(
+  node: PseudoNode,
+  nextSiblingNode?: PseudoNode
+): CursorOrientationClassification | undefined {
+  if (node instanceof Node && node.nodeType.category === NodeCategory.Inline) {
+    if (node.nodeType === Span) {
+      if (nextSiblingNode && nextSiblingNode instanceof Node && nextSiblingNode.nodeType === Span) {
+        return CursorOrientationClassification.PreferForward;
+      } else {
+        return CursorOrientationClassification.PreferBackward;
+      }
+    } else {
+      if (!nextSiblingNode) {
+        return CursorOrientationClassification.Valid;
+      }
+      if (nextSiblingNode instanceof Node) {
+        if (nextSiblingNode.nodeType === Span) {
+          return CursorOrientationClassification.PreferForward;
+        } else {
+          return CursorOrientationClassification.Valid;
+        }
+      }
+      return undefined;
+    }
   }
 }
 
 export enum CursorOrientationClassification {
   Valid = "VALID",
-  Deemphasized = "DEEMPHASIZED",
+  PreferBackward = "PREFER_BACKWARD",
+  PreferForward = "PREFER_FORWARD",
 }
 
 export type GetNavigableCursorOrientationsAtResult = { [key in CursorOrientation]?: boolean };
@@ -94,8 +121,8 @@ export function getDetailedNavigableCursorOrientationsAt(
 
   // OK the Node is NOT a Grapheme...
   const hasOn = isEmptyInsertionPoint(el);
-  const hasBeforeBetweenInsertionPoint = isInBetweenInsertionPoint(el, precedingSibling);
-  const hasAfterBetweenInsertionPoint = isInBetweenInsertionPoint(el, nextSibling);
+  const hasBeforeBetweenInsertionPoint = hasBeforeInBetweenInsertionPoint(el, precedingSibling);
+  const hasAfterBetweenInsertionPoint = hasAfterInBetweenInsertionPoint(el, nextSibling);
 
   if (!hasOn && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
     return {};
