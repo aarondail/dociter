@@ -8,10 +8,10 @@ import { CommandsTestUtils } from "./commands.testUtils";
 const { After, Before, On } = CursorOrientation;
 
 describe("deleting backwards (solo non selection cursor)", () => {
-  it("will delete empty inline url link", () => {
+  it("will delete covered Hyperlink", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
-    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After }, select: true }));
+    editor.execute(Commands.jump({ to: { path: "3/1/5", orientation: After }, select: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: ᯼-MAIN AFTER (Hyperlink:E)3/1⁙5 intr: ᯼ 
       Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "

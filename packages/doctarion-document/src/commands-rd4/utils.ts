@@ -226,7 +226,6 @@ export const CommandUtils = {
           : true;
         const selectionRange = navigators.selectionAnchor
           ? getRangeForSelection(
-              state,
               isMainCursorFirst ? navigators.mainAnchor : navigators.selectionAnchor,
               isMainCursorFirst ? navigators.selectionAnchor : navigators.mainAnchor
             )
@@ -359,7 +358,7 @@ function getTargetedInteractors(target: Target, state: WorkingDocument): readonl
   return [];
 }
 
-function getRangeForSelection(state: WorkingDocument, from: CursorNavigator, to: CursorNavigator): Range | undefined {
+function getRangeForSelection(from: CursorNavigator, to: CursorNavigator): Range | undefined {
   let fromPath = from.path;
   if (from.cursor.orientation === CursorOrientation.After) {
     const n = from.toNodeNavigator();

@@ -187,51 +187,51 @@ describe("insert should insert text", () => {
     );
   });
 
-  // it("between Hyperlink and Paragraph successfully", () => {
-  // const document = testDoc`<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>`;
-  // let editor = new Editor({ document });
-  // editor.execute(Commands.jump({ to: { path: "0/0/1", orientation: After } }));
-  // editor.execute(Commands.insert({ text: "QST" }));
-  // expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-  //   `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
-  // );
-  // expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-  //   `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
-  // );
+  it("between Hyperlink and Paragraph successfully", () => {
+    const document = testDoc`<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>`;
+    let editor = new Editor({ document });
+    editor.execute(Commands.jump({ to: { path: "0/0/1", orientation: After } }));
+    editor.execute(Commands.insert({ text: "QST" }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
+    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
+    );
 
-  // editor = new Editor({ document });
-  // editor.execute(Commands.jump({ to: { path: "0/1", orientation: Before } }));
-  // editor.execute(Commands.insert({ text: "QST" }));
-  // expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-  //   `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
-  // );
-  // expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-  //   `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
-  // );
+    editor = new Editor({ document });
+    editor.execute(Commands.jump({ to: { path: "0/1", orientation: Before } }));
+    editor.execute(Commands.insert({ text: "QST" }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
+    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
+    );
 
-  // editor = new Editor({ document });
-  // editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
-  // expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-  //   `"Anchor: ∅ AFTER (Hyperlink:B)0/1⁙1 intr: ∅"`
-  // );
-  // editor.execute(Commands.insert({ text: "QST" }));
-  // expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-  //   `"Anchor: ∅ AFTER (Hyperlink:T)0/1⁙4 intr: ∅"`
-  // );
-  // expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-  //   `"<p> <s>AA</s> <hyperlink url=a.com>BBQST</hyperlink> <s>CC</s> </p>"`
-  // );
+    editor = new Editor({ document });
+    editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ BEFORE (Span:C)0/2⁙0 intr: ∅"`
+    );
+    editor.execute(Commands.insert({ text: "QST" }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Span:Q)0/2⁙0 intr: ∅"`
+    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
+    );
 
-  // editor = new Editor({ document });
-  // editor.execute(Commands.jump({ to: { path: "0/2/0", orientation: Before } }));
-  // editor.execute(Commands.insert({ text: "QST" }));
-  // expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-  //   `"Anchor: ∅ AFTER (Span:Q)0/2⁙0 intr: ∅"`
-  // );
-  // expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-  //   `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
-  // );
-  // });
+    editor = new Editor({ document });
+    editor.execute(Commands.jump({ to: { path: "0/2/0", orientation: Before } }));
+    editor.execute(Commands.insert({ text: "QST" }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Span:Q)0/2⁙0 intr: ∅"`
+    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
+    );
+  });
 
   //   it("between inline url link and the end of a paragraph successfully successfully", () => {
   //     const editor = CommandsTestUtils.getEditorForBasicDoc();

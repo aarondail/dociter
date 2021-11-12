@@ -2,7 +2,11 @@ import { DocumentNode, Node } from "../document-model-rd5";
 
 import { Chain, ChainLink } from "./chain";
 import { CursorOrientation, CursorPath } from "./cursorPath";
-import { getNavigableCursorOrientationsAt } from "./getNavigableCursorOrientationsAt";
+import {
+  CursorOrientationClassification,
+  getDetailedNavigableCursorOrientationsAt,
+  getNavigableCursorOrientationsAt,
+} from "./getNavigableCursorOrientationsUtils";
 import { NodeNavigator } from "./nodeNavigator";
 import { Path, PathString } from "./path";
 
@@ -154,28 +158,18 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     this.nodeNavigator = temp.nodeNavigator;
     this.currentOrientation = temp.currentOrientation;
 
-    const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
+    const positions = getDetailedNavigableCursorOrientationsAt(this.nodeNavigator);
 
-    if (!positions[this.currentOrientation]) {
-      if (this.navigateToNextCursorPosition()) {
+    if (positions[this.currentOrientation] === CursorOrientationClassification.Deemphasized) {
+      if (this.currentOrientation === CursorOrientation.Before) {
         this.navigateToPrecedingCursorPosition();
       } else {
-        if (this.currentOrientation === CursorOrientation.On && positions.ON) {
-          this.currentOrientation = CursorOrientation.On;
-        } else if (this.currentOrientation === CursorOrientation.Before && positions.BEFORE) {
-          this.currentOrientation = CursorOrientation.Before;
-        } else if (this.currentOrientation === CursorOrientation.After && positions.AFTER) {
-          this.currentOrientation = CursorOrientation.After;
-        } else if (positions.ON) {
-          this.currentOrientation = CursorOrientation.On;
-        } else if (positions.BEFORE) {
-          this.currentOrientation = CursorOrientation.Before;
-        } else if (positions.AFTER) {
-          this.currentOrientation = CursorOrientation.After;
-        } else {
-          this.navigateToPrecedingCursorPosition();
-        }
+        this.navigateToNextCursorPosition();
       }
+    } else if (!positions[this.currentOrientation]) {
+      // Jiggle cursor so it finds an appropriate spot to land on
+      this.navigateToNextCursorPosition();
+      this.navigateToPrecedingCursorPosition();
     }
 
     return true;

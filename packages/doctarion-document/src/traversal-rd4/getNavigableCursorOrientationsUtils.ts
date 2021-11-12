@@ -1,6 +1,6 @@
-import { CursorOrientation } from ".";
 import { Node, NodeCategory, NodeChildrenType, Span } from "../document-model-rd5";
 
+import { CursorOrientation } from "./cursorPath";
 import { NodeNavigator } from "./nodeNavigator";
 import { PseudoNode } from "./pseudoNode";
 
@@ -19,31 +19,39 @@ function isEmptyInsertionPoint(node: PseudoNode): boolean {
  * or next sibling element is a Span. Because in this case we prefer to have the
  * cursor on the Span or its graphemes.
  */
-function isInBetweenInsertionPoint(node: PseudoNode, adjacentSiblingNode?: PseudoNode): boolean {
-  return (
-    node instanceof Node &&
-    node.nodeType.category === NodeCategory.Inline &&
-    !(node.nodeType === Span) &&
-    (!adjacentSiblingNode ||
-      (adjacentSiblingNode instanceof Node &&
-        adjacentSiblingNode.nodeType.category === NodeCategory.Inline &&
-        adjacentSiblingNode.nodeType !== Span))
-  );
+function isInBetweenInsertionPoint(
+  node: PseudoNode,
+  adjacentSiblingNode?: PseudoNode
+): CursorOrientationClassification | undefined {
+  if (node instanceof Node && node.nodeType.category === NodeCategory.Inline && !(node.nodeType === Span)) {
+    if (!adjacentSiblingNode) {
+      return CursorOrientationClassification.Valid;
+    }
+    if (adjacentSiblingNode instanceof Node && adjacentSiblingNode.nodeType.category === NodeCategory.Inline) {
+      if (adjacentSiblingNode.nodeType !== Span) {
+        return CursorOrientationClassification.Valid;
+      } else {
+        return CursorOrientationClassification.Deemphasized;
+      }
+    }
+    return undefined;
+  }
+}
+
+export enum CursorOrientationClassification {
+  Valid = "VALID",
+  Deemphasized = "DEEMPHASIZED",
 }
 
 export type GetNavigableCursorOrientationsAtResult = { [key in CursorOrientation]?: boolean };
 
-const CannedGetNavigableCursorAffinitiesAtResult = {
-  beforeAfter: {
-    BEFORE: true,
-    AFTER: true,
-  } as GetNavigableCursorOrientationsAtResult,
-  justAfter: { AFTER: true } as GetNavigableCursorOrientationsAtResult,
-  justBefore: { BEFORE: true } as GetNavigableCursorOrientationsAtResult,
-  none: {},
+export type GetDetailedNavigableCursorOrientationsAtResult = {
+  [key in CursorOrientation]?: CursorOrientationClassification;
 };
 
-export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetNavigableCursorOrientationsAtResult {
+export function getDetailedNavigableCursorOrientationsAt(
+  navigator: NodeNavigator
+): GetDetailedNavigableCursorOrientationsAtResult {
   const el = navigator.tip.node;
   const precedingSibling = navigator.precedingSiblingNode;
   const nextSibling = navigator.nextSiblingNode;
@@ -80,8 +88,8 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
     }
 
     return beforeIsValid
-      ? CannedGetNavigableCursorAffinitiesAtResult.beforeAfter
-      : CannedGetNavigableCursorAffinitiesAtResult.justAfter;
+      ? { BEFORE: CursorOrientationClassification.Valid, AFTER: CursorOrientationClassification.Valid }
+      : { AFTER: CursorOrientationClassification.Valid };
   }
 
   // OK the Node is NOT a Grapheme...
@@ -90,24 +98,26 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
   const hasAfterBetweenInsertionPoint = isInBetweenInsertionPoint(el, nextSibling);
 
   if (!hasOn && !hasBeforeBetweenInsertionPoint && !hasAfterBetweenInsertionPoint) {
-    return CannedGetNavigableCursorAffinitiesAtResult.none;
+    return {};
   }
 
-  const result: GetNavigableCursorOrientationsAtResult = {};
-  if (hasBeforeBetweenInsertionPoint) {
-    if (precedingSibling) {
-      // In this case we dont set before to true because we know after is true
-      // and we want to prefer after orientations for these insertion
-      // positions... I think?
-    } else {
-      result.BEFORE = true;
-    }
-  }
+  const result: GetDetailedNavigableCursorOrientationsAtResult = {};
+  // In this case we dont set before to true because ... we know after is true
+  // on the preceding sibling... and we want to prefer after orientations for
+  // these insertion positions... I think?
+  result.BEFORE = precedingSibling ? undefined : hasBeforeBetweenInsertionPoint;
   if (hasOn) {
-    result.ON = true;
+    result.ON = CursorOrientationClassification.Valid;
   }
-  if (hasAfterBetweenInsertionPoint) {
-    result.AFTER = true;
-  }
+  result.AFTER = hasAfterBetweenInsertionPoint;
   return result;
+}
+
+export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetNavigableCursorOrientationsAtResult {
+  const preResult = getDetailedNavigableCursorOrientationsAt(navigator);
+  return {
+    BEFORE: preResult.BEFORE === CursorOrientationClassification.Valid,
+    ON: preResult.ON === CursorOrientationClassification.Valid,
+    AFTER: preResult.AFTER === CursorOrientationClassification.Valid,
+  };
 }
