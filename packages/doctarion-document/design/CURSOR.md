@@ -1,5 +1,12 @@
 
+
 TODO rewrite to include info about anchors.
+
+NEW POINTS:
+1) There are some cursor positions that are equivalent
+2) Commands/working-doc/navigation all will prefer after to before except realted to spans around other inlines and maybe osme other caess (check the getvalidcurosrpos file)
+3) HOWEVER, all commands/working-doc must work successfully with any valid cursor position BECAUSE anchors dont have to obey those rules.
+
 
 Placing a cursor (aka caret) in the document, and moving it, is hard.
 

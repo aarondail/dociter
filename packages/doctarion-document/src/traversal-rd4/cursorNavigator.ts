@@ -154,24 +154,27 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     this.nodeNavigator = temp.nodeNavigator;
     this.currentOrientation = temp.currentOrientation;
 
-    if (this.navigateToNextCursorPosition()) {
-      this.navigateToPrecedingCursorPosition();
-    } else {
-      const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (this.currentOrientation === CursorOrientation.On && positions.on) {
-        this.currentOrientation = CursorOrientation.On;
-      } else if (this.currentOrientation === CursorOrientation.Before && positions.before) {
-        this.currentOrientation = CursorOrientation.Before;
-      } else if (this.currentOrientation === CursorOrientation.After && positions.after) {
-        this.currentOrientation = CursorOrientation.After;
-      } else if (positions.on) {
-        this.currentOrientation = CursorOrientation.On;
-      } else if (positions.before) {
-        this.currentOrientation = CursorOrientation.Before;
-      } else if (positions.after) {
-        this.currentOrientation = CursorOrientation.After;
-      } else {
+    const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
+
+    if (!positions[this.currentOrientation]) {
+      if (this.navigateToNextCursorPosition()) {
         this.navigateToPrecedingCursorPosition();
+      } else {
+        if (this.currentOrientation === CursorOrientation.On && positions.ON) {
+          this.currentOrientation = CursorOrientation.On;
+        } else if (this.currentOrientation === CursorOrientation.Before && positions.BEFORE) {
+          this.currentOrientation = CursorOrientation.Before;
+        } else if (this.currentOrientation === CursorOrientation.After && positions.AFTER) {
+          this.currentOrientation = CursorOrientation.After;
+        } else if (positions.ON) {
+          this.currentOrientation = CursorOrientation.On;
+        } else if (positions.BEFORE) {
+          this.currentOrientation = CursorOrientation.Before;
+        } else if (positions.AFTER) {
+          this.currentOrientation = CursorOrientation.After;
+        } else {
+          this.navigateToPrecedingCursorPosition();
+        }
       }
     }
 
@@ -222,16 +225,16 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     // navigator is on
     if (orientation === CursorOrientation.Before) {
       const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (positions.on) {
+      if (positions.ON) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.after && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
+      } else if (positions.AFTER && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
     } else if (orientation === CursorOrientation.On) {
       const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (positions.after) {
+      if (positions.AFTER) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -240,7 +243,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
         const parentPositions = getNavigableCursorOrientationsAt(parentNavigator);
-        if (parentPositions.after) {
+        if (parentPositions.AFTER) {
           this.nodeNavigator = parentNavigator;
           return true;
         }
@@ -263,13 +266,13 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateForwardsByDfs({ skipDescendants })) {
       const newPositions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (newPositions.before) {
+      if (newPositions.BEFORE) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
-      } else if (newPositions.on) {
+      } else if (newPositions.ON) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.after && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
+      } else if (newPositions.AFTER && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.After;
         return true;
       }
@@ -303,16 +306,16 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
 
     if (orientation === CursorOrientation.After) {
       const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (positions.on) {
+      if (positions.ON) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (positions.before && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
+      } else if (positions.BEFORE && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
     } else if (orientation === CursorOrientation.On) {
       const positions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (positions.before) {
+      if (positions.BEFORE) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
@@ -321,7 +324,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
         // Check parents
         const parentNavigator = this.nodeNavigator.cloneWithoutTip();
         const parentPositions = getNavigableCursorOrientationsAt(parentNavigator);
-        if (parentPositions.before) {
+        if (parentPositions.BEFORE) {
           this.nodeNavigator = parentNavigator;
           return true;
         }
@@ -332,13 +335,13 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
     const backup = this.nodeNavigator.clone();
     while (this.nodeNavigator.navigateBackwardsByDfs({ skipDescendants })) {
       const newPositions = getNavigableCursorOrientationsAt(this.nodeNavigator);
-      if (newPositions.after) {
+      if (newPositions.AFTER) {
         this.currentOrientation = CursorOrientation.After;
         return true;
-      } else if (newPositions.on) {
+      } else if (newPositions.ON) {
         this.currentOrientation = CursorOrientation.On;
         return true;
-      } else if (newPositions.before && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
+      } else if (newPositions.BEFORE && !(this.tip.node instanceof Node && (this.tip.node.children.length || 0) > 0)) {
         this.currentOrientation = CursorOrientation.Before;
         return true;
       }
@@ -370,7 +373,7 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
         clone.navigateToPrecedingCursorPosition();
       } else {
         const positions = getNavigableCursorOrientationsAt(clone.nodeNavigator);
-        if (!positions.before && !positions.on && !positions.after) {
+        if (!positions.BEFORE && !positions.ON && !positions.AFTER) {
           clone.navigateToPrecedingCursorPosition();
         }
       }

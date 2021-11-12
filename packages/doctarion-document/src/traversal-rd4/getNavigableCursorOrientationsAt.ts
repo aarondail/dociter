@@ -1,3 +1,4 @@
+import { CursorOrientation } from ".";
 import { Node, NodeCategory, NodeChildrenType, Span } from "../document-model-rd5";
 
 import { NodeNavigator } from "./nodeNavigator";
@@ -30,16 +31,15 @@ function isInBetweenInsertionPoint(node: PseudoNode, adjacentSiblingNode?: Pseud
   );
 }
 
-export type GetNavigableCursorOrientationsAtResult = {
-  before?: boolean;
-  after?: boolean;
-  on?: boolean;
-};
+export type GetNavigableCursorOrientationsAtResult = { [key in CursorOrientation]?: boolean };
 
 const CannedGetNavigableCursorAffinitiesAtResult = {
-  beforeAfter: { before: true, after: true } as GetNavigableCursorOrientationsAtResult,
-  justAfter: { after: true } as GetNavigableCursorOrientationsAtResult,
-  justBefore: { before: true } as GetNavigableCursorOrientationsAtResult,
+  beforeAfter: {
+    BEFORE: true,
+    AFTER: true,
+  } as GetNavigableCursorOrientationsAtResult,
+  justAfter: { AFTER: true } as GetNavigableCursorOrientationsAtResult,
+  justBefore: { BEFORE: true } as GetNavigableCursorOrientationsAtResult,
   none: {},
 };
 
@@ -100,14 +100,14 @@ export function getNavigableCursorOrientationsAt(navigator: NodeNavigator): GetN
       // and we want to prefer after orientations for these insertion
       // positions... I think?
     } else {
-      result.before = true;
+      result.BEFORE = true;
     }
   }
   if (hasOn) {
-    result.on = true;
+    result.ON = true;
   }
   if (hasAfterBetweenInsertionPoint) {
-    result.after = true;
+    result.AFTER = true;
   }
   return result;
 }

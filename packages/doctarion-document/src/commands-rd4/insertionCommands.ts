@@ -27,11 +27,9 @@ type InsertOptions = InsertTextOptions | InsertInlineOption;
 export type InsertPayload = TargetPayload & InsertOptions;
 
 export const insert = coreCommand<InsertPayload>("insert", (state, services, payload) => {
-  const isText = isInsertOptionsText(payload);
+  const payloadIsText = isInsertOptionsText(payload);
 
-  // TODO sorting..
   let targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed);
-  targets.reverse();
 
   // Delete selection first
   let anySelections = false;
@@ -49,12 +47,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     if (target.selectionAnchorNavigator) {
       throw new CommandError("Unexpectedly found a selection");
     }
-    const node = target.mainAnchorNavigator.tip.node;
+    const targetNode = target.mainAnchorNavigator.tip.node;
 
     const direction = FlowDirection.Forward;
     const isForward = direction === FlowDirection.Forward;
 
-    const currentPositionIsOnGrapheme = PseudoNode.isGrapheme(node);
+    const currentPositionIsOnGrapheme = PseudoNode.isGrapheme(targetNode);
 
     if (currentPositionIsOnGrapheme) {
       if (
@@ -67,7 +65,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         );
       }
 
-      if (isText) {
+      if (payloadIsText) {
         const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
 
         // Text in a text container
@@ -80,7 +78,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             break;
           case CursorOrientation.After:
             offset = 1;
-            moveAnchor = true; // Wont get updated by insertText since its before location
+            moveAnchor = true; // Wont get updated by insertText since its after location
             break;
           case CursorOrientation.On:
             // TODO test
@@ -172,20 +170,23 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         }
       }
     } else {
-      const isEmptyInsertionPoint = node instanceof Node && CommandUtils.doesNodeTypeHaveNodeChildren(node.nodeType);
-      const insertionIndex =
-        target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
-          ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
-            target.mainAnchorNavigator.tip.pathPart!.index! + 1
-          : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
-          ? target.mainAnchorNavigator.tip.pathPart!.index! + 0
-          : target.mainAnchorNavigator.tip.pathPart!.index! + 1;
+      // Current position is NOT a Grapheme, but a Node
 
-      if (node instanceof Node && CommandUtils.doesNodeTypeHaveTextOrFancyText(node.nodeType)) {
-        if (isText && isEmptyInsertionPoint) {
+      const insertionIndex =
+        target.mainAnchorNavigator.tip.pathPart?.index === undefined
+          ? 0
+          : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
+          ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
+            target.mainAnchorNavigator.tip.pathPart.index + 1
+          : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
+          ? target.mainAnchorNavigator.tip.pathPart.index + 0
+          : target.mainAnchorNavigator.tip.pathPart.index + 1;
+
+      if (targetNode instanceof Node && CommandUtils.doesNodeTypeHaveTextOrFancyText(targetNode.nodeType)) {
+        if (payloadIsText && targetNode.children.length === 0) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
-          // Empty inline text or inline url link
-          state.insertNodeText(node, graphemes, 0);
+          // Empty Span or other inline
+          state.insertNodeText(targetNode, graphemes, 0);
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
@@ -193,7 +194,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           });
         } else {
           // Similar to above...
-          const inline = isText
+          const inline = payloadIsText
             ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
                 styles: new TextStyleStrip(),
               })
@@ -213,12 +214,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         }
-      } else if (node instanceof Node && node.nodeType.childrenType === NodeChildrenType.Inlines) {
-        if (isText && isEmptyInsertionPoint) {
+      } else if (targetNode instanceof Node && targetNode.nodeType.childrenType === NodeChildrenType.Inlines) {
+        if (payloadIsText && targetNode.children.length === 0) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty block that contains inlines
           const newInline = new Node(Span, graphemes, { styles: new TextStyleStrip() });
-          state.insertNode(node, newInline, 0);
+          state.insertNode(targetNode, newInline, 0);
 
           // Move into the InlineText
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition();
@@ -228,13 +229,13 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           });
         } else {
           // Similar to above...
-          const inline = isText
+          const inline = payloadIsText
             ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
                 styles: new TextStyleStrip(),
               })
             : payload.inline;
 
-          state.insertNode(node, inline, insertionIndex);
+          state.insertNode(targetNode, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
           target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
@@ -243,13 +244,13 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         }
-      } else if (node instanceof Node && CommandUtils.doesNodeTypeHaveBlockChildren(node.nodeType)) {
-        // Empty document
+      } else if (targetNode instanceof Node && CommandUtils.doesNodeTypeHaveBlockChildren(targetNode.nodeType)) {
+        // Empty document?
         const newParagraph = new Node(Paragraph, [], {});
-        const insertionResult = state.insertNode(node, newParagraph, 0);
+        const insertionResult = state.insertNode(targetNode, newParagraph, 0);
         const actualNewParagraph = insertionResult.workingNode;
 
-        if (isText && isEmptyInsertionPoint) {
+        if (payloadIsText && targetNode.children.length === 0) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           const newInline = new Node(Span, graphemes, { styles: new TextStyleStrip() });
           state.insertNode(actualNewParagraph, newInline, 0);
@@ -261,7 +262,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           });
         } else {
           // Similar to above...
-          const inline = isText
+          const inline = payloadIsText
             ? new Node(
                 Span,
                 typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text,

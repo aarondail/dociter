@@ -197,9 +197,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     const nav = new NodeNavigator<ReadonlyWorkingNode>(this.actualDocument);
     if (nav.navigateTo(path)) {
       if (nav.tip.node instanceof Node) {
-        this.deletePrime([{ node: nav.tip.node as WorkingNode }], pull, true);
+        this.deleteDocumentLocationsPrime([{ node: nav.tip.node as WorkingNode }], pull, true);
       } else if (nav.parent && PseudoNode.isGrapheme(nav.tip.node)) {
-        this.deletePrime(
+        this.deleteDocumentLocationsPrime(
           [{ node: nav.parent.node as WorkingNode, graphemeIndex: nav.tip.pathPart!.index }],
           pull,
           true
@@ -231,7 +231,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deletePrime([{ node: resolvedNode }], pull, true);
+    this.deleteDocumentLocationsPrime([{ node: resolvedNode }], pull, true);
   }
 
   /**
@@ -246,7 +246,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    this.deletePrime([{ node: resolvedNode, graphemeIndex }], pull, true);
+    this.deleteDocumentLocationsPrime([{ node: resolvedNode, graphemeIndex }], pull, true);
   }
 
   public deleteRange(range: Range, pull?: AnchorPullDirection): void {
@@ -262,7 +262,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
 
     // This is probably a very inefficient way to deal with text.. and everything
-    this.deletePrime(
+    this.deleteDocumentLocationsPrime(
       chainsToDelete.map((chain) =>
         chain.tip.node instanceof Node
           ? { node: chain.tip.node as WorkingNode }
@@ -523,7 +523,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
 
-    this.deletePrime(
+    this.deleteDocumentLocationsPrime(
       [{ node: source }],
       direction === FlowDirection.Backward ? AnchorPullDirection.Backward : AnchorPullDirection.Forward,
       false // I think its logically impossible for us to have to join spans during this delete and the source is empty at this point... I think
@@ -674,7 +674,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
 
           currentValue?.map((node: WorkingNode) =>
-            this.deletePrime(
+            this.deleteDocumentLocationsPrime(
               [{ node }],
               AnchorPullDirection.Backward,
               false // There is no need to join Spans here
@@ -1007,7 +1007,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
    * locations for this logic to work in all cases. These probably should be in
    * reverse order too.
    */
-  private deletePrime(
+  private deleteDocumentLocationsPrime(
     contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
     pull: AnchorPullDirection | undefined,
     joinAdjacentSpansIfPossible: boolean
