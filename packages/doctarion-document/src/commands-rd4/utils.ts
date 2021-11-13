@@ -210,9 +210,8 @@ export const CommandUtils = {
     ) {
       return true;
     }
-
     const secondFind = CommandUtils.findAncestorNodeWithNavigator(n, containingNode);
-    return firstFind !== secondFind;
+    return firstFind.node !== secondFind?.node;
   },
 
   selectTargets(state: WorkingDocument, target: Target, sort: SelectTargetsSort): SelectTargetsResult[] {

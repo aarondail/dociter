@@ -121,7 +121,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
         const isAtEdge = CommandUtils.isCursorNavigatorAtEdgeOfContainingNode(
           target.mainAnchorNavigator,
           target.mainAnchorNavigator.parent.node,
-          direction
+          target.mainAnchorNavigator.tip.pathPart?.index === 0 ? FlowDirection.Backward : FlowDirection.Forward
         );
 
         if (isAtEdge) {
@@ -138,31 +138,39 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
-          target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
+          } else {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+          }
+          target.mainAnchorNavigator.navigateToNextCursorPosition();
+
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
             lineMovementHorizontalVisualPosition: undefined,
           });
         } else {
-          // Split
           const insertionIndex =
             target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
-              ? // ? direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
-                target.mainAnchorNavigator.tip.pathPart!.index! + 1
+              ? target.mainAnchorNavigator.tip.pathPart!.index! + 1
               : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
               ? target.mainAnchorNavigator.tip.pathPart!.index! + 0
               : target.mainAnchorNavigator.tip.pathPart!.index! + 1;
 
-          state.splitNode(target.mainAnchorNavigator.parent.node, [insertionIndex]);
+          state.splitNodeAndInsertBetween(target.mainAnchorNavigator.parent.node, [insertionIndex], payload.inline);
 
-          // Then do insertion like above
-          state.insertNode(grandParentNode, payload.inline, parentIndexFromGrandParent + 1);
           parentIndexFromGrandParent++;
 
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
-          target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
+          } else {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+          }
+          target.mainAnchorNavigator.navigateToNextCursorPosition();
+
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
             lineMovementHorizontalVisualPosition: undefined,
@@ -177,7 +185,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           ? 0
           : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
           ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
-            target.mainAnchorNavigator.tip.pathPart.index + 1
+            target.mainAnchorNavigator.tip.pathPart.index + 0
           : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
           ? target.mainAnchorNavigator.tip.pathPart.index + 0
           : target.mainAnchorNavigator.tip.pathPart.index + 1;
@@ -193,7 +201,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         } else {
-          // Similar to above...
+          // Target/Position:
+          // Between insertion point (not empty) of node that contains text (an
+          // inline) (Note: Spans should generally not hit this because they
+          // won't have between insertion points)
+          // Payload:
+          // Text (will be converted to Span) or inline
           const inline = payloadIsText
             ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
                 styles: new TextStyleStrip(),
@@ -208,7 +221,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
 
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
-          target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          if (inline.nodeType === Span) {
+            target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          } else {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+            target.mainAnchorNavigator.navigateToNextCursorPosition();
+          }
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
             lineMovementHorizontalVisualPosition: undefined,
@@ -238,7 +256,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           state.insertNode(targetNode, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
-          target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          target.mainAnchorNavigator.navigateToNextCursorPosition();
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
             lineMovementHorizontalVisualPosition: undefined,

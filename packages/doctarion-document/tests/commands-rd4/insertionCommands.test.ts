@@ -1,5 +1,7 @@
 import { Commands, InteractorTargets } from "../../src/commands-rd4";
+import { Hyperlink, Node } from "../../src/document-model-rd5";
 import { Editor } from "../../src/editor-rd4";
+import { Text } from "../../src/text-model-rd4";
 import { CursorOrientation } from "../../src/traversal-rd4";
 import { dumpAnchorsFromWorkingDocument, nodeToXmlish, testDoc } from "../utils-rd4";
 
@@ -133,7 +135,7 @@ describe("insert should insert text", () => {
 
   it("with multiple graphemes successfully", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
-    // Jump to second M in the "M" inline text
+    // Jump to second M in the "M" Span
     editor.execute(Commands.jump({ to: { path: "1/0/1", orientation: After } }));
     editor.execute(Commands.insert({ text: "QST", target: InteractorTargets.Focused }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
@@ -144,7 +146,7 @@ describe("insert should insert text", () => {
     );
   });
 
-  it("around inline url links successfully", () => {
+  it("around Hyperlinks successfully", () => {
     const document = testDoc`<p> <hyperlink url=a.com>AA</hyperlink> <hyperlink url=b.com>BB</hyperlink> </p>`;
     let editor = new Editor({ document });
     editor.execute(Commands.jump({ to: { path: "0/0", orientation: Before } }));
@@ -259,189 +261,89 @@ describe("insert should insert text", () => {
   });
 });
 
-// describe("insert should insert a Hyperlink", () => {
-//   // ---------------------------------------------------------------------------
-//   // Insertion at the Paragraph Level
-//   // ---------------------------------------------------------------------------
-//   it("into an empty paragraph", () => {
-//     const editor = new Editor({ document: doc(paragraph()) });
-//     editor.execute(Commands.jump({ to: { path: "0", orientation: On } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(nodeToXml(editor.state.document.children[0]!)).toMatchInlineSnapshot(`
-//               "<PARAGRAPH>
-//                 <URL_LINK test.com>ABC</URL_LINK>
-//               </PARAGRAPH>
-//               "
-//           `);
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 0/0 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
+describe("insert should insert a Hyperlink", () => {
+  it("into an empty paragraph", () => {
+    const editor = new Editor({ document: testDoc`<p> </p>` });
+    editor.execute(Commands.jump({ to: { path: "0", orientation: On } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
 
-//   // ---------------------------------------------------------------------------
-//   // Insertion at the Inline Level
-//   // ---------------------------------------------------------------------------
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <hyperlink url=test.com>ABC</hyperlink> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Hyperlink)0/0 intr: ∅"`
+    );
+  });
 
-//   it("before an inline url link", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     editor.execute(Commands.jump({ to: { path: "4/0", orientation: Before } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
+  it("before an Hyperlink", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
 
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 4/0/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CC</s> <hyperlink url=test.com>ABC</hyperlink> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Hyperlink)3/1 intr: ᯼ "`
+    );
+  });
 
-//     // Check that prior and later content elements are what we expect
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > URL_LINK e.com > "EE"
-// PARAGRAPH > URL_LINK f.com > "FF"`);
-//   });
+  it("between Hyperlinks", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("DEF"), { url: "other.com" }) }));
 
-//   it("between inline url links", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     editor.execute(Commands.jump({ to: { path: "4/1", orientation: Before } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CC</s> <hyperlink url=test.com>ABC</hyperlink> <hyperlink url=other.com>DEF</hyperlink> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Hyperlink)3/2 intr: ᯼ "`
+    );
+  });
 
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 4/1/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
+  it("after Hyperlinks", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:D)3/2⁙0 intr: ᯼ "`
+    );
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
 
-//     // Check that prior and later content elements are what we expect
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > URL_LINK e.com > "EE"
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > URL_LINK f.com > "FF"`);
-//   });
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <hyperlink url=test.com>ABC</hyperlink> <s>DD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:D)3/3⁙0 intr: ᯼ "`
+    );
+  });
 
-//   it("after inline url links", () => {
-//     let editor = new Editor({ document: testDoc1 });
-//     editor.execute(Commands.jump({ to: { path: "4/0", orientation: After } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
+  it("into the middle of a Span with before orientation", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
 
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 4/1/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s>MMN</s> <hyperlink url=test.com>ABC</hyperlink> <s styles=3:+B>NAABB</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:N)1/2⁙0 intr: ᯼ "`
+    );
+  });
 
-//     // Check that prior and later content elements are what we expect
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > URL_LINK e.com > "EE"
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > URL_LINK f.com > "FF"`);
+  it("into the middle of a Span with after orientation", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
 
-//     editor = new Editor({ document: testDoc1 });
-//     editor.execute(Commands.jump({ to: { path: "4/1", orientation: After } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 4/2/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-
-//     // Check that prior and later content elements are what we expect
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > URL_LINK e.com > "EE"
-// PARAGRAPH > URL_LINK f.com > "FF"
-// PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-
-//   // ---------------------------------------------------------------------------
-//   // Insertion at the Grapheme Level
-//   // ---------------------------------------------------------------------------
-
-//   it("into the middle of a inline text with before orientation", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     // This is putting the cursor in the middle of the NNN inline text
-//     editor.execute(Commands.jump({ to: { path: "1/2/1", orientation: Before } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > TEXT {} > "MMM"
-// PARAGRAPH > TEXT {} > ""
-// PARAGRAPH > TEXT {} > "N"
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > TEXT {} > "NN"`);
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 1/3/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-
-//   it("into the middle of a inline text with after orientation", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     // This is putting the cursor in the middle of the NNN inline text
-//     editor.execute(Commands.jump({ to: { path: "1/2/1", orientation: After } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 1/3/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//     // Check that prior and later content elements are what we expect
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > TEXT {} > "MMM"
-// PARAGRAPH > TEXT {} > ""
-// PARAGRAPH > TEXT {} > "NN"
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > TEXT {} > "N"`);
-//   });
-
-//   it("at the beginning of an inline text", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     editor.execute(Commands.jump({ to: { path: "1/0/0", orientation: Before } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > TEXT {} > "MMM"
-// PARAGRAPH > TEXT {} > ""
-// PARAGRAPH > TEXT {} > "NNN"`);
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 1/0/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-
-//   it("at the end of an inline text", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     editor.execute(Commands.jump({ to: { path: "1/2/2", orientation: After } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > TEXT {} > "MMM"
-// PARAGRAPH > TEXT {} > ""
-// PARAGRAPH > TEXT {} > "NNN"
-// PARAGRAPH > URL_LINK test.com > "ABC"`);
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 1/3/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-
-//   it("should insert between two inline texts", () => {
-//     const editor = new Editor({ document: doc(paragraph(inlineText("AA"), inlineText("BB"))) });
-//     editor.execute(Commands.jump({ to: { path: "0/0/1", orientation: After } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-//     expect(debugCurrentBlock(editor)).toEqual(`
-// PARAGRAPH > TEXT {} > "AA"
-// PARAGRAPH > URL_LINK test.com > "ABC"
-// PARAGRAPH > TEXT {} > "BB"`);
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 0/1/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-
-//   it("around an inline inline text when the orientation is on link", () => {
-//     const editor = CommandsTestUtils.getEditorForBasicDoc();
-//     editor.execute(Commands.jump({ to: { path: "1/1", orientation: On } }));
-//     editor.execute(Commands.insert({ inline: inlineUrlLink("test.com", "ABC") }));
-
-//     expect(nodeToXml(editor.state.document.children[1]!)).toMatchInlineSnapshot(`
-//         "<PARAGRAPH>
-//           <TEXT>MMM</TEXT>
-//           <TEXT></TEXT>
-//           <URL_LINK test.com>ABC</URL_LINK>
-//           <TEXT>NNN</TEXT>
-//         </PARAGRAPH>
-//         "
-//       `);
-
-//     expect(debugState(editor)).toEqual(`
-// CURSOR: 1/2/2 |>
-// SLICE:  PARAGRAPH > URL_LINK test.com > "ABC"`);
-//   });
-// });
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s>MMNN</s> <hyperlink url=test.com>ABC</hyperlink> <s styles=2:+B>AABB</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:A)1/2⁙0 intr: ᯼ "`
+    );
+  });
+});
 
 // describe("insert should insert a Header", () => {
 // });

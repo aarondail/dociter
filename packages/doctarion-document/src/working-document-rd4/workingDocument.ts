@@ -727,135 +727,57 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
+  /**
+   * Note that this will not split Spans because they would be auto joined back
+   * together. You may want to use splitNodeAndInsert for inserting nodes in a
+   * span.
+   */
   public splitAtPath(path: PathString | Path, splitChildIndices: readonly number[]): void {
     const node = this.getNodeOrGraphemeAtPath(path);
     if (!PseudoNode.isNode(node)) {
       throw new WorkingDocumentError("Cannot split on a Grapheme");
     }
-    this.splitNode(node, splitChildIndices);
+    this.splitNodePrime(node as WorkingNode, splitChildIndices, true);
   }
 
+  /**
+   * Note that this will not split Spans because they would be auto joined back
+   * together. You may want to use splitNodeAndInsert for inserting nodes in a
+   * span.
+   */
   public splitNode(node: NodeId | ReadonlyWorkingNode, splitChildIndices: readonly number[]): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    if (resolvedNode.nodeType === Document) {
-      throw new WorkingDocumentError("Cannot split the Document");
+    this.splitNodePrime(resolvedNode, splitChildIndices, true);
+  }
+
+  /**
+   * This is especially handy when you want to split a Span and insert another
+   * node at the split. This is otherwise not possible because the normal
+   * splitNode won't split Spans.
+   */
+  public splitNodeAndInsertBetween(
+    nodeToSplit: NodeId | ReadonlyWorkingNode,
+    splitChildIndices: readonly number[],
+    nodeToInsert: Node
+  ): void {
+    const resolvedNodeToSplit = this.nodeLookup.get(typeof nodeToSplit === "string" ? nodeToSplit : nodeToSplit.id);
+    if (!resolvedNodeToSplit) {
+      throw new WorkingDocumentError("Unknown node");
     }
-    if (!resolvedNode.parent || resolvedNode.pathPartFromParent?.index === undefined) {
-      throw new WorkingDocumentError("Unknown node parent");
+    const parent = resolvedNodeToSplit.parent;
+    const splitNodeIndexFromParent = resolvedNodeToSplit.pathPartFromParent?.index;
+    if (
+      !parent ||
+      splitNodeIndexFromParent === undefined ||
+      resolvedNodeToSplit.pathPartFromParent?.facet !== undefined
+    ) {
+      throw new WorkingDocumentError("Node to split doesn't have parent or cannot determine child index");
     }
-
-    if (splitChildIndices.length === 0) {
-      throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
-    }
-
-    // Make sure we can split nodes
-    const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
-    for (let i = 0; i < splitChildIndices.length; i++) {
-      const childIndex = splitChildIndices[i];
-      if (!nav.navigateToChild(childIndex)) {
-        throw new WorkingDocumentError("Could not find target");
-      }
-      if (i < splitChildIndices.length - 1) {
-        if (!PseudoNode.isNode(nav.tip.node)) {
-          throw new WorkingDocumentError("Node cannot be split");
-        }
-        if (!Utils.canNodeBeSplit(nav.tip.node)) {
-          throw new WorkingDocumentError("Node cannot be split");
-        }
-      } else {
-        if (PseudoNode.isGrapheme(nav.tip.node)) {
-          if (childIndex === 0 && splitChildIndices.length === 1) {
-            // This is a no-op (no point in splitting something with text as
-            // children at the first character). There is no content on one
-            // side!
-            return;
-          } else if (childIndex === 0) {
-            // In this case, the split could have some other impact so we try
-            // again just without the last index
-            this.splitNode(node, splitChildIndices.slice(0, childIndex - 1));
-            return;
-          }
-        }
-      }
-    }
-
-    if (!Utils.canNodeBeSplit(resolvedNode)) {
-      throw new WorkingDocumentError("Node cannot be split");
-    }
-
-    if (resolvedNode.nodeType === Span) {
-      // Don't split (JUST) a single Span because we'd just auto merge them
-      return;
-    }
-
-    const clone: Node = cloneWorkingNodeAsEmptyRegularNode(resolvedNode);
-    const newWorkingRoot = this.insertNodePrime(
-      resolvedNode.parent,
-      clone,
-      resolvedNode.pathPartFromParent.index + 1,
-      undefined,
-      true
-    ).workingNode as WorkingNode;
-
-    let currentSplitSource: WorkingNode = resolvedNode;
-    let currentSplitDest = newWorkingRoot;
-    for (let i = 0; i < splitChildIndices.length; i++) {
-      const childIndex = splitChildIndices[i];
-
-      const isLastSplit = i === splitChildIndices.length - 1;
-
-      const splitOutKids = currentSplitSource.children.splice(
-        childIndex,
-        currentSplitSource.children.length - childIndex
-      ) as any[];
-      currentSplitDest.children = [...splitOutKids, ...currentSplitDest.children] as any;
-
-      if (Utils.doesNodeTypeHaveNodeChildren(currentSplitSource.nodeType)) {
-        if (isLastSplit) {
-          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
-        } else {
-          // Split the kids of the CURRENT SPLIT SOURCE, after the BOUNDARY child
-          // node (which will become the current split source and be modified in
-          // the next loop)...
-          const boundaryNodeThatWeAreGoingToSplitMore = currentSplitDest.children[0] as WorkingNode;
-
-          const boundaryNodeToAddToDest = cloneWorkingNodeAsEmptyRegularNode(boundaryNodeThatWeAreGoingToSplitMore);
-          // Return the boundary node original to the parent and put the spilt version in the destination
-          (currentSplitSource.children as any[]).push(boundaryNodeThatWeAreGoingToSplitMore as any);
-          currentSplitDest.children.shift(); // We will insert the new node it below
-
-          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
-
-          // Finally insert the new boundary node and set it for the next iteration
-          currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true)
-            .workingNode as WorkingNode;
-          currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
-        }
-      } else {
-        if (!isLastSplit) {
-          throw new WorkingDocumentError("Unexpectedly tried to split graphemes");
-        }
-
-        // In this case (graphemes) we may need to move anchors that are on
-        // the graphemes... and split the TextStyleStrips
-        for (const anchor of currentSplitSource.attachedAnchors.values()) {
-          if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= childIndex) {
-            this.updateAnchor(anchor, {
-              node: currentSplitDest,
-              graphemeIndex: anchor.graphemeIndex - childIndex,
-            });
-          }
-        }
-
-        for (const [{ name: facetName }, strip] of currentSplitSource.getAllFacetTextStyleStrips()) {
-          const newStrip: WorkingTextStyleStrip = (strip as WorkingTextStyleStrip).updateAndSplitAt(childIndex);
-          currentSplitDest.setFacet(facetName, newStrip);
-        }
-      }
-    }
+    this.splitNodePrime(resolvedNodeToSplit, splitChildIndices, false);
+    this.insertNodePrime(parent, nodeToInsert, splitNodeIndexFromParent + 1, undefined, true);
   }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, parameters: Partial<AnchorParameters>): void {
@@ -1425,6 +1347,129 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     } else {
       // This must be the document, so don't really do anything
       throw new WorkingDocumentError("Cannot remove document from parent, as there is no parent");
+    }
+  }
+
+  private splitNodePrime(
+    node: WorkingNode,
+    splitChildIndices: readonly number[],
+    preventSplitThatCreatesAdjacentSpans: boolean
+  ): void {
+    if (node.nodeType === Document) {
+      throw new WorkingDocumentError("Cannot split the Document");
+    }
+    if (!node.parent || node.pathPartFromParent?.index === undefined) {
+      throw new WorkingDocumentError("Unknown node parent");
+    }
+
+    if (splitChildIndices.length === 0) {
+      throw new WorkingDocumentError("Cannot split a node without specifying which child to split at");
+    }
+
+    // Make sure we can split nodes
+    const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(node));
+    for (let i = 0; i < splitChildIndices.length; i++) {
+      const childIndex = splitChildIndices[i];
+      if (!nav.navigateToChild(childIndex)) {
+        throw new WorkingDocumentError("Could not find target");
+      }
+      if (i < splitChildIndices.length - 1) {
+        if (!PseudoNode.isNode(nav.tip.node)) {
+          throw new WorkingDocumentError("Node cannot be split");
+        }
+        if (!Utils.canNodeBeSplit(nav.tip.node)) {
+          throw new WorkingDocumentError("Node cannot be split");
+        }
+      } else {
+        if (PseudoNode.isGrapheme(nav.tip.node)) {
+          if (childIndex === 0 && splitChildIndices.length === 1) {
+            // This is a no-op (no point in splitting something with text as
+            // children at the first character). There is no content on one
+            // side!
+            return;
+          } else if (childIndex === 0) {
+            // In this case, the split could have some other impact so we try
+            // again just without the last index
+            this.splitNode(node, splitChildIndices.slice(0, childIndex - 1));
+            return;
+          }
+        }
+      }
+    }
+
+    if (!Utils.canNodeBeSplit(node)) {
+      throw new WorkingDocumentError("Node cannot be split");
+    }
+
+    if (preventSplitThatCreatesAdjacentSpans && node.nodeType === Span) {
+      // Don't split (JUST) a single Span because we'd just auto merge them (normally)
+      return;
+    }
+
+    const clone: Node = cloneWorkingNodeAsEmptyRegularNode(node);
+    const newWorkingRoot = this.insertNodePrime(
+      node.parent,
+      clone,
+      node.pathPartFromParent.index + 1,
+      undefined,
+      preventSplitThatCreatesAdjacentSpans
+    ).workingNode as WorkingNode;
+
+    let currentSplitSource: WorkingNode = node;
+    let currentSplitDest = newWorkingRoot;
+    for (let i = 0; i < splitChildIndices.length; i++) {
+      const childIndex = splitChildIndices[i];
+
+      const isLastSplit = i === splitChildIndices.length - 1;
+
+      const splitOutKids = currentSplitSource.children.splice(
+        childIndex,
+        currentSplitSource.children.length - childIndex
+      ) as any[];
+      currentSplitDest.children = [...splitOutKids, ...currentSplitDest.children] as any;
+
+      if (Utils.doesNodeTypeHaveNodeChildren(currentSplitSource.nodeType)) {
+        if (isLastSplit) {
+          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
+        } else {
+          // Split the kids of the CURRENT SPLIT SOURCE, after the BOUNDARY child
+          // node (which will become the current split source and be modified in
+          // the next loop)...
+          const boundaryNodeThatWeAreGoingToSplitMore = currentSplitDest.children[0] as WorkingNode;
+
+          const boundaryNodeToAddToDest = cloneWorkingNodeAsEmptyRegularNode(boundaryNodeThatWeAreGoingToSplitMore);
+          // Return the boundary node original to the parent and put the spilt version in the destination
+          (currentSplitSource.children as any[]).push(boundaryNodeThatWeAreGoingToSplitMore as any);
+          currentSplitDest.children.shift(); // We will insert the new node it below
+
+          Utils.updateNodeChildrenToHaveCorrectParentAndPathPartFromParent(currentSplitDest);
+
+          // Finally insert the new boundary node and set it for the next iteration
+          currentSplitDest = this.insertNodePrime(currentSplitDest, boundaryNodeToAddToDest, 0, undefined, true)
+            .workingNode as WorkingNode;
+          currentSplitSource = boundaryNodeThatWeAreGoingToSplitMore;
+        }
+      } else {
+        if (!isLastSplit) {
+          throw new WorkingDocumentError("Unexpectedly tried to split graphemes");
+        }
+
+        // In this case (graphemes) we may need to move anchors that are on
+        // the graphemes... and split the TextStyleStrips
+        for (const anchor of currentSplitSource.attachedAnchors.values()) {
+          if (anchor.graphemeIndex !== undefined && anchor.graphemeIndex >= childIndex) {
+            this.updateAnchor(anchor, {
+              node: currentSplitDest,
+              graphemeIndex: anchor.graphemeIndex - childIndex,
+            });
+          }
+        }
+
+        for (const [{ name: facetName }, strip] of currentSplitSource.getAllFacetTextStyleStrips()) {
+          const newStrip: WorkingTextStyleStrip = (strip as WorkingTextStyleStrip).updateAndSplitAt(childIndex);
+          currentSplitDest.setFacet(facetName, newStrip);
+        }
+      }
     }
   }
 }
