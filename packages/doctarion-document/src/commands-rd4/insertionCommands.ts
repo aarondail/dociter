@@ -2,7 +2,7 @@ import { Node, NodeChildrenType, Paragraph, Span } from "../document-model-rd5";
 import { FlowDirection } from "../miscUtils";
 import { Text, TextStyleStrip } from "../text-model-rd4";
 import { CursorOrientation, PseudoNode } from "../traversal-rd4";
-import { ReadonlyWorkingNode } from "../working-document-rd4";
+import { InsertOrJoin, ReadonlyWorkingNode } from "../working-document-rd4";
 
 import { deleteImplementation } from "./deletionCommands";
 import { CommandError } from "./error";
@@ -133,17 +133,43 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
               ? parentIndexFromGrandParent + 0
               : parentIndexFromGrandParent + 1;
 
-          state.insertNode(grandParentNode, payload.inline, parentIndexFromGrandParent);
+          const insertResult = state.insertNode(grandParentNode, payload.inline, parentIndexFromGrandParent);
 
-          target.mainAnchorNavigator.navigateFreelyToParent();
-          target.mainAnchorNavigator.navigateFreelyToParent();
-          target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
-          if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
-            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
+          if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
+            if (target.mainAnchorNavigator.parent.node.nodeType === Span) {
+              // This only happens when inserting Spans that get auto-joined to other Spans
+              let offset = target.mainAnchorNavigator.tip.pathPart!.index! || -1; // For some reason, if the edge is the backward edge we need to subtract one to get the math to work
+              offset += payload.inline.children.length;
+              target.mainAnchorNavigator.navigateFreelyToParent();
+              target.mainAnchorNavigator.navigateFreelyToChild(offset);
+              target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+              target.mainAnchorNavigator.navigateToNextCursorPosition();
+            } else {
+              const offset = target.mainAnchorNavigator.tip.pathPart?.index;
+              // This is like when we insert a Span to the edge of a Hyperlink
+              target.mainAnchorNavigator.navigateFreelyToParent();
+              target.mainAnchorNavigator.navigateFreelyToParent();
+              if (offset === 0) {
+                target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent - 1);
+                target.mainAnchorNavigator.navigateToLastDescendantCursorPosition();
+              } else {
+                target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
+                target.mainAnchorNavigator.navigateFreelyToChild(payload.inline.children.length - 1);
+                target.mainAnchorNavigator.navigateToNextCursorPosition();
+              }
+            }
           } else {
-            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+            target.mainAnchorNavigator.navigateFreelyToParent();
+            target.mainAnchorNavigator.navigateFreelyToParent();
+            target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
+            if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
+              target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
+              target.mainAnchorNavigator.navigateToNextCursorPosition();
+            } else {
+              target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+              target.mainAnchorNavigator.navigateToNextCursorPosition();
+            }
           }
-          target.mainAnchorNavigator.navigateToNextCursorPosition();
 
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
@@ -157,19 +183,34 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
               ? target.mainAnchorNavigator.tip.pathPart!.index! + 0
               : target.mainAnchorNavigator.tip.pathPart!.index! + 1;
 
-          state.splitNodeAndInsertBetween(target.mainAnchorNavigator.parent.node, [insertionIndex], payload.inline);
+          const insertResult = state.splitNodeAndInsertBetween(
+            target.mainAnchorNavigator.parent.node,
+            [insertionIndex],
+            payload.inline
+          );
 
-          parentIndexFromGrandParent++;
-
-          target.mainAnchorNavigator.navigateFreelyToParent();
-          target.mainAnchorNavigator.navigateFreelyToParent();
-          target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
-          if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
-            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
-          } else {
+          if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
+            let offset = target.mainAnchorNavigator.tip.pathPart!.index!;
+            offset += payload.inline.children.length;
+            target.mainAnchorNavigator.navigateFreelyToParent();
+            target.mainAnchorNavigator.navigateFreelyToChild(offset);
             target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+            target.mainAnchorNavigator.navigateToNextCursorPosition();
+          } else {
+            parentIndexFromGrandParent++;
+            target.mainAnchorNavigator.navigateFreelyToParent();
+            target.mainAnchorNavigator.navigateFreelyToParent();
+            target.mainAnchorNavigator.navigateFreelyToChild(parentIndexFromGrandParent);
+            if ((target.mainAnchorNavigator.toNodeNavigator().nextSiblingNode as Node)?.nodeType === Span) {
+              target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.After);
+              target.mainAnchorNavigator.navigateToNextCursorPosition();
+            } else if (payload.inline.nodeType === Span) {
+              target.mainAnchorNavigator.navigateToLastDescendantCursorPosition();
+            } else {
+              target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+              target.mainAnchorNavigator.navigateToNextCursorPosition();
+            }
           }
-          target.mainAnchorNavigator.navigateToNextCursorPosition();
 
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
@@ -180,17 +221,17 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
     } else {
       // Current position is NOT a Grapheme, but a Node
 
-      const insertionIndex =
-        target.mainAnchorNavigator.tip.pathPart?.index === undefined
-          ? 0
-          : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
-          ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
-            target.mainAnchorNavigator.tip.pathPart.index + 0
-          : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
-          ? target.mainAnchorNavigator.tip.pathPart.index + 0
-          : target.mainAnchorNavigator.tip.pathPart.index + 1;
-
       if (targetNode instanceof Node && CommandUtils.doesNodeTypeHaveTextOrFancyText(targetNode.nodeType)) {
+        const insertionIndex =
+          target.mainAnchorNavigator.tip.pathPart?.index === undefined
+            ? 0
+            : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.On
+            ? // direction === FlowDirection.Backward ? target.mainAnchorNavigator.tip.pathPart.index + 0 :
+              target.mainAnchorNavigator.tip.pathPart.index + 0
+            : target.mainAnchorNavigator.cursor.orientation === CursorOrientation.Before
+            ? target.mainAnchorNavigator.tip.pathPart.index + 0
+            : target.mainAnchorNavigator.tip.pathPart.index + 1;
+
         if (payloadIsText && targetNode.children.length === 0) {
           const graphemes: Text = typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text;
           // Empty Span or other inline
@@ -217,10 +258,12 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             throw new CommandError("Can not insert Span into non-Inline container");
           }
 
-          state.insertNode(parent, inline, insertionIndex);
+          const insertionResult = state.insertNode(parent, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToParent();
-          target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
+          target.mainAnchorNavigator.navigateFreelyToChild(
+            insertionResult.insertionHandledBy === InsertOrJoin.Insert ? insertionIndex : insertionIndex - 1
+          );
           if (inline.nodeType === Span) {
             target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
           } else {
@@ -246,6 +289,8 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         } else {
+          const insertionIndex = 0; // Is this right?
+
           // Similar to above...
           const inline = payloadIsText
             ? new Node(Span, typeof payload.text === "string" ? Text.fromString(payload.text) : payload.text, {
@@ -256,7 +301,13 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
           state.insertNode(targetNode, inline, insertionIndex);
 
           target.mainAnchorNavigator.navigateFreelyToChild(insertionIndex);
-          target.mainAnchorNavigator.navigateToNextCursorPosition();
+          if (inline.nodeType === Span) {
+            target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
+          } else {
+            target.mainAnchorNavigator.changeCursorOrientationFreely(CursorOrientation.On);
+            target.mainAnchorNavigator.navigateToNextCursorPosition();
+          }
+
           state.updateInteractor(target.interactor.id, {
             mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
             lineMovementHorizontalVisualPosition: undefined,
@@ -279,6 +330,8 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
             lineMovementHorizontalVisualPosition: undefined,
           });
         } else {
+          const insertionIndex = 0; // Is this right?
+
           // Similar to above...
           const inline = payloadIsText
             ? new Node(

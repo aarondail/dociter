@@ -762,7 +762,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     nodeToSplit: NodeId | ReadonlyWorkingNode,
     splitChildIndices: readonly number[],
     nodeToInsert: Node
-  ): void {
+  ): InsertNodeResult {
     const resolvedNodeToSplit = this.nodeLookup.get(typeof nodeToSplit === "string" ? nodeToSplit : nodeToSplit.id);
     if (!resolvedNodeToSplit) {
       throw new WorkingDocumentError("Unknown node");
@@ -777,7 +777,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Node to split doesn't have parent or cannot determine child index");
     }
     this.splitNodePrime(resolvedNodeToSplit, splitChildIndices, false);
-    this.insertNodePrime(parent, nodeToInsert, splitNodeIndexFromParent + 1, undefined, true);
+    return this.insertNodePrime(parent, nodeToInsert, splitNodeIndexFromParent + 1, undefined, true);
   }
 
   public updateAnchor(anchor: AnchorId | ReadonlyWorkingAnchor, parameters: Partial<AnchorParameters>): void {
@@ -1184,7 +1184,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
         this.joinSiblingIntoNode(other, FlowDirection.Backward);
-        return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
+
+        // Check other direction now
+        if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
+          const otherOther = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
+          this.joinSiblingIntoNode(otherOther, FlowDirection.Forward);
+          return { workingNode: otherOther, insertionHandledBy: InsertOrJoin.Join };
+        } else {
+          return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
+        }
       }
       if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
         const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;

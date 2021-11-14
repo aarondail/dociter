@@ -1,5 +1,5 @@
 import { Commands, InteractorTargets } from "../../src/commands-rd4";
-import { Hyperlink, Node } from "../../src/document-model-rd5";
+import { Hyperlink, Node, Span } from "../../src/document-model-rd5";
 import { Editor } from "../../src/editor-rd4";
 import { Text } from "../../src/text-model-rd4";
 import { CursorOrientation } from "../../src/traversal-rd4";
@@ -345,8 +345,155 @@ describe("insert should insert a Hyperlink", () => {
   });
 });
 
+describe("insert should insert a Span", () => {
+  it(`into an empty Paragraph`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "2", orientation: On } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("ABC"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[2])).toMatchInlineSnapshot(`"<p> <s>ABC</s> </p>"`);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)2/0⁙2 intr: ᯼ "`
+    );
+  });
+
+  it(`in the middle, at the beginning or at the end, of a Span`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("ABC"), {}) }));
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s styles=6:+B,8:-B>MMNNAABBABC</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)1/0⁙10 intr: ᯼ "`
+    );
+
+    editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("DEF"), {}) }));
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s styles=9:+B,11:-B>MMNNDEFAABBABC</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:F)1/0⁙6 intr: ᯼ "`
+    );
+
+    editor.execute(Commands.jump({ to: { path: "1/0", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("GHI"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+      `"<p> <s styles=12:+B,14:-B>GHIMMNNDEFAABBABC</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:I)1/0⁙2 intr: ᯼ "`
+    );
+  });
+
+  it(`in the middle of a Hyperlink`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1/2", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("ABC"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CC</s> <hyperlink url=g.com>GOO</hyperlink> <s>ABC</s> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)3/2⁙2 intr: ᯼ "`
+    );
+  });
+
+  it(`at the beginning and end of a Hyperlink`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1/5", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("ABC"), {}) }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)3/2⁙2 intr: ᯼ "`
+    );
+
+    editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("DEF"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CCDEF</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>ABCDD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:F)3/0⁙4 intr: ᯼ "`
+    );
+  });
+
+  it(`right before and after a Hyperlink`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("ABC"), {}) }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)3/2⁙2 intr: ᯼ "`
+    );
+
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: Before } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("DEF"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CCDEF</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>ABCDD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:F)3/0⁙4 intr: ᯼ "`
+    );
+  });
+
+  it(`between Hyperlinks`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("DEF"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
+      `"<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DEF</s> <hyperlink url=test.com>ABC</hyperlink> <s>DD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:F)3/2⁙2 intr: ᯼ "`
+    );
+  });
+
+  it(`into an empty Hyperlinks`, () => {
+    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <hyperlink url=test.com></hyperlink> <s>CD</s> </p>` });
+    editor.execute(Commands.jump({ to: { path: "0/2", orientation: On } }));
+    editor.execute(Commands.insert({ inline: new Node(Span, Text.fromString("XYZ"), {}) }));
+
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
+      `"<p> <s>ABXYZ</s> <hyperlink url=test.com></hyperlink> <s>CD</s> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Span:Z)0/0⁙4 intr: ∅"`
+    );
+  });
+});
+
+// TODO once we support inserting blocks add the following tests:
+
 // describe("insert should insert a Header", () => {
+//   it.only(`in the middle of a Paragraph`, () => {
+//     const editor = CommandsTestUtils.getEditorForBasicDoc();
+//     editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: After } }));
+//     editor.execute(Commands.insert({ inline: new Node(Paragraph, [
+//       new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }),
+//       new Node(Span, Text.fromString("ABC"), {})
+//      ], {}) });
+
+//     expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
+//       `"<p> <s>MMNN</s> <hyperlink url=test.com>ABC</hyperlink> <s styles=2:+B>AABB</s> </p>"`
+//     );
+//     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+//       `"Anchor: ᯼-MAIN BEFORE (Span:A)1/2⁙0 intr: ᯼ "`
+//     );
+//   });
+
+// it(`on an empty Paragraph`, () => {
+// })
 // });
 
-// describe("insert should insert a Span", () => {
+// describe("insert should insert a Paragraph", () => {
+//   it.only(`in the middle of a Paragraph`, () => {
+//   })
+//   it.only(`on an empty Paragraph`, () => {
+//   })
 // });
