@@ -1,3 +1,4 @@
+import { Node } from "../document-model-rd5";
 import { FlowDirection } from "../miscUtils";
 import { LiftingPathMap } from "../traversal-rd4";
 import { ReadonlyWorkingNode } from "../working-document-rd4";
@@ -11,16 +12,24 @@ export enum JoinType {
 }
 
 interface JoinOptions {
-  readonly type: JoinType;
+  /**
+   * By default joins between different types of nodes are prohibited. If this
+   * is set to true, the node types will be changed to be the same, if possible.
+   * The node that the interactor is on will be the type that the final joined
+   * node will have.
+   */
+  readonly allowNodeTypeCoercion: boolean;
   /**
    * Note for selections this doesn't affect which blocks will be joined, but it
    * does affect whether the children are joined into the first selected block,
    * or the last.
    */
   readonly direction: FlowDirection;
+
+  readonly type: JoinType;
 }
 
-export type JoinPayload = TargetPayload & Partial<JoinOptions>;
+export type JoinPayload = TargetPayload & Partial<Omit<JoinOptions, "type">> & Pick<JoinOptions, "type">;
 
 export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
   const direction = payload.direction ?? FlowDirection.Backward;
@@ -57,6 +66,26 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
   toJoinElements.reverse();
   for (const { elements } of toJoinElements) {
     const sourceNode = elements[0]!.node;
+
+    if (payload.type === JoinType.Blocks) {
+      for (const [, anchor] of sourceNode.attachedAnchors) {
+        const n = state.getCursorNavigatorForAnchor(anchor);
+        direction === FlowDirection.Backward ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+        state.updateAnchor(anchor, state.getAnchorParametersFromCursorNavigator(n));
+      }
+    }
+
+    const n = state.getNodeNavigator(sourceNode);
+    if (!(direction === FlowDirection.Backward ? n.navigateToPrecedingSibling() : n.navigateToNextSibling())) {
+      continue;
+    }
+    const destinationNode = n.tip.node as ReadonlyWorkingNode;
+
+    if (sourceNode.nodeType !== destinationNode?.nodeType && payload.allowNodeTypeCoercion) {
+      // If the sourceNode has any anchor or node facets this will definitely fail
+      state.changeNodeType(destinationNode, sourceNode.nodeType, sourceNode.facets);
+    }
+
     state.joinSiblingIntoNode(sourceNode, direction);
   }
 });

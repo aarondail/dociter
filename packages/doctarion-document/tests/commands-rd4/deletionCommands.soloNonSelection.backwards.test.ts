@@ -8,7 +8,7 @@ import { CommandsTestUtils } from "./commands.testUtils";
 
 const { After, Before, On } = CursorOrientation;
 
-describe("deleting backwards (solo non selection cursor)", () => {
+describe("deleting backwards (solo non selection)", () => {
   it("basically works", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     // Jump to L in the "GOOGLE" text of the url link

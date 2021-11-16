@@ -5,9 +5,13 @@ import {
   AnchorOrientation,
   Document,
   DocumentNode,
+  FacetDictionary,
+  FacetTypeConvenienceDictionary,
   FacetValueType,
   Node,
   NodeChildrenType,
+  NodeType,
+  NodeTypeDescription,
   Span,
 } from "../document-model-rd5";
 import { FlowDirection } from "../miscUtils";
@@ -187,6 +191,74 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     selectionAnchor && this.eventEmitters.anchorAdded.emit(selectionAnchor);
 
     return newInteractor;
+  }
+
+  public changeNodeType<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>(
+    node: NodeId | ReadonlyWorkingNode,
+    nodeType: NodeType<SpecificNodeTypeDescription>,
+    newFacets: SpecificNodeTypeDescription["facets"] extends FacetTypeConvenienceDictionary
+      ? FacetDictionary<SpecificNodeTypeDescription["facets"]>
+      : // eslint-disable-next-line @typescript-eslint/ban-types
+        {}
+  ): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const currentNodeType = resolvedNode.nodeType;
+    // We dont support changing node types that change the category
+    if (currentNodeType.category !== nodeType.category) {
+      throw new WorkingDocumentError(
+        `Cannot change node's type to be a new type with a different category (from: ${currentNodeType.category} to: ${nodeType.category})`
+      );
+    }
+    // We dont support changing node types that have incompatible children types
+    if (currentNodeType.childrenType !== nodeType.childrenType) {
+      throw new WorkingDocumentError(
+        `Cannot change node's type to be a new type with a different children type (from: ${currentNodeType.childrenType} to: ${nodeType.childrenType})`
+      );
+    }
+
+    // Currently we dont delete facets or anchors like we should so we just
+    // prohibit those types of conversion
+    if (resolvedNode.getAllFacetAnchors().length > 0) {
+      throw new WorkingDocumentError("Cannot change node's type when it has facets that are Anchors");
+    }
+    if (resolvedNode.getAllFacetNodes().length > 0) {
+      throw new WorkingDocumentError("Cannot change node's type when it has facets that are Nodes");
+    }
+
+    // Reusing node creation logic even though we are going to ignore the root
+    // node...
+    const { root: rootToIgnore, newNodes, newAnchors } = createWorkingNode(
+      this.idGenerator,
+      new Node(nodeType, [], newFacets),
+      this.nodeLookup,
+      { joinAdjacentSpans: true }
+    );
+
+    for (const node of newNodes.values()) {
+      this.nodeLookup.set(node.id, node);
+      if (node.parent === rootToIgnore) {
+        node.parent = resolvedNode;
+      }
+    }
+    for (const anchor of newAnchors.values()) {
+      // I don't think this is possible, but JIC
+      if (anchor.node === rootToIgnore) {
+        throw new WorkingDocumentError("Unexpectedly found anchor pointing to root when that should be impossible");
+      }
+      this.anchorLookup.set(anchor.id, anchor);
+      this.eventEmitters.anchorAdded.emit(anchor);
+    }
+
+    // Do change
+    resolvedNode.nodeType = nodeType;
+    resolvedNode.facets = rootToIgnore.facets;
+
+    if (nodeType === Span) {
+      this.joinSpanToAdjacentSiblingsAndRemoveItIfPossible(resolvedNode);
+    }
   }
 
   public deleteAnchor(anchor: ReadonlyWorkingAnchor | AnchorId): void {
@@ -502,7 +574,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (Utils.doesNodeTypeHaveNodeChildren(dest.nodeType)) {
       // Move children from one inline to the next
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, undefined, direction === FlowDirection.Backward);
+      const { boundaryChildIndex } = this.moveAllNodesAndUpdateAnchors(
+        source,
+        dest,
+        undefined,
+        direction === FlowDirection.Backward
+      );
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
         const beforeBoundaryNode = dest.children[boundaryChildIndex - 1] as WorkingNode;
         const atBoundaryNode = dest.children[boundaryChildIndex] as WorkingNode;
@@ -513,11 +590,16 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
     } else if (Utils.doesNodeTypeHaveTextOrFancyText(dest.nodeType)) {
-      this.moveAllGraphemes(source, dest, direction === FlowDirection.Backward);
+      this.moveAllGraphemesAndUpdateAnchors(source, dest, direction === FlowDirection.Backward);
     }
 
     for (const { name: facetName } of dest.nodeType.getFacetsThatAreNodeArrays()) {
-      const { boundaryChildIndex } = this.moveAllNodes(source, dest, facetName, direction === FlowDirection.Forward);
+      const { boundaryChildIndex } = this.moveAllNodesAndUpdateAnchors(
+        source,
+        dest,
+        facetName,
+        direction === FlowDirection.Forward
+      );
 
       // Again, special handling for spans
       if (boundaryChildIndex !== undefined && boundaryChildIndex > 0) {
@@ -1180,31 +1262,51 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // Special case handling for Spans that are adjacent to other spans... this
     // could probably be handled in such a way as to avoid the insertion and
     // logic above but this is less code.
-    if (joinNodeToAdjacentSpansIfPossible && node.nodeType === Span) {
-      if ((resolvedParentNode.children[index + 1] as Node)?.nodeType === Span) {
-        const other = resolvedParentNode.children[index + 1] as WorkingNodeOfType<typeof Span>;
-        this.joinSiblingIntoNode(other, FlowDirection.Backward);
-
-        // Check other direction now
-        if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
-          const otherOther = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
-          this.joinSiblingIntoNode(otherOther, FlowDirection.Forward);
-          return { workingNode: otherOther, insertionHandledBy: InsertOrJoin.Join };
-        } else {
-          return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
-        }
-      }
-      if ((resolvedParentNode.children[index - 1] as Node)?.nodeType === Span) {
-        const other = resolvedParentNode.children[index - 1] as WorkingNodeOfType<typeof Span>;
-        this.joinSiblingIntoNode(other, FlowDirection.Forward);
-        return { workingNode: other, insertionHandledBy: InsertOrJoin.Join };
+    if (joinNodeToAdjacentSpansIfPossible) {
+      const joinedNode = this.joinSpanToAdjacentSiblingsAndRemoveItIfPossible(workingNode);
+      if (joinedNode) {
+        return { workingNode: joinedNode, insertionHandledBy: InsertOrJoin.Join };
       }
     }
 
     return { workingNode: workingNode, insertionHandledBy: InsertOrJoin.Insert };
   }
 
-  private moveAllGraphemes(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
+  private joinSpanToAdjacentSiblingsAndRemoveItIfPossible(node: WorkingNode): WorkingNode | undefined {
+    if (
+      node.nodeType !== Span ||
+      node.parent === undefined ||
+      node.pathPartFromParent === undefined ||
+      node.pathPartFromParent.facet !== undefined ||
+      node.pathPartFromParent.index === undefined
+    ) {
+      return undefined;
+    }
+    const parent = node.parent;
+    const index = node.pathPartFromParent?.index;
+
+    if ((parent.children[index + 1] as Node)?.nodeType === Span) {
+      const other = parent.children[index + 1] as WorkingNodeOfType<typeof Span>;
+      this.joinSiblingIntoNode(other, FlowDirection.Backward);
+
+      // Check other direction now
+      if ((parent.children[index - 1] as Node)?.nodeType === Span) {
+        const otherOther = parent.children[index - 1] as WorkingNodeOfType<typeof Span>;
+        this.joinSiblingIntoNode(otherOther, FlowDirection.Forward);
+        return otherOther;
+      } else {
+        return other;
+      }
+    }
+    if ((parent.children[index - 1] as Node)?.nodeType === Span) {
+      const other = parent.children[index - 1] as WorkingNodeOfType<typeof Span>;
+      this.joinSiblingIntoNode(other, FlowDirection.Forward);
+      return other;
+    }
+    return undefined;
+  }
+
+  private moveAllGraphemesAndUpdateAnchors(source: WorkingNode, destination: WorkingNode, prepend: boolean) {
     const destArray = destination.children as Grapheme[];
     const sourceArray = source.children as Grapheme[];
     const destArrayOriginalLength = destArray.length;
@@ -1266,7 +1368,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     sourceArray.splice(0, sourceArrayOriginalLength);
   }
 
-  private moveAllNodes(
+  private moveAllNodesAndUpdateAnchors(
     source: WorkingNode,
     destination: WorkingNode,
     facet: string | undefined, // undefined meaning "children"

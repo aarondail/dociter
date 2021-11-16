@@ -29,6 +29,7 @@ interface DeleteOptions {
    * to instead behave like a joining operation.
    */
   readonly allowJoiningBlocksInBoundaryCases: boolean;
+  readonly allowNodeTypeCoercionWhenJoiningBlocks: boolean;
   readonly direction: FlowDirection;
 }
 
@@ -38,6 +39,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
   const options: DeleteOptions = {
     allowMovementInBoundaryCases: payload.allowMovementInBoundaryCases ?? false,
     allowJoiningBlocksInBoundaryCases: payload.allowJoiningBlocksInBoundaryCases ?? false,
+    allowNodeTypeCoercionWhenJoiningBlocks: payload.allowNodeTypeCoercionWhenJoiningBlocks ?? false,
     direction: payload.direction ?? FlowDirection.Backward,
   };
 
@@ -73,7 +75,12 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
       } else if (result?.joinInstead) {
         // Join instead of delete
         services.execute(
-          join({ type: JoinType.Blocks, target: { interactorId: interactor.id }, direction: options.direction })
+          join({
+            type: JoinType.Blocks,
+            target: { interactorId: interactor.id },
+            direction: options.direction,
+            allowNodeTypeCoercion: payload.allowNodeTypeCoercionWhenJoiningBlocks,
+          })
         );
       }
     }

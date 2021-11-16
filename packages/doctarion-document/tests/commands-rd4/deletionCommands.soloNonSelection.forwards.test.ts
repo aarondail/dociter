@@ -8,7 +8,7 @@ import { CommandsTestUtils } from "./commands.testUtils";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { After, Before, On } = CursorOrientation;
 
-describe("forwards", () => {
+describe("deleting forwards (solo non selection)", () => {
   it("basically works", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     // Jump to the first O in the "GOOGLE" text of the url link
