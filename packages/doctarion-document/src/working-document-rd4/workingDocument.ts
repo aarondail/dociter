@@ -44,10 +44,14 @@ import {
   WorkingAnchorRange,
   WorkingAnchorType,
 } from "./anchor";
+import {
+  AnchorUpdateAssistantForNodeDeletion,
+  AnchorUpdateAssistantHost,
+  ContiguousOrderedInternalDocumentLocationArray,
+} from "./anchorUpdateAssistants";
 import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
-import { AnchorPullDirection } from "./misc";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
 import {
   NodeId,
@@ -58,7 +62,7 @@ import {
   WorkingNodeOfType,
 } from "./nodes";
 import { WorkingTextStyleStrip } from "./textStyleStrip";
-import { ContiguousOrderedInternalDocumentLocationArray, ParentOrSibling, Utils } from "./utils";
+import { Utils } from "./utils";
 
 export enum InsertOrJoin {
   Insert = "INSERT",
@@ -68,6 +72,11 @@ export enum InsertOrJoin {
 export interface InsertNodeResult {
   readonly workingNode: ReadonlyWorkingNode;
   readonly insertionHandledBy: InsertOrJoin;
+}
+
+export enum AnchorPullDirection {
+  Backward = "BACKWARD",
+  Forward = "FORWARD",
 }
 
 export interface ReadonlyWorkingDocument {
@@ -99,6 +108,7 @@ export interface ReadonlyWorkingDocument {
 export class WorkingDocument implements ReadonlyWorkingDocument {
   private readonly actualDocument: WorkingDocumentNode;
   private readonly anchorLookup: Map<AnchorId, WorkingAnchor>;
+  private readonly anchorUpdateAssistantHost: AnchorUpdateAssistantHost;
   private readonly eventEmitters: WorkingDocumentEventEmitter;
   private focusedInteractorId: InteractorId | undefined;
   private readonly interactorLookup: Map<InteractorId, WorkingInteractor>;
@@ -125,6 +135,20 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     this.actualDocument = root;
     this.anchorLookup = newAnchors;
     this.nodeLookup = newNodes;
+
+    this.anchorUpdateAssistantHost = {
+      getAnchorParametersFromCursorNavigator: this.getAnchorParametersFromCursorNavigator.bind(this),
+      getCursorNavigatorForAnchor: this.getCursorNavigatorForAnchor.bind(this),
+      getNodeNavigator: this.getNodeNavigator.bind(this),
+
+      addTransientAnchor: (parameters: AnchorParameters): WorkingAnchor => {
+        return this.addAnchorPrime({ ...parameters, type: WorkingAnchorType.Transient });
+      },
+      deleteAnchor: (anchor: ReadonlyWorkingAnchor) => {
+        this.deleteAnchorPrime(anchor, { bypassOriginatingNodeCheck: true });
+      },
+      updateAnchor: this.updateAnchor.bind(this),
+    };
   }
 
   public get anchors(): ReadonlyMap<AnchorId, ReadonlyWorkingAnchor> {
@@ -1036,24 +1060,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       rightNode: WorkingNodeOfType<typeof Span>;
     }[] = [];
 
-    const anchorsPointingToDeletedNodes = new Set<WorkingAnchor>();
-    const anchorsOriginatingFromDeletedNodes = new Set<WorkingAnchor>();
-
-    // This is info related to where we will reposition anchors that are within
-    // the delete location array... it isn't the final location per se. Because
-    // we have to do some adjustment after the deletions to get the best final
-    // location.
-    const anchorRelocationInfo = Utils.getClosestAdjacentOrParentLocationOutsideOfLocationArray(
+    const assistant = new AnchorUpdateAssistantForNodeDeletion(
+      this.anchorUpdateAssistantHost,
       contiguousOrderedLocationArray,
-      this.actualDocument,
-      pull === AnchorPullDirection.Forward ? FlowDirection.Forward : FlowDirection.Backward
+      pull === AnchorPullDirection.Forward ? FlowDirection.Forward : FlowDirection.Backward,
+      joinAdjacentSpansIfPossible
     );
-    // This has to be deleted before we are done
-    const anchorRelocationAnchor = this.addAnchorPrime({
-      ...anchorRelocationInfo.location,
-      orientation: AnchorOrientation.On,
-      type: WorkingAnchorType.Transient,
-    });
 
     try {
       for (const { node, graphemeIndex } of lodash.reverse(contiguousOrderedLocationArray)) {
@@ -1072,12 +1084,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
               continue;
             }
             this.nodeLookup.delete(descendantNode.id);
-            for (const [, anchor] of descendantNode.attachedAnchors) {
-              anchorsPointingToDeletedNodes.add(anchor);
-            }
-            for (const anchor of Utils.traverseAllAnchorsOriginatingFrom(descendantNode)) {
-              anchorsOriginatingFromDeletedNodes.add(anchor);
-            }
+            assistant.recordAnchorsOriginatingFromAndPointingToNode(descendantNode);
           }
           if (isDocument) {
             node.children = [];
@@ -1107,15 +1114,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
           node.children.splice(graphemeIndex, 1);
 
-          for (const anchor of node.attachedAnchors.values()) {
-            if (anchor.graphemeIndex !== undefined) {
-              if (anchor.graphemeIndex === graphemeIndex) {
-                anchorsPointingToDeletedNodes.add(anchor);
-              } else if (anchor.graphemeIndex > graphemeIndex) {
-                anchor.graphemeIndex--;
-              }
-            }
-          }
+          assistant.recordOrUpdateAnchorsOriginatingFromNodeGrapheme(node, graphemeIndex);
 
           for (const [, strip] of node.getAllFacetTextStyleStrips()) {
             (strip as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
@@ -1123,67 +1122,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
       }
 
-      // Note these are all node-to-node anchors
-      for (const anchor of anchorsOriginatingFromDeletedNodes) {
-        this.deleteAnchorPrime(anchor, { bypassOriginatingNodeCheck: true });
-      }
-
-      // These may be node-to-node and interactor anchors
-      const orphanedAnchorsNeedingRepositioning = [];
-      for (const anchor of anchorsPointingToDeletedNodes) {
-        if (anchorsOriginatingFromDeletedNodes.has(anchor)) {
-          continue;
-        }
-        orphanedAnchorsNeedingRepositioning.push(anchor);
-        // this.eventEmitters.anchorOrphaned.emit({ anchor });
-        if (anchorRelocationAnchor === anchor) {
-          throw new Error("Unexpectedly found the orphan relocation anchor");
-        }
-      }
-
-      // Decide on the orphaned anchor's new position
-      let orphanedAnchorRelocationNavUpdatedPosition: AnchorParameters;
-      {
-        const c = this.getCursorNavigatorForAnchor(anchorRelocationAnchor);
-        if ((c.tip.node as Node)?.children && anchorRelocationInfo.type === ParentOrSibling.Parent) {
-          pull === AnchorPullDirection.Backward
-            ? c.navigateToFirstDescendantCursorPosition()
-            : c.navigateToLastDescendantCursorPosition();
-        } else if ((c.tip.node as Node)?.children) {
-          pull === AnchorPullDirection.Backward
-            ? c.navigateToLastDescendantCursorPosition()
-            : c.navigateToFirstDescendantCursorPosition();
-
-          // Special edge case that we wanna handle in the case where there are
-          // spans to be joined and instead of landing BEFORE the first grapheme
-          // in the span we landed after it (because there is a Span preceding
-          // it which will be joined below).
-          if (
-            joinAdjacentSpansIfPossible &&
-            pull === AnchorPullDirection.Forward &&
-            PseudoNode.isGrapheme(c.tip.node) &&
-            c.cursor.orientation === AnchorOrientation.After &&
-            c.tip.pathPart?.index === 0 &&
-            (c.parent?.node as Node).nodeType === Span &&
-            (c.toNodeNavigator().precedingParentSiblingNode as Node).nodeType === Span
-          ) {
-            c.navigateToPrecedingCursorPosition();
-          }
-        } else {
-          pull === AnchorPullDirection.Backward
-            ? Utils.navigateCursorNavigatorToLastCursorPositionOnTheSameNode(c)
-            : Utils.navigateCursorNavigatorToFirstCursorPositionOnTheSameNode(c);
-        }
-        orphanedAnchorRelocationNavUpdatedPosition = this.getAnchorParametersFromCursorNavigator(c);
-      }
-
-      for (const anchor of orphanedAnchorsNeedingRepositioning) {
-        this.updateAnchor(anchor.id, orphanedAnchorRelocationNavUpdatedPosition);
-      }
+      assistant.commitUpdatesAndDeletion();
     } finally {
-      if (anchorRelocationAnchor) {
-        this.deleteAnchorPrime(anchorRelocationAnchor);
-      }
+      assistant.cleanUp();
     }
 
     // Join any Spans that might be join-able now

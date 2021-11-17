@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Document, FacetType, FacetValueType, NodeCategory, NodeChildrenType, NodeType } from "../document-model-rd5";
-import { FlowDirection, SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../miscUtils";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model-rd4";
 import { Chain, CursorNavigator, CursorOrientation, NodeNavigator, Path, PathPart, PseudoNode } from "../traversal-rd4";
 
@@ -19,16 +19,6 @@ import { WorkingDocumentNode, WorkingNode } from "./nodes";
 export interface InternalDocumentLocation {
   readonly node: WorkingNode;
   readonly graphemeIndex?: number;
-}
-
-/**
- * Internal meaning not to be exposed outside this folder.
- */
-export type ContiguousOrderedInternalDocumentLocationArray = readonly InternalDocumentLocation[];
-
-export enum ParentOrSibling {
-  Parent = "PARENT",
-  Sibling = "SIBLING",
 }
 
 export const Utils = {
@@ -90,38 +80,6 @@ export const Utils = {
         return true;
       default:
         return false;
-    }
-  },
-  getClosestAdjacentOrParentLocationOutsideOfLocationArray(
-    contiguousOrderedLocationArray: ContiguousOrderedInternalDocumentLocationArray,
-    document: WorkingDocumentNode,
-    direction: FlowDirection
-  ): { location: InternalDocumentLocation; type: ParentOrSibling } {
-    if (contiguousOrderedLocationArray.length === 0) {
-      throw new WorkingDocumentError("Did not expect the location array to be empty");
-    }
-    const isBack = direction === FlowDirection.Backward;
-    const location = contiguousOrderedLocationArray[isBack ? 0 : contiguousOrderedLocationArray.length - 1];
-
-    const nav = Utils.getNodeNavigator(document, Utils.getNodePath(location.node));
-    if (location.graphemeIndex !== undefined) {
-      nav.navigateToChild(location.graphemeIndex);
-    }
-
-    // This will not jump to a cursor position in another node
-    if (isBack ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling()) {
-      if (location.graphemeIndex !== undefined) {
-        const node = nav.parent?.node as WorkingNode;
-        return { location: { node, graphemeIndex: nav.tip.pathPart!.index }, type: ParentOrSibling.Sibling };
-      } else {
-        const node = nav.tip.node as WorkingNode;
-        return { location: { node }, type: ParentOrSibling.Sibling };
-      }
-    } else {
-      // Note this can be the document
-      nav.navigateToParent();
-      const node = nav.tip.node as WorkingNode;
-      return { location: { node }, type: ParentOrSibling.Parent };
     }
   },
   getNodeNavigator(document: WorkingDocumentNode, path: Path): NodeNavigator<WorkingNode> {
