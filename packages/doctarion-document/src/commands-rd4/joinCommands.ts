@@ -67,14 +67,6 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
   for (const { elements } of toJoinElements) {
     const sourceNode = elements[0]!.node;
 
-    if (payload.type === JoinType.Blocks) {
-      for (const [, anchor] of sourceNode.attachedAnchors) {
-        const n = state.getCursorNavigatorForAnchor(anchor);
-        direction === FlowDirection.Backward ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
-        state.updateAnchor(anchor, state.getAnchorParametersFromCursorNavigator(n));
-      }
-    }
-
     const n = state.getNodeNavigator(sourceNode);
     if (!(direction === FlowDirection.Backward ? n.navigateToPrecedingSibling() : n.navigateToNextSibling())) {
       continue;

@@ -46,6 +46,7 @@ import {
 } from "./anchor";
 import {
   AnchorUpdateAssistantForNodeDeletion,
+  AnchorUpdateAssistantForNodeJoin,
   AnchorUpdateAssistantHost,
   ContiguousOrderedInternalDocumentLocationArray,
 } from "./anchorUpdateAssistants";
@@ -594,7 +595,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Cannot join nodes of different types");
     }
 
-    const toJoinFollowUps: WorkingNode[] = [];
+    // This moves anchors over to the destination in a logical way
+    AnchorUpdateAssistantForNodeJoin.performUpdate(this.anchorUpdateAssistantHost, resolvedNode, direction);
+
+    const otherNodesToJoinAsFollowUps: WorkingNode[] = [];
 
     if (Utils.doesNodeTypeHaveNodeChildren(dest.nodeType)) {
       // Move children from one inline to the next
@@ -610,7 +614,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
         // Special handling for spans, merge them
         if (beforeBoundaryNode.nodeType === Span && atBoundaryNode.nodeType === Span) {
-          toJoinFollowUps.push(beforeBoundaryNode);
+          otherNodesToJoinAsFollowUps.push(beforeBoundaryNode);
         }
       }
     } else if (Utils.doesNodeTypeHaveTextOrFancyText(dest.nodeType)) {
@@ -632,7 +636,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
         // Special handling for spans, merge them
         if (beforeBoundaryNode.nodeType === Span && atBoundaryNode.nodeType === Span) {
-          toJoinFollowUps.push(beforeBoundaryNode);
+          otherNodesToJoinAsFollowUps.push(beforeBoundaryNode);
           // this.joinSiblingIntoNode(beforeBoundaryNode, PullDirection.Forward);
         }
       }
@@ -646,7 +650,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       false // I think its logically impossible for us to have to join spans during this delete and the source is empty at this point... I think
     );
 
-    for (const node of toJoinFollowUps) {
+    for (const node of otherNodesToJoinAsFollowUps) {
       this.joinSiblingIntoNode(node, FlowDirection.Forward);
     }
   }

@@ -8,6 +8,8 @@ import { WorkingNode } from "./nodes";
 import { InternalDocumentLocation, Utils } from "./utils";
 import { ReadonlyWorkingDocument } from "./workingDocument";
 
+import { WorkingAnchorType } from ".";
+
 export interface AnchorUpdateAssistantHost
   extends Pick<
     ReadonlyWorkingDocument,
@@ -172,6 +174,28 @@ export class AnchorUpdateAssistantForNodeDeletion {
       nav.navigateToParent();
       const node = nav.tip.node as WorkingNode;
       return { location: { node }, type: "parent" };
+    }
+  }
+}
+
+export class AnchorUpdateAssistantForNodeJoin {
+  public static performUpdate(
+    host: AnchorUpdateAssistantHost,
+    joinDestinationNode: WorkingNode,
+    direction: FlowDirection
+  ): void {
+    for (const [, anchor] of joinDestinationNode.attachedAnchors) {
+      if (
+        anchor.type === WorkingAnchorType.Interactor &&
+        anchor.graphemeIndex === undefined &&
+        anchor.orientation === AnchorOrientation.On
+      ) {
+        const n = host.getCursorNavigatorForAnchor(anchor);
+        direction === FlowDirection.Backward ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+        // Just update them now
+        host.updateAnchor(anchor, host.getAnchorParametersFromCursorNavigator(n));
+      }
+      // Other anchor types will just be moved wholesale to the destination node which is ok I think
     }
   }
 }
