@@ -240,7 +240,9 @@ export class AnchorUpdateAssistantForNodeJoin {
       host,
       joinSourceNode,
       joinDestinationNode,
-      direction
+      direction,
+      joinSourceOriginalGraphemeCount,
+      joinDestinationOriginalGraphemeCount
     );
   }
 
@@ -248,10 +250,14 @@ export class AnchorUpdateAssistantForNodeJoin {
     host: AnchorUpdateAssistantHost,
     joinSourceNode: WorkingNode,
     joinDestinationNode: WorkingNode,
-    direction: FlowDirection
+    direction: FlowDirection,
+    joinSourceOriginalChildCount: number,
+    joinDestinationOriginalChildCount: number
   ): void {
     for (const [, anchor] of joinDestinationNode.attachedAnchors) {
       if (
+        joinSourceOriginalChildCount > 0 &&
+        joinDestinationOriginalChildCount === 0 &&
         anchor.type === WorkingAnchorType.Interactor &&
         anchor.graphemeIndex === undefined &&
         anchor.orientation === AnchorOrientation.On
@@ -264,9 +270,22 @@ export class AnchorUpdateAssistantForNodeJoin {
     }
 
     for (const [, anchor] of joinSourceNode.attachedAnchors) {
-      host.updateAnchor(anchor, {
-        node: joinDestinationNode,
-      });
+      if (
+        joinSourceOriginalChildCount === 0 &&
+        joinDestinationOriginalChildCount > 0 &&
+        anchor.type === WorkingAnchorType.Interactor &&
+        anchor.graphemeIndex === undefined &&
+        anchor.orientation === AnchorOrientation.On
+      ) {
+        const n = host.getCursorNavigatorForAnchor(anchor);
+        direction === FlowDirection.Forward ? n.navigateToPrecedingCursorPosition() : n.navigateToNextCursorPosition();
+        // Just update them now
+        host.updateAnchor(anchor, host.getAnchorParametersFromCursorNavigator(n));
+      } else {
+        host.updateAnchor(anchor, {
+          node: joinDestinationNode,
+        });
+      }
     }
   }
 }

@@ -17,7 +17,7 @@ describe("join blocks backwards (solo non selection)", () => {
     );
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s styles=13:+B>Header1MMNNAABB</s> </p>
+      "<h level=ONE> <s styles=13:+B>Header1MMNNAABB</s> </h>
       <p> </p>
       <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
     `);

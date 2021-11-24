@@ -1335,7 +1335,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       this.anchorUpdateAssistantHost,
       source,
       destination,
-      prepend ? FlowDirection.Backward : FlowDirection.Forward
+      prepend ? FlowDirection.Backward : FlowDirection.Forward,
+      sourceArrayOriginalLength,
+      destArrayOriginalLength
     );
 
     sourceArray.splice(0, sourceArrayOriginalLength);

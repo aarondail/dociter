@@ -147,13 +147,13 @@ describe("updateInteractor", () => {
       "Anchor: α-MAIN BEFORE (Span:H)0/0⁙0 intr: α 
       Anchor: β-MAIN BEFORE (Span:M)1/0⁙0 intr: β "
     `);
-    expect(editor.state.interactors.get(id!)?.status).toEqual(InteractorStatus.Inactive);
+    expect(editor.state.interactors.get(id)?.status).toEqual(InteractorStatus.Inactive);
     editor.execute(Commands.updateInteractor({ id, status: InteractorStatus.Active }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: α-MAIN BEFORE (Span:H)0/0⁙0 intr: α 
       Anchor: β-MAIN BEFORE (Span:M)1/0⁙0 intr: β "
     `);
-    expect(editor.state.interactors.get(id!)?.status).toEqual(InteractorStatus.Active);
+    expect(editor.state.interactors.get(id)?.status).toEqual(InteractorStatus.Active);
   });
 
   it("can move an interactor", () => {

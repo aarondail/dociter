@@ -1,4 +1,3 @@
-import { Node } from "../document-model-rd5";
 import { FlowDirection } from "../miscUtils";
 import { LiftingPathMap } from "../traversal-rd4";
 import { ReadonlyWorkingNode } from "../working-document-rd4";
@@ -15,7 +14,7 @@ interface JoinOptions {
   /**
    * By default joins between different types of nodes are prohibited. If this
    * is set to true, the node types will be changed to be the same, if possible.
-   * The node that the interactor is on will be the type that the final joined
+   * The node that is being joined *into* will be the type that the final joined
    * node will have.
    */
   readonly allowNodeTypeCoercion: boolean;
@@ -31,6 +30,9 @@ interface JoinOptions {
 
 export type JoinPayload = TargetPayload & Partial<Omit<JoinOptions, "type">> & Pick<JoinOptions, "type">;
 
+/**
+ * This joins the block the target nodes are in, *into* their sibling blocks.
+ */
 export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
   const direction = payload.direction ?? FlowDirection.Backward;
 
@@ -68,6 +70,7 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
     const sourceNode = elements[0]!.node;
 
     const n = state.getNodeNavigator(sourceNode);
+
     if (!(direction === FlowDirection.Backward ? n.navigateToPrecedingSibling() : n.navigateToNextSibling())) {
       continue;
     }
@@ -75,9 +78,10 @@ export const join = coreCommand<JoinPayload>("join", (state, services, payload) 
 
     if (sourceNode.nodeType !== destinationNode?.nodeType && payload.allowNodeTypeCoercion) {
       // If the sourceNode has any anchor or node facets this will definitely fail
-      state.changeNodeType(destinationNode, sourceNode.nodeType, sourceNode.facets);
+      state.changeNodeType(sourceNode, destinationNode.nodeType, destinationNode.facets);
     }
 
-    state.joinSiblingIntoNode(sourceNode, direction);
+    const flippedDirection = direction === FlowDirection.Backward ? FlowDirection.Forward : FlowDirection.Backward;
+    state.joinSiblingIntoNode(destinationNode, flippedDirection);
   }
 });
