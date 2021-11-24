@@ -2,13 +2,11 @@ import { AnchorOrientation, Node, Span } from "../document-model-rd5";
 import { FlowDirection } from "../miscUtils";
 import { PseudoNode } from "../traversal-rd4";
 
-import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor } from "./anchor";
+import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorType } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { WorkingNode } from "./nodes";
 import { InternalDocumentLocation, Utils } from "./utils";
 import { ReadonlyWorkingDocument } from "./workingDocument";
-
-import { WorkingAnchorType } from ".";
 
 export interface AnchorUpdateAssistantHost
   extends Pick<
@@ -179,8 +177,76 @@ export class AnchorUpdateAssistantForNodeDeletion {
 }
 
 export class AnchorUpdateAssistantForNodeJoin {
-  public static performUpdate(
+  public static performUpdateForNodeWithGraphemeChildren(
     host: AnchorUpdateAssistantHost,
+    joinSourceNode: WorkingNode,
+    joinDestinationNode: WorkingNode,
+    direction: FlowDirection,
+    joinSourceOriginalGraphemeCount: number,
+    joinDestinationOriginalGraphemeCount: number
+  ): void {
+    const joinIsPrepend = direction === FlowDirection.Backward;
+
+    if (joinIsPrepend) {
+      for (const [, anchor] of joinDestinationNode.attachedAnchors) {
+        if (anchor.graphemeIndex !== undefined) {
+          if (
+            anchor.graphemeIndex === 0 &&
+            joinSourceOriginalGraphemeCount > 0 &&
+            anchor.orientation === AnchorOrientation.Before
+          ) {
+            // Some special handling for the first grapheme in the moved array,
+            // if it has before orientation since we try to set it to after
+            // whenever possible
+            host.updateAnchor(anchor, {
+              graphemeIndex: anchor.graphemeIndex + joinSourceOriginalGraphemeCount - 1,
+              orientation: AnchorOrientation.After,
+            });
+          } else {
+            host.updateAnchor(anchor, { graphemeIndex: anchor.graphemeIndex + joinSourceOriginalGraphemeCount });
+          }
+        }
+      }
+    }
+    for (const [, anchor] of joinSourceNode.attachedAnchors) {
+      if (joinIsPrepend || anchor.graphemeIndex === undefined) {
+        host.updateAnchor(anchor, { node: joinDestinationNode });
+      } else {
+        if (
+          anchor.graphemeIndex === 0 &&
+          joinDestinationOriginalGraphemeCount > 0 &&
+          anchor.orientation === AnchorOrientation.Before
+        ) {
+          // Some special handling for the first grapheme in the appended array,
+          // if it has before orientation since we try to set it to after
+          // whenever possible
+          host.updateAnchor(anchor, {
+            node: joinDestinationNode,
+            graphemeIndex: anchor.graphemeIndex + joinDestinationOriginalGraphemeCount - 1,
+            orientation: AnchorOrientation.After,
+          });
+        } else {
+          host.updateAnchor(anchor, {
+            node: joinDestinationNode,
+            graphemeIndex: anchor.graphemeIndex + joinDestinationOriginalGraphemeCount,
+          });
+        }
+      }
+    }
+
+    // This moves all anchors over from the source to the destination, so it has
+    // to happen after we handle the grapheme anchors above.
+    AnchorUpdateAssistantForNodeJoin.performUpdateForNodeWithNodeChildren(
+      host,
+      joinSourceNode,
+      joinDestinationNode,
+      direction
+    );
+  }
+
+  public static performUpdateForNodeWithNodeChildren(
+    host: AnchorUpdateAssistantHost,
+    joinSourceNode: WorkingNode,
     joinDestinationNode: WorkingNode,
     direction: FlowDirection
   ): void {
@@ -195,7 +261,12 @@ export class AnchorUpdateAssistantForNodeJoin {
         // Just update them now
         host.updateAnchor(anchor, host.getAnchorParametersFromCursorNavigator(n));
       }
-      // Other anchor types will just be moved wholesale to the destination node which is ok I think
+    }
+
+    for (const [, anchor] of joinSourceNode.attachedAnchors) {
+      host.updateAnchor(anchor, {
+        node: joinDestinationNode,
+      });
     }
   }
 }

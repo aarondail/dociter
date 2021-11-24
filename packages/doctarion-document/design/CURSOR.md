@@ -8,6 +8,16 @@ NEW POINTS:
 3) HOWEVER, all commands/working-doc must work successfully with any valid cursor position BECAUSE anchors dont have to obey those rules.
 
 
+WHO UPDTES ANCHORS/CURSORS
+
+1. For node deletion, and joining, and some insertions the WorkingDocument will (a) try to keep the anchor on the same node (in the case of insertions moving it around), and will otherwise try to intelligentally move the anchors based on joining or deletion
+---> further elbatoration: different anchor types need different treamtnets: interactors behave like cursors, node types and free form may be moved around differently or just get deleted all together.
+
+2. For _INSERTION_ though, the command does the hard work of moving teh interactor to the appropriate new position. It may be worht considering if this is appropriate for the WorkingDocument to do as well (seems reasonable?)
+
+## END OF NEW
+
+
 Placing a cursor (aka caret) in the document, and moving it, is hard.
 
 ## High Level Concepts

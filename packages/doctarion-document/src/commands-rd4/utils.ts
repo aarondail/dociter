@@ -285,13 +285,14 @@ export const CommandUtils = {
     }
     const context = { start: start.node, end: end.node };
 
+    const pickThese = (x: PseudoNode) => x instanceof Node && x.nodeType.category === NodeCategory.Block;
     const ignoreThese = (x: PseudoNode) =>
       PseudoNode.isGrapheme(x) || (x as Node).nodeType.category === NodeCategory.Inline;
 
     new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
       state.document,
       (n) => callback(n, context),
-      ignoreThese,
+      pickThese,
       ignoreThese
     );
   },
@@ -322,10 +323,12 @@ export const CommandUtils = {
     }
     const context = { start: start.node, end: end.node };
 
+    const pickThese = (x: PseudoNode) => x instanceof Node && x.nodeType.category === NodeCategory.Inline;
+
     new Range(start.path, end.path).walk<ReadonlyWorkingNode>(
       state.document,
       (n) => callback(n, context),
-      PseudoNode.isGrapheme,
+      pickThese,
       PseudoNode.isGrapheme
     );
   },

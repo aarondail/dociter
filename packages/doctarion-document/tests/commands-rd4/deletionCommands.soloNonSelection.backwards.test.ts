@@ -135,7 +135,7 @@ describe("deleting backwards (solo non selection)", () => {
 
     editor.execute(Commands.delete({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Span:C)1/0⁙8 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Span:B)1/0⁙7 intr: ᯼ "`
     );
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>

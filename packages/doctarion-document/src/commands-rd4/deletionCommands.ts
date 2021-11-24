@@ -91,7 +91,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
  * This function identifies the proper node to delete based on the passed in
  * navigator, which comes from an interactor's `mainCursor`.
  *
- * Depending on the passed in `DeleteAtOptions` instead of a deletion sometimes
+ * Depending on the passed in `DeleteOptions` instead of a deletion sometimes
  * movement can occur. In this case a CursorNavigator representing the new
  * position for the interactor is returned.
  *

@@ -581,6 +581,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
+    const dest = resolvedNode;
     const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
     const destNav = nav.clone();
 
@@ -588,15 +589,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       throw new WorkingDocumentError("Could not find sibling node to join to");
     }
 
-    const dest = resolvedNode;
     const source = nav.tip.node as WorkingNode;
 
     if (dest.nodeType !== source.nodeType) {
       throw new WorkingDocumentError("Cannot join nodes of different types");
     }
-
-    // This moves anchors over to the destination in a logical way
-    AnchorUpdateAssistantForNodeJoin.performUpdate(this.anchorUpdateAssistantHost, resolvedNode, direction);
 
     const otherNodesToJoinAsFollowUps: WorkingNode[] = [];
 
@@ -1261,21 +1258,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       prepend ? destArray.unshift(child) : destArray.push(child);
     }
 
-    // Update anchors now
-    if (prepend) {
-      for (const [, anchor] of destination.attachedAnchors) {
-        if (anchor.graphemeIndex !== undefined) {
-          this.updateAnchor(anchor, { graphemeIndex: anchor.graphemeIndex + sourceArrayOriginalLength });
-        }
-      }
-    }
-    for (const [, anchor] of source.attachedAnchors) {
-      if (prepend || anchor.graphemeIndex === undefined) {
-        this.updateAnchor(anchor, { node: destination });
-      } else {
-        this.updateAnchor(anchor, { node: destination, graphemeIndex: anchor.graphemeIndex + destArrayOriginalLength });
-      }
-    }
+    AnchorUpdateAssistantForNodeJoin.performUpdateForNodeWithGraphemeChildren(
+      this.anchorUpdateAssistantHost,
+      source,
+      destination,
+      prepend ? FlowDirection.Backward : FlowDirection.Forward,
+      sourceArrayOriginalLength,
+      destArrayOriginalLength
+    );
 
     // Update text style strips if they exist
     for (const { name: facetName } of destination.nodeType.getFacetsThatAreTextStyleStrips()) {
@@ -1340,12 +1330,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
     }
 
-    // Update anchors now
-    for (const [, anchor] of source.attachedAnchors) {
-      this.updateAnchor(anchor, {
-        node: destination,
-      });
-    }
+    // This moves anchors over to the destination in a logical way
+    AnchorUpdateAssistantForNodeJoin.performUpdateForNodeWithNodeChildren(
+      this.anchorUpdateAssistantHost,
+      source,
+      destination,
+      prepend ? FlowDirection.Backward : FlowDirection.Forward
+    );
 
     sourceArray.splice(0, sourceArrayOriginalLength);
 
