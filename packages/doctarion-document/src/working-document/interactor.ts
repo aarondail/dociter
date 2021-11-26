@@ -1,10 +1,8 @@
-import { immerable } from "immer";
-
-import { HorizontalVisualPosition } from "../cursor";
-
-import { AnchorId } from "./anchor";
+import { AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor } from "./anchor";
 
 export type InteractorId = string;
+
+export type HorizontalVisualPosition = number;
 
 export enum InteractorStatus {
   Active = "ACTIVE",
@@ -16,31 +14,47 @@ export enum InteractorAnchorType {
   SelectionAnchor = "SELECTION_ANCHOR",
 }
 
-export class Interactor {
-  [immerable] = true;
+export interface InteractorParameters {
+  readonly mainAnchor: Omit<AnchorParameters, "name">;
+  readonly status: InteractorStatus;
+  readonly selectionAnchor?: Omit<AnchorParameters, "name">;
+  /**
+   * When moving between lines visually, this value stores cursor's x value at
+   * the start of the line movement, so we can intelligently move between lines
+   * of different length and have the cursor try to go to the right spot.
+   */
+  readonly lineMovementHorizontalVisualPosition?: HorizontalVisualPosition;
+  readonly name?: string;
+}
 
+export class WorkingInteractor {
   public constructor(
-    public readonly id: InteractorId,
-    public readonly mainAnchor: AnchorId,
-    public readonly status: InteractorStatus = InteractorStatus.Active,
-    public readonly selectionAnchor?: AnchorId,
+    public id: InteractorId,
+    public mainAnchor: WorkingAnchor,
+    public status: InteractorStatus = InteractorStatus.Active,
+    public selectionAnchor?: WorkingAnchor,
     /**
      * When moving between lines visually, this value stores cursor's x value at
      * the start of the line movement, so we can intelligently move between lines
      * of different length and have the cursor try to go to the right spot.
      */
-    public readonly lineMovementHorizontalVisualPosition?: HorizontalVisualPosition,
+    public lineMovementHorizontalVisualPosition?: HorizontalVisualPosition,
     /**
      * Optional name to describe the interactor.
      */
-    public readonly name?: string
+    public name?: string
   ) {}
 
   public get isSelection(): boolean {
     return this.selectionAnchor !== undefined;
   }
+}
 
-  public getAnchor(type: InteractorAnchorType): AnchorId | undefined {
-    return type === InteractorAnchorType.Main ? this.mainAnchor : this.selectionAnchor;
-  }
+export interface ReadonlyWorkingInteractor {
+  readonly id: InteractorId;
+  readonly mainAnchor: ReadonlyWorkingAnchor;
+  readonly status: InteractorStatus;
+  readonly selectionAnchor?: ReadonlyWorkingAnchor;
+  readonly lineMovementHorizontalVisualPosition?: HorizontalVisualPosition;
+  readonly name?: string;
 }

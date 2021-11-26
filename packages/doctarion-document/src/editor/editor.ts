@@ -1,39 +1,39 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
-import * as immer from "immer";
 
-import { Path } from "../basic-traversal";
-import { Cursor, CursorNavigator, CursorOrientation } from "../cursor";
-import { Document } from "../document-model";
-import { Anchor, AnchorId } from "../working-document";
+import { CORE_COMMANDS, Command, CommandInfo, CommandServices, CommandUtils, Commands } from "../commands";
+import { DocumentNode } from "../document-model";
+import { CursorNavigator, CursorOrientation, CursorPath, Path } from "../traversal";
+import { ReadonlyWorkingDocument, WorkingDocument } from "../working-document";
 
+import { EditorError } from "./error";
 import { EditorEventEmitter, EditorEvents } from "./events";
-import { addInteractor } from "./interactorOps";
-import { EditorInteractorService } from "./interactorService";
-import { CORE_OPERATIONS, EditorOperation, EditorOperationCommand } from "./operation";
-import { EditorOperationError, EditorOperationErrorCode } from "./operationError";
-import { EditorOperationServices, EditorProvidableServices } from "./services";
-import { EditorState, ReadonlyEditorState } from "./state";
+
+/**
+ * These are services that should be provided to the Editor.
+ */
+export type EditorProvidableServices = Pick<CommandServices, "layout">;
 
 export interface EditorConfig {
   // For reasons I dont fully understand typescript doesn't allow you to pass an
   // element with type `EditorOperation<void, void>` if we use `unknown` instead of
   // `any` here.
-  readonly additionalOperations?: readonly EditorOperation<any, unknown, string>[];
-  readonly document: Document;
-  readonly cursor?: Cursor;
+  readonly additionalOperations?: readonly CommandInfo<any, unknown, string>[];
+  readonly document: DocumentNode;
+  readonly cursor?: CursorPath;
   readonly omitDefaultInteractor?: boolean;
   readonly provideServices?: (events: EditorEvents) => Partial<EditorProvidableServices>;
 }
 
 export class Editor {
-  public readonly events: EditorEvents;
-
+  private currentOperationState?: {
+    interactorsUpdated?: boolean;
+  };
   private readonly eventEmitters: EditorEventEmitter;
-  private futureList: EditorState[];
-  private historyList: EditorState[];
-  private readonly operationRegistry: Map<string, EditorOperation<unknown, unknown, string>>;
-  private readonly operationServices: EditorOperationServices;
-  private workingState: EditorState;
+  // private futureList: EditorState[];
+  // private historyList: EditorState[];
+  private readonly operationRegistry: Map<string, CommandInfo<unknown, unknown, string>>;
+  private readonly operationServices: CommandServices;
+  private workingState: WorkingDocument;
 
   public constructor({
     document: initialDocument,
@@ -44,35 +44,27 @@ export class Editor {
   }: EditorConfig) {
     const idGenerator = new FriendlyIdGenerator();
 
-    let workingState = new EditorState(initialDocument as immer.Draft<Document>, idGenerator);
-    workingState = immer.produce(workingState, (x) => x);
+    this.workingState = new WorkingDocument(initialDocument, idGenerator);
+    this.workingState.events.interactorUpdated.addListener(this.handleInteractorUpdated);
 
-    this.workingState = workingState;
-    this.historyList = [];
-    this.futureList = [];
+    // this.historyList = [];
+    // this.futureList = [];
 
     this.eventEmitters = new EditorEventEmitter();
-    this.events = this.eventEmitters;
 
     const providedServices = provideServices && provideServices(this.events);
-
     this.operationServices = {
       ...providedServices,
-      interactors: new EditorInteractorService(
-        this.events,
-        (this.workingState as unknown) as immer.Draft<EditorState>,
-        providedServices?.layout
-      ),
       execute: this.executeRelatedOperation,
     };
 
     this.operationRegistry = new Map();
-    for (const op of CORE_OPERATIONS) {
-      this.operationRegistry.set(op.operationName, op);
+    for (const op of CORE_COMMANDS) {
+      this.operationRegistry.set(op.name, op);
     }
     if (additionalOperations) {
       for (const op of additionalOperations) {
-        this.operationRegistry.set(op.operationName, op);
+        this.operationRegistry.set(op.name, op);
       }
     }
 
@@ -80,87 +72,91 @@ export class Editor {
     if (!omitDefaultInteractor) {
       let cursor = initialCursor;
       if (!cursor) {
-        const cn = new CursorNavigator(this.workingState.document, undefined);
-        cn.navigateTo(new Path([]), CursorOrientation.On);
+        const cn = new CursorNavigator(this.workingState.document);
+        cn.navigateTo(new Path(), CursorOrientation.On);
         cn.navigateToNextCursorPosition();
         cn.navigateToPrecedingCursorPosition();
         cursor = cn.cursor;
       }
-      this.execute(addInteractor({ at: cursor, focused: true }));
+      this.execute(Commands.addInteractor({ at: cursor, focused: true }));
     }
   }
 
-  public get history(): readonly ReadonlyEditorState[] {
-    return this.historyList;
+  public get events(): EditorEvents {
+    return this.eventEmitters;
   }
 
-  public get state(): ReadonlyEditorState {
+  // public get history(): readonly ReadonlyEditorState[] {
+  //   return this.historyList;
+  // }
+
+  public get state(): ReadonlyWorkingDocument {
     return this.workingState;
   }
 
-  public anchorToCursor(anchor: AnchorId | Anchor): Cursor {
-    return this.operationServices.interactors.anchorToCursor(anchor);
-  }
-
-  public execute<ReturnType>(command: EditorOperationCommand<unknown, ReturnType, string>): ReturnType {
+  public execute<ReturnType>(command: Command<unknown, ReturnType, string>): ReturnType {
     const op = this.operationRegistry.get(command.name);
     if (!op) {
-      throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
+      throw new EditorError("Unknown operation");
     }
 
     let result!: ReturnType;
-    const oldState = this.workingState;
-    const newState = immer.produce(this.workingState, (draft) => {
-      this.eventEmitters.operationWillRun.emit(draft);
-      result = op.operationRunFunction(draft, this.operationServices, command.payload) as ReturnType;
-      this.eventEmitters.operationHasRun.emit(draft);
-    });
+    // const oldState = this.workingState.clone();
+    try {
+      this.eventEmitters.operationWillRun.emit(this.workingState);
+      result = op.executor(this.workingState, this.operationServices, command.payload) as ReturnType;
 
-    // If there were no changes, don't do anything
-    if (newState !== this.workingState) {
-      // This is far too basic...
-      this.historyList.push(this.workingState);
-      this.workingState = newState;
-      // Reset future
-      this.futureList.splice(0, this.futureList.length);
-    }
-    this.eventEmitters.operationHasCompleted.emit(this.workingState);
-    if (newState.document !== oldState.document) {
-      this.eventEmitters.documentHasBeenUpdated.emit(this.workingState.document);
+      // Post operation cleanup
+      if (this.currentOperationState?.interactorsUpdated) {
+        CommandUtils.dedupeInteractors(this.workingState);
+      }
+
+      this.eventEmitters.operationHasRun.emit(this.workingState);
+    } catch (e) {
+      this.eventEmitters.operationHasErrored.emit(e as any);
+      // Note that until we fix this, this means that the state can be messed up
+      // this.workingState = oldState; // DONT DO THIS THIS BREAKS THE SERVICES
+      throw e;
+    } finally {
+      this.currentOperationState = undefined;
     }
 
     return result;
   }
 
-  public redo(): void {
-    const futureButNowState = this.futureList.pop();
-    if (futureButNowState) {
-      this.historyList.push(this.workingState);
-      this.workingState = futureButNowState;
-    }
-  }
-  public resetHistory(): void {
-    this.historyList = [];
-    this.futureList = [];
-  }
+  // public redo(): void {
+  //   const futureButNowState = this.futureList.pop();
+  //   if (futureButNowState) {
+  //     this.historyList.push(this.workingState);
+  //     this.workingState = futureButNowState;
+  //   }
+  // }
+  // public resetHistory(): void {
+  //   this.historyList = [];
+  //   this.futureList = [];
+  // }
 
-  public undo(): void {
-    const oldButNewState = this.historyList.pop();
-    if (oldButNewState) {
-      this.futureList.push(this.workingState);
-      this.workingState = oldButNewState;
-    }
-  }
+  // public undo(): void {
+  //   const oldButNewState = this.historyList.pop();
+  //   if (oldButNewState) {
+  //     this.futureList.push(this.workingState);
+  //     this.workingState = oldButNewState;
+  //   }
+  // }
 
-  private executeRelatedOperation = <ReturnType>(
-    updatedState: immer.Draft<EditorState>,
-    command: EditorOperationCommand<unknown, ReturnType, string>
-  ): ReturnType => {
+  private executeRelatedOperation = <ReturnType>(command: Command<unknown, ReturnType, string>): ReturnType => {
     // This must only be called in the context of a currently executing operation
     const op = this.operationRegistry.get(command.name);
     if (!op) {
-      throw new EditorOperationError(EditorOperationErrorCode.UnknownOperation);
+      throw new EditorError("Unknown operation");
     }
-    return op.operationRunFunction(updatedState, this.operationServices, command.payload) as ReturnType;
+    return op.executor(this.workingState, this.operationServices, command.payload) as ReturnType;
+  };
+
+  private handleInteractorUpdated = () => {
+    if (!this.currentOperationState) {
+      this.currentOperationState = {};
+    }
+    this.currentOperationState.interactorsUpdated = true;
   };
 }

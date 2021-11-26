@@ -1,15 +1,13 @@
 import { EventChannel, EventEmitter } from "doctarion-utils";
 
-import { ReadonlyNodeNavigator } from "../basic-traversal";
+import { ReadonlyNodeNavigator } from "../traversal";
 
-import { Anchor } from "./anchor";
-import { Interactor } from "./interactor";
-import { NodeEditAdditionalContext } from "./workingDocument";
+import { ReadonlyWorkingAnchor } from "./anchor";
+import { ReadonlyWorkingInteractor } from "./interactor";
+// import { NodeEditAdditionalContext } from "./workingDocument";
 
-export interface AnchorsOrphanedEventPayload {
-  readonly anchors: readonly Anchor[];
-  readonly deletionTarget: ReadonlyNodeNavigator | [ReadonlyNodeNavigator, ReadonlyNodeNavigator];
-  readonly deletionAdditionalContext?: NodeEditAdditionalContext;
+export interface AnchorOrphanedEventPayload {
+  readonly anchor: ReadonlyWorkingAnchor;
 }
 
 export interface NodesJoinedEventPayload {
@@ -18,25 +16,27 @@ export interface NodesJoinedEventPayload {
 }
 
 export interface WorkingDocumentEvents {
-  anchorUpdated: EventEmitter<Anchor>;
+  anchorAdded: EventEmitter<ReadonlyWorkingAnchor>;
+  anchorDeleted: EventEmitter<ReadonlyWorkingAnchor>;
+  anchorUpdated: EventEmitter<ReadonlyWorkingAnchor>;
+  interactorAdded: EventChannel<ReadonlyWorkingInteractor>;
+  interactorDeleted: EventChannel<ReadonlyWorkingInteractor>;
   /**
-   * This event is fired when an anchor is orphaned due to a node deletion.
-   * Orphaned, meaning the node the anchor is on, or one of its parent nodes was
-   * deleted. Note this does not mean the anchor is automatically deleted,
-   * because it is not!
+   * This event is fired when an interactor is updated and/or one of its anchors
+   * is updated.
    */
-  anchorsOrphaned: EventChannel<AnchorsOrphanedEventPayload>;
-  /**
-   * This event is fired when an interactor is created, when it or one of its
-   * anchors is updated, or it or one of its anchors is deleted.
-   */
-  interactorUpdated: EventChannel<Interactor>;
+  interactorUpdated: EventChannel<ReadonlyWorkingInteractor>;
   nodesJoined: EventChannel<NodesJoinedEventPayload>;
 }
 
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
-  public readonly anchorUpdated = new EventEmitter<Anchor>();
-  public readonly anchorsOrphaned = new EventEmitter<AnchorsOrphanedEventPayload>();
-  public readonly interactorUpdated = new EventEmitter<Interactor>();
+  public readonly anchorAdded = new EventEmitter<ReadonlyWorkingAnchor>();
+  public readonly anchorDeleted = new EventEmitter<ReadonlyWorkingAnchor>();
+  public readonly anchorUpdated = new EventEmitter<ReadonlyWorkingAnchor>();
+
+  public readonly interactorAdded = new EventEmitter<ReadonlyWorkingInteractor>();
+  public readonly interactorDeleted = new EventEmitter<ReadonlyWorkingInteractor>();
+  public readonly interactorUpdated = new EventEmitter<ReadonlyWorkingInteractor>();
+
   public readonly nodesJoined = new EventEmitter<NodesJoinedEventPayload>();
 }

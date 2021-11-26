@@ -1,40 +1,65 @@
-import { immerable } from "immer";
+import { FancyText, Text, TextStyleStrip } from "../text-model";
 
-import { Grapheme } from "./grapheme";
+import { Anchor, AnchorRange } from "./anchor";
+import { FacetDictionary, FacetTypeConvenienceDictionary, FacetTypeWithName } from "./facets";
+import { NodeChildrenType, NodeType, NodeTypeDescription } from "./nodeType";
 
-// -----------------------------------------------------------------------------
-// You can think of a document as a tree like structure of Nodes. The Nodes
-// are just the different objects that make up the Document.
-//
-// This is very handy for traversal.
-//
-// Nodes, with the exception of graphemes, can also be assigned ids to make it
-// easier to track them.
-// -----------------------------------------------------------------------------
+type NodeChildrenTypeToActualType<T extends NodeChildrenType> = T extends NodeChildrenType.None
+  ? []
+  : T extends NodeChildrenType.FancyText
+  ? FancyText
+  : T extends NodeChildrenType.Text
+  ? Text
+  : readonly Node[];
 
-export enum NodeKind {
-  Document = "DOCUMENT",
-  ParagraphBlock = "PARAGRAPH",
-  HeaderBlock = "HEADER",
-  InlineEmoji = "EMOJI",
-  InlineText = "TEXT",
-  InlineUrlLink = "URL_LINK",
-  Grapheme = "GRAPHEME",
-}
+export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription> {
+  public constructor(
+    public readonly nodeType: NodeType<SpecificNodeTypeDescription>,
+    public readonly children: NodeChildrenTypeToActualType<SpecificNodeTypeDescription["childrenType"]>,
+    public readonly facets: SpecificNodeTypeDescription["facets"] extends FacetTypeConvenienceDictionary
+      ? FacetDictionary<SpecificNodeTypeDescription["facets"]>
+      : // eslint-disable-next-line @typescript-eslint/ban-types
+        {}
+  ) {}
 
-export enum NodeLayoutType {
-  Block = "BLOCK",
-  Inline = "INLINE",
-}
+  getAllFacetAnchors(): readonly [FacetTypeWithName, Anchor | AnchorRange][] {
+    const result: [FacetTypeWithName, Anchor | AnchorRange][] = [];
+    for (const f of this.nodeType.getFacetsThatAreAnchors()) {
+      const value = this.getFacet(f.name) as Anchor | AnchorRange;
+      if (value) {
+        result.push([f, value]);
+      }
+    }
+    return result;
+  }
 
-export type Node = ObjectNode | Grapheme;
+  getAllFacetNodes(): readonly [FacetTypeWithName, readonly Node[]][] {
+    const result: [FacetTypeWithName, readonly Node[]][] = [];
+    for (const f of this.nodeType.getFacetsThatAreNodeArrays()) {
+      const array = this.getFacet(f.name) as readonly Node[];
+      if (array) {
+        result.push([f, array]);
+      }
+    }
+    return result;
+  }
 
-/**
- * All document nodes are ObjectNodes except for Graphemes.
- */
-export abstract class ObjectNode {
-  [immerable] = true;
-  public abstract children?: readonly Node[];
-  public abstract kind: Omit<NodeKind, NodeKind.Grapheme>;
-  public abstract layoutType: NodeLayoutType;
+  getAllFacetTextStyleStrips(): readonly [FacetTypeWithName, TextStyleStrip][] {
+    const result: [FacetTypeWithName, TextStyleStrip][] = [];
+    for (const f of this.nodeType.getFacetsThatAreTextStyleStrips()) {
+      const value = this.getFacet(f.name) as TextStyleStrip;
+      if (value) {
+        result.push([f, value]);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * This is a convenience function for typescript since `facets` often tye type
+   * `{}`. This is the same as doing `node.facets[facetName]`.
+   */
+  getFacet(facetName: string): unknown | undefined {
+    return (this.facets as any)[facetName];
+  }
 }

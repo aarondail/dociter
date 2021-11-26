@@ -1,45 +1,55 @@
-import { immerable } from "immer";
+import { Anchor, AnchorOrientation, AnchorRange } from "../document-model";
 
-import { InteractorId } from "./interactor";
-import { NodeId } from "./nodeAssociatedData";
+import { ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
+import { NodeId, ReadonlyWorkingNode, WorkingNode } from "./nodes";
 
 export type AnchorId = string;
 
-/**
- * Anchors can be placed on nodes, but also before and after them. Before and
- * after meaning between this node and its preceding sibling (if any), or after
- * this node and its following sibling.
- */
-export enum AnchorOrientation {
-  Before = "BEFORE",
-  After = "AFTER",
-  On = "ON",
-}
-
-export interface AnchorPosition {
-  readonly nodeId: NodeId;
+export interface AnchorParameters {
+  readonly node: NodeId | ReadonlyWorkingNode;
   readonly orientation: AnchorOrientation;
   readonly graphemeIndex?: number;
+  readonly name?: string;
 }
 
-/**
- * An Anchor is very similar to a Cursor, but instead of being composed of a
- * path and an orientation it is composed of a NodeId, a possible grapheme index
- * (only used for Graphemes), and an orientation.
- *
- * It can be converted to and from a Cursor as needed, but this form makes it
- * much easier to insert and delete nodes in the Document because existing
- * anchors (contained by interactors) do not need to be updated (generally).
- */
-export class Anchor implements AnchorPosition {
-  [immerable] = true;
+export enum WorkingAnchorType {
+  Node = "NODE",
+  Interactor = "INTERACTOR",
+  Transient = "TRANSIENT",
+  Free = "FREE",
+}
 
+export class WorkingAnchor extends Anchor {
   public constructor(
-    public readonly id: string,
-    public readonly nodeId: NodeId,
-    public readonly orientation: AnchorOrientation,
-    public readonly graphemeIndex?: number,
-    public readonly name?: string,
-    public readonly relatedInteractorId?: InteractorId
-  ) {}
+    public id: AnchorId,
+    public node: WorkingNode,
+    public orientation: AnchorOrientation,
+    public graphemeIndex: number | undefined,
+    public type: WorkingAnchorType,
+    public name?: string,
+    public relatedInteractor?: WorkingInteractor,
+    public relatedOriginatingNode?: WorkingNode
+  ) {
+    super(node, orientation, graphemeIndex);
+  }
+}
+
+export interface ReadonlyWorkingAnchor extends Anchor {
+  readonly id: AnchorId;
+  readonly node: ReadonlyWorkingNode;
+  readonly orientation: AnchorOrientation;
+  readonly graphemeIndex?: number;
+  readonly type: WorkingAnchorType;
+  readonly name?: string;
+  readonly relatedInteractor?: ReadonlyWorkingInteractor;
+  readonly relatedOriginatingNode?: ReadonlyWorkingNode;
+}
+
+export class WorkingAnchorRange implements AnchorRange {
+  public constructor(public from: WorkingAnchor, public to: WorkingAnchor) {}
+}
+
+export interface ReadonlyWorkingAnchorRange {
+  readonly from: ReadonlyWorkingAnchor;
+  readonly to: ReadonlyWorkingAnchor;
 }

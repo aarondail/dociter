@@ -1,4 +1,4 @@
-export enum FlowDirection {
+export enum AnchorPullDirection {
   Backward = "BACKWARD",
   Forward = "FORWARD",
 }
