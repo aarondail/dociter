@@ -64,35 +64,42 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
   public updateAndSplitAt(splitAtGraphemeIndex: number): WorkingTextStyleStrip {
     const r = this.searchForEntryAtOrAfterGraphemeIndex(splitAtGraphemeIndex);
 
-    let splitBoundaryEntryIndex = 0;
+    let splitBoundaryEntryIndex = undefined;
     if (r) {
       ({ entryIndex: splitBoundaryEntryIndex } = r);
     }
 
     // Collect styles before index
     const styleAtSplitOnRightSide = this.resolveStyleAt(splitAtGraphemeIndex);
-    const modifierEntriesToMoveRight = this.mutableEntries.splice(
-      splitBoundaryEntryIndex,
-      this.mutableEntries.length - splitBoundaryEntryIndex
-    );
-    this.entries = this.mutableEntries;
+    if (splitBoundaryEntryIndex !== undefined) {
+      const modifierEntriesToMoveRight = this.mutableEntries.splice(
+        splitBoundaryEntryIndex,
+        this.mutableEntries.length - splitBoundaryEntryIndex
+      );
+      this.entries = this.mutableEntries;
 
-    const split = new WorkingTextStyleStrip([]);
-    split.mutableEntries = modifierEntriesToMoveRight;
-    split.entries = split.mutableEntries;
-    for (const entry of split.mutableEntries) {
-      entry.graphemeIndex -= splitAtGraphemeIndex;
-    }
+      const split = new WorkingTextStyleStrip([]);
+      split.mutableEntries = modifierEntriesToMoveRight;
+      split.entries = split.mutableEntries;
 
-    const modifierAtVeryBeginningOfSplitRight = this.getModifierAtExactly(0);
-    if (modifierAtVeryBeginningOfSplitRight) {
-      for (const key of Object.keys(modifierAtVeryBeginningOfSplitRight)) {
-        delete (styleAtSplitOnRightSide as any)[key];
+      for (const entry of split.mutableEntries) {
+        entry.graphemeIndex -= splitAtGraphemeIndex;
       }
-    }
 
-    split.setModifierPrime(0, styleAtSplitOnRightSide, false);
-    return split;
+      const modifierAtVeryBeginningOfSplitRight = this.getModifierAtExactly(splitAtGraphemeIndex);
+      if (modifierAtVeryBeginningOfSplitRight) {
+        for (const key of Object.keys(modifierAtVeryBeginningOfSplitRight)) {
+          delete (styleAtSplitOnRightSide as any)[key];
+        }
+      }
+
+      split.setModifierPrime(0, styleAtSplitOnRightSide, false);
+      return split;
+    } else {
+      const split = new WorkingTextStyleStrip([]);
+      split.setModifierPrime(0, styleAtSplitOnRightSide, false);
+      return split;
+    }
   }
 
   public updateDueToGraphemeDeletion(graphemeIndex: number, count: number): void {

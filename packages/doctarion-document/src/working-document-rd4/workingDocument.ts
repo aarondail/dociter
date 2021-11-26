@@ -1419,6 +1419,13 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     for (let i = 0; i < splitChildIndices.length; i++) {
       const childIndex = splitChildIndices[i];
       if (!nav.navigateToChild(childIndex)) {
+        if (i === splitChildIndices.length - 1) {
+          // If we are at the end, its OK to be exactly one past the last child index
+          if (childIndex === (nav.tip.node as Node)?.children?.length) {
+            // This is ok
+            break;
+          }
+        }
         throw new WorkingDocumentError("Could not find target");
       }
       if (i < splitChildIndices.length - 1) {

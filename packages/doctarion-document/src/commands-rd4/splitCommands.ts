@@ -45,15 +45,11 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
   // Is it ok that for selections this isn't properly ordered?
   anchorsToSplit.reverse();
   for (const { anchorId, navigator } of anchorsToSplit) {
-    // const direction = FlowDirection.Forward; // payload.direction || FlowDirection.Backward;
-    // const isForward = direction === FlowDirection.Forward;
-
     const result = navigator.chain.searchBackwardsAndSplit(
       (n) =>
         PseudoNode.isNode(n) &&
         (n.nodeType.childrenType === NodeChildrenType.Blocks ||
           n.nodeType.childrenType === NodeChildrenType.BlocksAndSuperBlocks)
-      // NodeUtils.isBlockContainer
     )!;
 
     const blockContainerSubChain = result[0];
@@ -80,23 +76,33 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
       splitChildIndices[splitChildIndices.length - 1]!++;
     }
 
-    if (
-      navigator.cursor.orientation === CursorOrientation.Before ||
-      navigator.cursor.orientation === CursorOrientation.After
-    ) {
-      // Make sure we have padded the last node (if we are before or after an insertion point)
-      if (navigator.tip.node instanceof Node && !(navigator.tip.node.nodeType.childrenType === NodeChildrenType.None)) {
-        splitChildIndices.push(
-          navigator.cursor.orientation === CursorOrientation.Before ? 0 : navigator.tip.node.children.length - 1
-        );
-      }
-      // }
+    let isNavigatorOnGrapheme = false;
+    // Make sure we have padded the last node (if we are before or after an insertion point)
+    // if (navigator.tip.node instanceof Node && !(navigator.tip.node.nodeType.childrenType === NodeChildrenType.None)) {
+    if (PseudoNode.isGrapheme(navigator.tip.node)) {
+      isNavigatorOnGrapheme = true;
+    }
 
+    if (splitChildIndices.length === 0 && blockNode.children.length === 0) {
+      // In this case we just want to insert a new block type... this makes more
+      // sense if split means "hit enter" on a paragraph where it sorta doubles
+      // as insertion
+      state.insertNode(blockContainerNode, new Node(blockNode.nodeType, [], blockNode.facets), blockIndex + 1);
+    } else {
       state.splitNode(blockNode, splitChildIndices as number[]);
+    }
 
-      navigator.navigateFreelyTo(new Chain(...blockContainerSubChain).path);
-      navigator.navigateFreelyToChild(blockIndex + 1);
-      navigator.navigateToFirstDescendantCursorPosition();
+    navigator.navigateFreelyTo(new Chain(...blockContainerSubChain).path);
+    navigator.navigateFreelyToChild(blockIndex + 1);
+    navigator.navigateToFirstDescendantCursorPosition();
+
+    // This is to handle the case where we split a non-Span inline (e.g. Hyperlink)
+    if (
+      isNavigatorOnGrapheme &&
+      !PseudoNode.isGrapheme(navigator.tip.node) &&
+      (navigator.tip.node as Node).children.length > 0
+    ) {
+      navigator.navigateToNextCursorPosition();
     }
 
     state.updateAnchor(anchorId!, state.getAnchorParametersFromCursorNavigator(navigator));
