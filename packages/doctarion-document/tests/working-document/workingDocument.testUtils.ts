@@ -1,5 +1,5 @@
 /* eslint-disable jest/no-export */
-import { testDoc } from "../utils";
+import { testDoc } from "../test-utils";
 
 export const WorkingDocumentTestUtils = {
   testDocs: {

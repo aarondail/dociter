@@ -1,5 +1,5 @@
 import { AnchorOrientation, FlowDirection, WorkingDocument } from "../../src";
-import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
+import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../test-utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 

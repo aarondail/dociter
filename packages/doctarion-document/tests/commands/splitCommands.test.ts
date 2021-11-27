@@ -1,5 +1,5 @@
 import { Commands, CursorOrientation, Editor } from "../../src";
-import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../utils";
+import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
 

@@ -1,5 +1,5 @@
 import { Commands, CursorOrientation, Editor, Hyperlink, InteractorTargets, Node, Span, Text } from "../../src";
-import { dumpAnchorsFromWorkingDocument, nodeToXmlish, testDoc } from "../utils";
+import { dumpAnchorsFromWorkingDocument, nodeToXmlish, testDoc } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
 

@@ -1,5 +1,5 @@
 import { Commands, CursorOrientation, CursorPath, Editor, InteractorStatus, Path } from "../../src";
-import { dumpAnchorsFromWorkingDocument } from "../utils";
+import { dumpAnchorsFromWorkingDocument } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
 

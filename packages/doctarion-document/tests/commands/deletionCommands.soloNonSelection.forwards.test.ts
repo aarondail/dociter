@@ -1,5 +1,5 @@
 import { Commands, CursorOrientation, FlowDirection } from "../../src";
-import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../utils";
+import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
 

@@ -1,5 +1,5 @@
 import { NodeNavigator } from "../../src";
-import { testDoc } from "../utils";
+import { testDoc } from "../test-utils";
 
 const testDoc1 = testDoc`
 <h level=ONE> <s>Header1</s> </h>

@@ -1,6 +1,6 @@
 /* eslint-disable jest/no-export */
 import { Commands, Editor, EditorConfig } from "../../src";
-import { testDoc } from "../utils";
+import { testDoc } from "../test-utils";
 
 export const CommandsTestUtils = {
   testDocs: {

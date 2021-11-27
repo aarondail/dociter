@@ -1,5 +1,5 @@
 import { CursorNavigator, CursorOrientation } from "../../src";
-import { testDoc } from "../utils";
+import { testDoc } from "../test-utils";
 
 describe("navigateToLastDescendantCursorPosition", () => {
   it("should handle empty insertion points", () => {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Chain, NodeCategory, Path, PseudoNode, Range } from "../../src";
-import { testDoc } from "../utils";
+import { testDoc } from "../test-utils";
 
 const testDoc1 = testDoc`
 <h level=ONE> <s>H12</s> </h>

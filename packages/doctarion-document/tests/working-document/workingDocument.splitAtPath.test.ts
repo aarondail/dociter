@@ -1,5 +1,5 @@
 import { AnchorOrientation, ReadonlyWorkingNode, WorkingDocument } from "../../src";
-import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../utils";
+import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../test-utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 

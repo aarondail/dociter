@@ -1,5 +1,5 @@
 import { Commands, CursorOrientation, FlowDirection, InteractorStatus, InteractorTargets, JoinType } from "../../src";
-import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
+import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
 
