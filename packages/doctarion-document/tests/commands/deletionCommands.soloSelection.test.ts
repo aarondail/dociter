@@ -6,7 +6,7 @@ import { CommandsTestUtils } from "./commands.testUtils";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { After, Before, On } = CursorOrientation;
 
-describe("deleting backwards (solo non selection cursor)", () => {
+describe("deleting backwards (solo selection)", () => {
   it("will delete covered Hyperlink", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
@@ -73,5 +73,20 @@ describe("deleting backwards (solo non selection cursor)", () => {
       `"Anchor: ᯼-MAIN AFTER (Span:H)0/0⁙0 intr: ᯼ "`
     );
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`"<h level=ONE> <s>H</s> </h>"`);
+  });
+
+  it("will delete covered and slightly beyond Hyperlink", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
+    editor.execute(Commands.jump({ to: { path: "3/1", orientation: After }, select: true }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
+      "Anchor: ᯼-MAIN BEFORE (Span:D)3/2⁙0 intr: ᯼ 
+      Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "
+    `);
+    editor.execute(Commands.delete({}));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:C)3/0⁙1 intr: ᯼ "`
+    );
+    expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(`"<p> <s>CCDD</s> </p>"`);
   });
 });

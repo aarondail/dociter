@@ -277,6 +277,13 @@ export class NodeNavigator<NodeClass extends Node = Node> implements ReadonlyNod
     return this.navigateToChildPrime(children, (children?.length || 0) - 1);
   }
 
+  public navigateToLastDescendant(): boolean {
+    while (this.navigateToLastChild()) {
+      // no-op?
+    }
+    return true;
+  }
+
   /**
    * This navigates to a sibling after the current node, if there is one.
    * This will not jump to a different parent node.

@@ -372,7 +372,10 @@ function getRangeForSelection(from: CursorNavigator, to: CursorNavigator): Range
   let toPath = to.path;
   if (to.cursor.orientation === CursorOrientation.Before) {
     const n = to.toNodeNavigator();
+    // This is almost doing a reverse forwards DFS but not quite because we can
+    // land on a parent of the current (after) node which is not what we want
     if (n.navigateBackwardsByDfs()) {
+      n.navigateToLastDescendant();
       toPath = n.path;
     }
   }

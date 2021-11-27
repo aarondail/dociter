@@ -58,10 +58,11 @@ describe("navigateTo", () => {
   it("navigates to between insertion points", () => {
     const nav = new CursorNavigator(CursorNavigatorTestUtils.testDocs.basicDocWithBetweenInsertionPoints);
 
-    // expect(nav.navigateTo("0/0", CursorOrientation.Before)).toBeTruthy();
-    // expect(nav.cursor.toString()).toEqual("BEFORE 0/0");
-    // expect(nav.navigateTo("0/0", CursorOrientation.After)).toBeTruthy();
-    // expect(nav.cursor.toString()).toEqual("AFTER 0/0");
+    expect(nav.navigateTo("0/0", CursorOrientation.Before)).toBeTruthy();
+    expect(nav.cursor.toString()).toEqual("BEFORE 0/0");
+    expect(nav.navigateTo("0/0", CursorOrientation.After)).toBeTruthy();
+    expect(nav.cursor.toString()).toEqual("AFTER 0/0");
+
     expect(nav.navigateTo("0/1", CursorOrientation.Before)).toBeTruthy();
     // Note the change because the navigator prefers after orientation to before orientation
     expect(nav.cursor.toString()).toEqual("AFTER 0/0");
