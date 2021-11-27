@@ -1,4 +1,4 @@
-import { LiftingPathMap, Path } from "../../src/traversal";
+import { LiftingPathMap, Path } from "../../src";
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const p = Path.parse;

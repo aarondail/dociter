@@ -1,5 +1,4 @@
-import { SimpleComparison } from "../../src/shared-utils";
-import { CursorOrientation, CursorPath, Path } from "../../src/traversal";
+import { CursorOrientation, CursorPath, Path, SimpleComparison } from "../../src";
 
 const compareToScenarios = [
   ["BEFORE 1/1/0", "AFTER 1/1/1", SimpleComparison.Before],

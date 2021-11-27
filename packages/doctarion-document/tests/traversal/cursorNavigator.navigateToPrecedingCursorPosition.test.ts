@@ -1,4 +1,4 @@
-import { CursorNavigator, CursorOrientation } from "../../src/traversal";
+import { CursorNavigator, CursorOrientation } from "../../src";
 
 import { CursorNavigatorTestUtils } from "./cursorNavigator.testUtils";
 

@@ -1,5 +1,4 @@
-import { Header, Hyperlink, Node, Paragraph, Span } from "../../src/document-model";
-import { CursorNavigator } from "../../src/traversal";
+import { CursorNavigator, Header, Hyperlink, Node, Paragraph, Span } from "../../src";
 
 import { CursorNavigatorTestUtils } from "./cursorNavigator.testUtils";
 

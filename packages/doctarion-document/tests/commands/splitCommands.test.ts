@@ -1,6 +1,4 @@
-import { Commands } from "../../src/commands";
-import { Editor } from "../../src/editor";
-import { CursorOrientation } from "../../src/traversal";
+import { Commands, CursorOrientation, Editor } from "../../src";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

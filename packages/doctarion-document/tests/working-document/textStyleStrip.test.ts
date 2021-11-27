@@ -1,5 +1,4 @@
-import { TextStyleModifier, TextStyleStrip } from "../../src/text-model";
-import { WorkingTextStyleStrip } from "../../src/working-document/textStyleStrip";
+import { TextStyleModifier, TextStyleStrip, WorkingTextStyleStrip } from "../../src";
 
 function dumpModifier(modifier: TextStyleModifier): string {
   return JSON.stringify(modifier).replaceAll('"', "");

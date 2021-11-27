@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { NodeCategory } from "../../src/document-model";
-import { Chain, Path, PseudoNode, Range } from "../../src/traversal";
+import { Chain, NodeCategory, Path, PseudoNode, Range } from "../../src";
 import { testDoc } from "../utils";
 
 const testDoc1 = testDoc`

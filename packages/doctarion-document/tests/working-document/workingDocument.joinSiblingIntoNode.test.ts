@@ -1,6 +1,4 @@
-import { AnchorOrientation } from "../../src/document-model";
-import { FlowDirection } from "../../src/shared-utils";
-import { WorkingDocument } from "../../src/working-document";
+import { AnchorOrientation, FlowDirection, WorkingDocument } from "../../src";
 import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

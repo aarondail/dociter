@@ -1,4 +1,4 @@
-import { WorkingDocument } from "../../src/working-document";
+import { WorkingDocument } from "../../src";
 import { docToXmlish } from "../utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

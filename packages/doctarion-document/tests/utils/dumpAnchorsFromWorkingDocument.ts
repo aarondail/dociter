@@ -1,4 +1,4 @@
-import { ReadonlyWorkingDocument } from "../../src/working-document";
+import { ReadonlyWorkingDocument } from "../../src";
 
 export function dumpAnchorsFromWorkingDocument(wd: ReadonlyWorkingDocument): string {
   let s = "";

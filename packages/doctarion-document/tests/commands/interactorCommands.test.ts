@@ -1,7 +1,4 @@
-import { Commands } from "../../src/commands";
-import { Editor } from "../../src/editor";
-import { CursorOrientation, CursorPath, Path } from "../../src/traversal";
-import { InteractorStatus } from "../../src/working-document";
+import { Commands, CursorOrientation, CursorPath, Editor, InteractorStatus, Path } from "../../src";
 import { dumpAnchorsFromWorkingDocument } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

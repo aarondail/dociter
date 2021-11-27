@@ -1,5 +1,4 @@
-import { Header, HeaderLevel, Paragraph } from "../../src/document-model";
-import { WorkingDocument } from "../../src/working-document";
+import { Header, HeaderLevel, Paragraph, WorkingDocument } from "../../src";
 import { docToXmlish } from "../utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

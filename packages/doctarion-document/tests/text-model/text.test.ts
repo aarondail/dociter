@@ -1,5 +1,5 @@
 /* eslint-disable no-irregular-whitespace */
-import { Text } from "../../src/text-model";
+import { Text } from "../../src";
 
 describe("Text", () => {
   test("fromString works", () => {

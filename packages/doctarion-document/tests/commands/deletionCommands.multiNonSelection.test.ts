@@ -1,6 +1,4 @@
-import { Commands, InteractorTargets } from "../../src/commands";
-import { FlowDirection } from "../../src/shared-utils";
-import { CursorOrientation } from "../../src/traversal";
+import { Commands, CursorOrientation, FlowDirection, InteractorTargets } from "../../src";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

@@ -14,9 +14,12 @@ import {
   NodeType,
   Paragraph,
   Span,
-} from "../../src/document-model";
+  Text,
+  TextStyleModifier,
+  TextStyleStrip,
+  TextStyleStripEntry,
+} from "../../src";
 import { Mutable } from "../../src/shared-utils";
-import { Text, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../../src/text-model";
 
 /**
  * Create a test Document for the tests.

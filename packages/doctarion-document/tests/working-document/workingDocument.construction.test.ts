@@ -8,9 +8,9 @@ import {
   Node,
   Sidebar,
   Span,
-} from "../../src/document-model";
-import { Text } from "../../src/text-model";
-import { WorkingDocument } from "../../src/working-document";
+  Text,
+  WorkingDocument,
+} from "../../src";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, testDoc } from "../utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

@@ -1,5 +1,4 @@
-import { CommandError, Commands, InteractorTargets } from "../../src/commands";
-import { CursorOrientation } from "../../src/traversal";
+import { CommandError, Commands, CursorOrientation, InteractorTargets } from "../../src";
 import { dumpAnchorsFromWorkingDocument } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

@@ -1,6 +1,4 @@
-import { Node, Span } from "../../src/document-model";
-import { Text } from "../../src/text-model";
-import { WorkingDocument } from "../../src/working-document";
+import { Node, Span, Text, WorkingDocument } from "../../src";
 import { docToXmlish } from "../utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";

@@ -1,7 +1,4 @@
-import { Commands } from "../../src/commands";
-import { JoinType } from "../../src/commands/joinCommands";
-import { FlowDirection } from "../../src/shared-utils";
-import { CursorOrientation } from "../../src/traversal";
+import { Commands, CursorOrientation, FlowDirection, JoinType } from "../../src";
 import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

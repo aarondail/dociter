@@ -4,18 +4,23 @@ export * from "./types";
 export * from "./services";
 export * from "./utils";
 
+export { DeletePayload } from "./deletionCommands";
+export { InsertPayload } from "./insertionCommands";
+export { JoinType, JoinPayload } from "./joinCommands";
+export { SplitType, SplitPayload } from "./splitCommands";
+
 import * as CursorCommands from "./cursorCommands";
 import { deleteImplementation } from "./deletionCommands";
-import * as InsertionCommands from "./insertionCommands";
+import { insert } from "./insertionCommands";
 import * as InteractorCommands from "./interactorCommands";
-import * as JoinCommands from "./joinCommands";
-import * as SplitCommands from "./splitCommands";
+import { join } from "./joinCommands";
+import { split } from "./splitCommands";
 
 export const Commands = {
   ...CursorCommands,
   delete: deleteImplementation,
-  ...InsertionCommands,
+  insert,
   ...InteractorCommands,
-  ...JoinCommands,
-  ...SplitCommands,
+  join,
+  split,
 };

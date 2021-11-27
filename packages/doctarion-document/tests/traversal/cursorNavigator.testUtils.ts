@@ -1,5 +1,5 @@
 /* eslint-disable jest/no-export */
-import { DocumentNode } from "../../src/document-model";
+import { DocumentNode } from "../../src";
 import { testDoc } from "../utils";
 
 export const CursorNavigatorTestUtils = {

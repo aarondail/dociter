@@ -5,9 +5,7 @@ import { ReadonlyWorkingInteractor, WorkingDocument } from "../working-document"
 import { InteractorInputPosition, MovementPayload } from "./payloads";
 import { CommandServices } from "./services";
 import { coreCommand } from "./types";
-import { CommandUtils } from "./utils";
-
-import { SelectTargetsSort } from ".";
+import { CommandUtils, SelectTargetsSort } from "./utils";
 
 export const moveBack = coreCommand<MovementPayload>("cursor/moveBack", (state, services, payload): void => {
   for (const target of CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Unsorted)) {

@@ -1,11 +1,11 @@
-import { SimpleComparison } from "../../src/shared-utils";
 import {
   Path,
   PathAdjustmentDueToMoveReason,
   PathAdjustmentDueToRelativeDeletionNoChangeReason,
   PathAdjustmentDueToRelativeInsertionBeforeNoChangeReason,
   PathComparison,
-} from "../../src/traversal";
+  SimpleComparison,
+} from "../../src";
 
 test("adjustDueToMove", () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method

@@ -1,8 +1,4 @@
-import { Commands, InteractorTargets } from "../../src/commands";
-import { Hyperlink, Node, Span } from "../../src/document-model";
-import { Editor } from "../../src/editor";
-import { Text } from "../../src/text-model";
-import { CursorOrientation } from "../../src/traversal";
+import { Commands, CursorOrientation, Editor, Hyperlink, InteractorTargets, Node, Span, Text } from "../../src";
 import { dumpAnchorsFromWorkingDocument, nodeToXmlish, testDoc } from "../utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";

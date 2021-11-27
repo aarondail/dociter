@@ -1,4 +1,4 @@
-import { NodeNavigator } from "../../src/traversal";
+import { NodeNavigator } from "../../src";
 import { testDoc } from "../utils";
 
 const testDoc1 = testDoc`
