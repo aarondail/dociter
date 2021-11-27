@@ -4,11 +4,6 @@ import { ReadonlyNodeNavigator } from "../traversal";
 
 import { ReadonlyWorkingAnchor } from "./anchor";
 import { ReadonlyWorkingInteractor } from "./interactor";
-// import { NodeEditAdditionalContext } from "./workingDocument";
-
-export interface AnchorOrphanedEventPayload {
-  readonly anchor: ReadonlyWorkingAnchor;
-}
 
 export interface NodesJoinedEventPayload {
   readonly destination: ReadonlyNodeNavigator;
@@ -19,6 +14,7 @@ export interface WorkingDocumentEvents {
   anchorAdded: EventEmitter<ReadonlyWorkingAnchor>;
   anchorDeleted: EventEmitter<ReadonlyWorkingAnchor>;
   anchorUpdated: EventEmitter<ReadonlyWorkingAnchor>;
+
   interactorAdded: EventChannel<ReadonlyWorkingInteractor>;
   interactorDeleted: EventChannel<ReadonlyWorkingInteractor>;
   /**
@@ -26,7 +22,6 @@ export interface WorkingDocumentEvents {
    * is updated.
    */
   interactorUpdated: EventChannel<ReadonlyWorkingInteractor>;
-  nodesJoined: EventChannel<NodesJoinedEventPayload>;
 }
 
 export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
@@ -37,6 +32,4 @@ export class WorkingDocumentEventEmitter implements WorkingDocumentEvents {
   public readonly interactorAdded = new EventEmitter<ReadonlyWorkingInteractor>();
   public readonly interactorDeleted = new EventEmitter<ReadonlyWorkingInteractor>();
   public readonly interactorUpdated = new EventEmitter<ReadonlyWorkingInteractor>();
-
-  public readonly nodesJoined = new EventEmitter<NodesJoinedEventPayload>();
 }

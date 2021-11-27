@@ -575,7 +575,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     const dest = resolvedNode;
     const nav = Utils.getNodeNavigator(this.actualDocument, this.getNodePath(resolvedNode));
-    const destNav = nav.clone();
 
     if (!(direction === FlowDirection.Backward ? nav.navigateToPrecedingSibling() : nav.navigateToNextSibling())) {
       throw new WorkingDocumentError("Could not find sibling node to join to");
@@ -631,7 +630,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       }
     }
 
-    this.eventEmitters.nodesJoined.emit({ destination: destNav, source: nav });
+    // We could emit a node joined event here...
 
     this.deleteDocumentLocationsPrime(
       [{ node: source }],

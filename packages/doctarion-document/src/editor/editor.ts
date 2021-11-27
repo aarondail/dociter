@@ -115,7 +115,7 @@ export class Editor {
     } catch (e) {
       this.eventEmitters.operationHasErrored.emit(e as any);
       // Note that until we fix this, this means that the state can be messed up
-      // this.workingState = oldState; // DONT DO THIS THIS BREAKS THE SERVICES
+      // this.workingState = oldState; // DONT DO THIS THIS BREAKS STUFF
       throw e;
     } finally {
       this.currentOperationState = undefined;
