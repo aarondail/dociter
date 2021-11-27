@@ -1,4 +1,4 @@
-import { SimpleComparison } from "../../src/miscUtils";
+import { SimpleComparison } from "../../src/shared-utils";
 import { CursorOrientation, CursorPath, Path } from "../../src/traversal";
 
 const compareToScenarios = [

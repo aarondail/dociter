@@ -1,4 +1,4 @@
-import { Side } from "../miscUtils";
+import { Side } from "../shared-utils";
 import { Chain, NodeNavigator } from "../traversal";
 import { HorizontalVisualPosition } from "../working-document";
 

@@ -1,5 +1,5 @@
 import { AnchorOrientation } from "../document-model";
-import { SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../shared-utils";
 
 import {
   Path,

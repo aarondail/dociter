@@ -1,6 +1,6 @@
 import { Commands } from "../../src/commands";
 import { JoinType } from "../../src/commands/joinCommands";
-import { FlowDirection } from "../../src/miscUtils";
+import { FlowDirection } from "../../src/shared-utils";
 import { CursorOrientation } from "../../src/traversal";
 import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
 

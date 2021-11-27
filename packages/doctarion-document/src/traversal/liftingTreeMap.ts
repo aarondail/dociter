@@ -6,7 +6,7 @@
 // broke, but maybe I need a specific test (maybe I have one?).
 // -----------------------------------------------------------------------------
 
-import { SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../shared-utils";
 
 import { Path } from "./path";
 import { PathPart } from "./pathPart";

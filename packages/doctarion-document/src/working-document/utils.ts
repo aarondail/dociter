@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Document, FacetType, FacetValueType, NodeCategory, NodeChildrenType, NodeType } from "../document-model";
-import { SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../shared-utils";
 import { Emblem, Emoji, FancyGrapheme, FancyText, Text } from "../text-model";
 import { Chain, CursorNavigator, CursorOrientation, NodeNavigator, Path, PathPart, PseudoNode } from "../traversal";
 

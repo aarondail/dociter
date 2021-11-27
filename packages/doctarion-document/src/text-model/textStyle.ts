@@ -1,4 +1,4 @@
-import { Mutable, Nullable } from "../miscUtils";
+import { Mutable, Nullable } from "../shared-utils";
 
 export enum TextStyleSemanticPurpose {
   Quote,

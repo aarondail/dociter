@@ -1,5 +1,5 @@
 import { Commands } from "../../src/commands";
-import { FlowDirection } from "../../src/miscUtils";
+import { FlowDirection } from "../../src/shared-utils";
 import { CursorOrientation } from "../../src/traversal";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../utils";
 

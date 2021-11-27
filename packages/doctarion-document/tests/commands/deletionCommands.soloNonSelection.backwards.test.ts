@@ -1,6 +1,6 @@
 import { Commands } from "../../src/commands";
 import { Editor } from "../../src/editor";
-import { FlowDirection } from "../../src/miscUtils";
+import { FlowDirection } from "../../src/shared-utils";
 import { CursorOrientation } from "../../src/traversal";
 import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish, testDoc } from "../utils";
 

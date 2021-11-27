@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model";
-import { FlowDirection, SimpleComparison } from "../miscUtils";
+import { FlowDirection, SimpleComparison } from "../shared-utils";
 import {
   CursorNavigator,
   CursorOrientation,

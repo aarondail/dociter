@@ -1,7 +1,7 @@
 import binarySearch from "binary-search";
 import lodash from "lodash";
 
-import { Mutable } from "../miscUtils";
+import { Mutable } from "../shared-utils";
 import { TextStyle, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../text-model";
 
 export class WorkingTextStyleStrip extends TextStyleStrip {

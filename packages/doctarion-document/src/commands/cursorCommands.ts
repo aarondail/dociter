@@ -1,4 +1,4 @@
-import { Side } from "../miscUtils";
+import { Side } from "../shared-utils";
 import { CursorNavigator, CursorOrientation, NodeNavigator } from "../traversal";
 import { ReadonlyWorkingInteractor, WorkingDocument } from "../working-document";
 

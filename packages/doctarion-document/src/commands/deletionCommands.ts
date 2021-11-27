@@ -1,5 +1,5 @@
 import { Document, Node, Span } from "../document-model";
-import { FlowDirection } from "../miscUtils";
+import { FlowDirection } from "../shared-utils";
 import { CursorNavigator, CursorOrientation, NodeNavigator, PseudoNode, ReadonlyCursorNavigator } from "../traversal";
 import { AnchorPullDirection } from "../working-document";
 

@@ -1,6 +1,6 @@
 import lodash from "lodash";
 
-import { SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../shared-utils";
 
 import { PathPart } from "./pathPart";
 

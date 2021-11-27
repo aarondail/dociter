@@ -1,5 +1,5 @@
 import { Node, NodeChildrenType, Paragraph, Span } from "../document-model";
-import { FlowDirection } from "../miscUtils";
+import { FlowDirection } from "../shared-utils";
 import { Text, TextStyleStrip } from "../text-model";
 import { CursorOrientation, PseudoNode } from "../traversal";
 import { InsertOrJoin, ReadonlyWorkingNode } from "../working-document";

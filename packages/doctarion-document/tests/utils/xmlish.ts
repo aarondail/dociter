@@ -15,7 +15,7 @@ import {
   Paragraph,
   Span,
 } from "../../src/document-model";
-import { Mutable } from "../../src/miscUtils";
+import { Mutable } from "../../src/shared-utils";
 import { Text, TextStyleModifier, TextStyleStrip, TextStyleStripEntry } from "../../src/text-model";
 
 /**

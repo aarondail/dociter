@@ -8,7 +8,7 @@ import {
   NodeType,
   NodeTypeDescription,
 } from "../document-model";
-import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../miscUtils";
+import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../shared-utils";
 import { FancyGrapheme, FancyText, Grapheme, Text } from "../text-model";
 import { PathPart } from "../traversal";
 

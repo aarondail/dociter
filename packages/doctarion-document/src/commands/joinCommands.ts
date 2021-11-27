@@ -1,4 +1,4 @@
-import { FlowDirection } from "../miscUtils";
+import { FlowDirection } from "../shared-utils";
 import { LiftingPathMap } from "../traversal";
 import { ReadonlyWorkingNode } from "../working-document";
 

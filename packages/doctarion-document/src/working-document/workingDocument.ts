@@ -14,7 +14,7 @@ import {
   NodeTypeDescription,
   Span,
 } from "../document-model";
-import { FlowDirection } from "../miscUtils";
+import { FlowDirection } from "../shared-utils";
 import { FancyGrapheme, FancyText, Grapheme, Text, TextStyle, TextStyleModifier, TextStyleStrip } from "../text-model";
 import {
   CursorNavigator,

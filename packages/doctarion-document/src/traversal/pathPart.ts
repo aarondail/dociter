@@ -1,5 +1,5 @@
 import { Node } from "../document-model";
-import { SimpleComparison } from "../miscUtils";
+import { SimpleComparison } from "../shared-utils";
 
 import { PseudoNode } from "./pseudoNode";
 

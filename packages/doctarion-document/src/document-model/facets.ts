@@ -1,4 +1,4 @@
-import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../miscUtils";
+import { Intersection, Matching, NonMatching, OptionValueTypeFromOptionArray } from "../shared-utils";
 import { TextStyleStrip } from "../text-model";
 
 import { Anchor, AnchorRange } from "./anchor";

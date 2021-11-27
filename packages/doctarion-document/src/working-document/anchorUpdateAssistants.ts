@@ -1,5 +1,5 @@
 import { AnchorOrientation, Node, Span } from "../document-model";
-import { FlowDirection } from "../miscUtils";
+import { FlowDirection } from "../shared-utils";
 import { PseudoNode } from "../traversal";
 
 import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorType } from "./anchor";

@@ -1,6 +1,6 @@
 import { Commands, InteractorTargets } from "../../src/commands";
 import { JoinType } from "../../src/commands/joinCommands";
-import { FlowDirection } from "../../src/miscUtils";
+import { FlowDirection } from "../../src/shared-utils";
 import { CursorOrientation } from "../../src/traversal";
 import { InteractorStatus } from "../../src/working-document";
 import { docToXmlish, dumpAnchorsFromWorkingDocument } from "../utils";
