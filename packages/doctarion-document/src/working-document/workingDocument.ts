@@ -902,6 +902,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     if ("graphemeIndex" in parameters) {
       resolvedAnchor.graphemeIndex = parameters.graphemeIndex;
+
+      // For Interactor type anchors... and maybe Free ones... we could add some
+      // code here to flip the anchor orientation if it was BEFORE... this would
+      // be a convenient place to do that, though I am not sure its necessary.
     }
     if ("name" in parameters) {
       resolvedAnchor.name = parameters.name;
