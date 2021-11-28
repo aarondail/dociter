@@ -12,6 +12,7 @@ import { SelectTargetsSort } from ".";
 export enum SplitType {
   Blocks = "BLOCKS",
 }
+
 interface SplitOptions {
   readonly type: SplitType;
 }
