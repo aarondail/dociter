@@ -353,7 +353,11 @@ function getTargetedInteractors(target: Target, state: WorkingDocument): readonl
         }
     }
   } else if (untypedIdentifier.interactorId !== undefined) {
-    return [untypedIdentifier.interactorId];
+    const interactor = state.interactors.get(untypedIdentifier.interactorId);
+    if (!interactor) {
+      return [];
+    }
+    return [interactor];
   } else if (untypedIdentifier.interactorIds !== undefined) {
     return Array.from(state.interactors.values()).filter((e) => untypedIdentifier.interactorIds.includes(e.id));
   }

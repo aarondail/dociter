@@ -37,6 +37,10 @@ export class Path {
     this.parts = parts;
   }
 
+  public get tip(): PathPart {
+    return this.parts[this.parts.length - 1];
+  }
+
   public adjustDueToMove(
     oldPrefix: Path,
     newPrefix: Path,

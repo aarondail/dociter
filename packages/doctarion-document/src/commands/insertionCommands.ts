@@ -8,6 +8,7 @@ import { deleteImplementation } from "./deletionCommands";
 import { CommandError } from "./error";
 import { TargetPayload } from "./payloads";
 import { CommandServices } from "./services";
+import { SplitType, split } from "./splitCommands";
 import { coreCommand } from "./types";
 import { CommandUtils, SelectTargetsResult, SelectTargetsSort } from "./utils";
 
@@ -36,6 +37,7 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
   const contentIsNode = content instanceof Node;
   const contentIsText = !contentIsNode;
   const contentIsInline = contentIsNode && content.nodeType.category === NodeCategory.Inline;
+  const contentIsBlock = contentIsNode && content.nodeType.category === NodeCategory.Block;
 
   const targets = getTargetsForInsertionAndDeleteSelections(state, services, payload);
 
@@ -48,6 +50,8 @@ export const insert = coreCommand<InsertPayload>("insert", (state, services, pay
       insertTextPrime(state, target, content);
     } else if (contentIsInline) {
       insertInlinePrime(state, target, content);
+    } else if (contentIsBlock) {
+      insertBlockPrime(state, target, content, services);
     } else {
       throw new CommandError(`Cannot insert node of type ${content.nodeType.category}`);
     }
@@ -90,13 +94,78 @@ function getTargetsForInsertionAndDeleteSelections(
   return anySelections ? CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Reversed) : targets;
 }
 
+function insertBlockPrime(
+  state: WorkingDocument,
+  target: SelectTargetsResult,
+  content: Node,
+  services: CommandServices
+) {
+  const targetNode = target.mainAnchorNavigator.tip.node as ReadonlyWorkingNode;
+  const targetPathPart = target.mainAnchorNavigator.tip.pathPart!;
+
+  const findBlockResult = CommandUtils.findAncestorBlockNodeWithNavigator(target.mainAnchorNavigator);
+  if (!findBlockResult) {
+    // This is probably the document
+    if (
+      (targetNode instanceof Node && targetNode.nodeType.childrenType === NodeChildrenType.Blocks) ||
+      targetNode.nodeType.childrenType === NodeChildrenType.BlocksAndSuperBlocks
+    ) {
+      state.insertNode(targetNode, content, 0);
+      target.mainAnchorNavigator.navigateToLastDescendantCursorPosition();
+      state.updateInteractor(target.interactor.id, {
+        mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
+        lineMovementHorizontalVisualPosition: undefined,
+      });
+      return;
+    }
+    throw new CommandError("Cannot figure out how to insert block at this location");
+  }
+
+  if (!(findBlockResult.node instanceof Node)) {
+    throw new CommandError("Cannot figure out how to insert block at this location");
+  }
+  const blockNode: ReadonlyWorkingNode = findBlockResult.node;
+  const blockContainerNode: ReadonlyWorkingNode = blockNode.parent!;
+
+  const isAtEdge = CommandUtils.isCursorNavigatorAtEdgeOfContainingNode(
+    target.mainAnchorNavigator,
+    blockNode,
+    targetPathPart?.index === 0 ? FlowDirection.Backward : FlowDirection.Forward
+  );
+  const isAtTrailingEdge = isAtEdge && targetPathPart?.index !== 0;
+
+  let insertionIndex = blockNode.pathPartFromParent!.index || 0;
+  const needToSplit = blockNode.children.length > 0 && !isAtEdge;
+
+  if (needToSplit) {
+    services.execute(split({ type: SplitType.Blocks, target: { interactorId: target.interactor.id } }));
+    insertionIndex++;
+  } else if (isAtTrailingEdge && blockNode.children.length !== 0) {
+    insertionIndex++;
+  }
+
+  const tip = blockNode.pathPartFromParent!;
+  state.insertNode(blockContainerNode, content, insertionIndex, tip.facet);
+
+  if (needToSplit || (isAtTrailingEdge && blockNode.children.length !== 0)) {
+    target.mainAnchorNavigator.navigateFreelyTo(state.getNodePath(blockNode), CursorOrientation.On);
+    target.mainAnchorNavigator.navigateFreelyToNextSibling();
+    target.mainAnchorNavigator.navigateFreelyToNextSibling();
+    target.mainAnchorNavigator.navigateToNextCursorPosition();
+    state.updateInteractor(target.interactor.id, {
+      mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
+      lineMovementHorizontalVisualPosition: undefined,
+    });
+  }
+}
+
 function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, content: Node) {
   const targetPathPart = target.mainAnchorNavigator.tip.pathPart!;
   const orientation = target.mainAnchorNavigator.cursor.orientation;
 
   if (checkIfInsertionPositionOnGraphemeAndValidateParent(target)) {
     // SCENARIO 1 - Target position is a Grapheme
-    const parent = target.mainAnchorNavigator.parent!.node as ReadonlyWorkingNode;
+    const parentNode = target.mainAnchorNavigator.parent!.node as ReadonlyWorkingNode;
     const grandParentNode = target.mainAnchorNavigator.grandParent!.node as ReadonlyWorkingNode;
     if (!grandParentNode || !(grandParentNode.nodeType.childrenType === NodeChildrenType.Inlines)) {
       throw new CommandError("Cant find place to insert node");
@@ -106,7 +175,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
 
     const isAtEdge = CommandUtils.isCursorNavigatorAtEdgeOfContainingNode(
       target.mainAnchorNavigator,
-      parent,
+      parentNode,
       targetPathPart?.index === 0 ? FlowDirection.Backward : FlowDirection.Forward
     );
 
@@ -118,7 +187,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
 
       if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
         // SCENARIO 1.a - Target position is a Grapheme, but at the edge of the inline and the insertion resulted in a Join
-        if (parent.nodeType === Span) {
+        if (parentNode.nodeType === Span) {
           // This only happens when inserting Spans that get auto-joined to other Spans
           let offset = targetPathPart.index! || -1; // For some reason, if the edge is the backward edge we need to subtract one to get the math to work
           offset += content.children.length;
@@ -167,7 +236,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
           ? targetPathPart.index! + 0
           : targetPathPart.index! + 1;
 
-      const insertResult = state.splitNodeAndInsertBetween(parent, [insertionIndex], content);
+      const insertResult = state.splitNodeAndInsertBetween(parentNode, [insertionIndex], content);
 
       if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
         let offset = target.mainAnchorNavigator.tip.pathPart!.index!;

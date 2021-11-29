@@ -5,9 +5,7 @@ import { ReadonlyWorkingNode } from "../working-document";
 import { CommandError } from "./error";
 import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
-import { CommandUtils } from "./utils";
-
-import { SelectTargetsSort } from ".";
+import { CommandUtils, SelectTargetsSort } from "./utils";
 
 export enum SplitType {
   Blocks = "BLOCKS",
