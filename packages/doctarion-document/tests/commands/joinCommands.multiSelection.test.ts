@@ -45,7 +45,7 @@ describe("join blocks with selections and multiple interactors", () => {
       );
 
       editor.execute(
-        Commands.join({
+        Commands.joinInto({
           type: JoinType.Blocks,
           target: InteractorTargets.AllActive,
           direction: FlowDirection.Backward,
@@ -107,7 +107,7 @@ describe("join blocks with selections and multiple interactors", () => {
       );
 
       editor.execute(
-        Commands.join({
+        Commands.joinInto({
           type: JoinType.Blocks,
           target: InteractorTargets.AllActive,
           direction: FlowDirection.Forward,

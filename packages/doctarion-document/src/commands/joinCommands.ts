@@ -33,7 +33,7 @@ export type JoinPayload = TargetPayload & Partial<Omit<JoinOptions, "type">> & P
 /**
  * This joins the block the target nodes are in, *into* their sibling blocks.
  */
-export const join = coreCommand<JoinPayload>("join", (state, services, payload) => {
+export const joinInto = coreCommand<JoinPayload>("joinInto", (state, services, payload) => {
   const direction = payload.direction ?? FlowDirection.Backward;
 
   const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Forward);

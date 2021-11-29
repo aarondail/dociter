@@ -13,7 +13,7 @@ import * as CursorCommands from "./cursorCommands";
 import { deleteImplementation } from "./deletionCommands";
 import { insert } from "./insertionCommands";
 import * as InteractorCommands from "./interactorCommands";
-import { join } from "./joinCommands";
+import { joinInto } from "./joinCommands";
 import { split } from "./splitCommands";
 
 export const Commands = {
@@ -21,6 +21,6 @@ export const Commands = {
   delete: deleteImplementation,
   insert,
   ...InteractorCommands,
-  join,
+  joinInto,
   split,
 };

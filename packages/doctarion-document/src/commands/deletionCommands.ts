@@ -3,7 +3,7 @@ import { FlowDirection } from "../shared-utils";
 import { CursorNavigator, CursorOrientation, NodeNavigator, PseudoNode, ReadonlyCursorNavigator } from "../traversal";
 import { AnchorPullDirection } from "../working-document";
 
-import { JoinType, join } from "./joinCommands";
+import { JoinType, joinInto } from "./joinCommands";
 import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
 import { CommandUtils, SelectTargetsSort } from "./utils";
@@ -69,7 +69,7 @@ export const deleteImplementation = coreCommand<DeletePayload>("delete", (state,
       } else if (result?.joinInstead) {
         // Join instead of delete
         services.execute(
-          join({
+          joinInto({
             type: JoinType.Blocks,
             target: { interactorId: interactor.id },
             direction: options.direction,

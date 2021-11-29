@@ -17,7 +17,7 @@ describe("join blocks with a selection interactor", () => {
         })
       );
 
-      editor.execute(Commands.join({ type: JoinType.Blocks, direction: FlowDirection.Backward }));
+      editor.execute(Commands.joinInto({ type: JoinType.Blocks, direction: FlowDirection.Backward }));
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s>Header1</s> </h>
@@ -41,7 +41,7 @@ describe("join blocks with a selection interactor", () => {
       );
 
       editor.execute(
-        Commands.join({ type: JoinType.Blocks, direction: FlowDirection.Backward, allowNodeTypeCoercion: true })
+        Commands.joinInto({ type: JoinType.Blocks, direction: FlowDirection.Backward, allowNodeTypeCoercion: true })
       );
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
@@ -64,7 +64,7 @@ describe("join blocks with a selection interactor", () => {
           focused: true,
         })
       );
-      editor.execute(Commands.join({ type: JoinType.Blocks, direction: FlowDirection.Forward }));
+      editor.execute(Commands.joinInto({ type: JoinType.Blocks, direction: FlowDirection.Forward }));
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s>Header1</s> </h>
@@ -87,7 +87,7 @@ describe("join blocks with a selection interactor", () => {
       );
 
       editor.execute(
-        Commands.join({ type: JoinType.Blocks, direction: FlowDirection.Forward, allowNodeTypeCoercion: true })
+        Commands.joinInto({ type: JoinType.Blocks, direction: FlowDirection.Forward, allowNodeTypeCoercion: true })
       );
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(

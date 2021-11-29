@@ -10,7 +10,7 @@ describe("join blocks forwards (solo non selection)", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "0/0/2", orientation: After } }));
     editor.execute(
-      Commands.join({ direction: FlowDirection.Forward, allowNodeTypeCoercion: true, type: JoinType.Blocks })
+      Commands.joinInto({ direction: FlowDirection.Forward, allowNodeTypeCoercion: true, type: JoinType.Blocks })
     );
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
@@ -26,7 +26,7 @@ describe("join blocks forwards (solo non selection)", () => {
   it("handles the last block of the document ok (no-op)", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/0/1", orientation: After } }));
-    editor.execute(Commands.join({ direction: FlowDirection.Forward, type: JoinType.Blocks }));
+    editor.execute(Commands.joinInto({ direction: FlowDirection.Forward, type: JoinType.Blocks }));
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
@@ -41,7 +41,7 @@ describe("join blocks forwards (solo non selection)", () => {
   it("works with empty blocks", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "2", orientation: On } }));
-    editor.execute(Commands.join({ direction: FlowDirection.Forward, type: JoinType.Blocks }));
+    editor.execute(Commands.joinInto({ direction: FlowDirection.Forward, type: JoinType.Blocks }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
