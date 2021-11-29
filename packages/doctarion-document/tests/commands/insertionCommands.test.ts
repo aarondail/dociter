@@ -7,6 +7,7 @@ import {
   Hyperlink,
   InteractorTargets,
   Node,
+  Paragraph,
   Span,
   Text,
 } from "../../src";
@@ -547,7 +548,7 @@ describe("insert should insert a Header", () => {
       <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink)4/0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Span:C)4/1⁙2 intr: ᯼ "`
     );
   });
 
@@ -561,7 +562,7 @@ describe("insert should insert a Header", () => {
       <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ BEFORE (Hyperlink)1/0 intr: ∅"`
+      `"Anchor: ∅ AFTER (Span:C)1/1⁙2 intr: ∅"`
     );
   });
 
@@ -595,7 +596,122 @@ describe("insert should insert a Header", () => {
   });
 });
 
-// describe("insert should insert a Paragraph", () => {
-//   it.only(`in the middle of a Paragraph`, () => {});
-//   it.only(`on an empty Paragraph`, () => {});
-// });
+describe("insert should insert a Paragraph", () => {
+  const testHeaderNode = new Node(
+    Paragraph,
+    [new Node(Span, Text.fromString("XYZ"), {}), new Node(Hyperlink, Text.fromString("XYZ"), { url: "test.com" })],
+    {}
+  );
+
+  it(`in the middle of a Paragraph`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: After } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Header1</s> </h>
+      <p> <s>MMNN</s> </p>
+      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <p> <s styles=2:+B>AABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:A)3/0⁙0 intr: ᯼ "`
+    );
+  });
+
+  it(`on an empty Paragraph`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "2", orientation: On } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Header1</s> </h>
+      <p> <s styles=6:+B>MMNNAABB</s> </p>
+      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <p> </p>
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN ON (Paragraph)3 intr: ᯼ "`
+    );
+  });
+
+  it(`at the leading edge of a Block`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "0/0/0", orientation: Before } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <h level=ONE> <s>Header1</s> </h>
+      <p> <s styles=6:+B>MMNNAABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN BEFORE (Span:H)1/0⁙0 intr: ᯼ "`
+    );
+  });
+
+  it(`at the trailing edge of a Block`, () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "3/2/1", orientation: After } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Header1</s> </h>
+      <p> <s styles=6:+B>MMNNAABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
+      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Hyperlink)4/1 intr: ᯼ "`
+    );
+  });
+
+  it(`on an empty inline in a Paragraph`, () => {
+    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>` });
+    editor.execute(Commands.jump({ to: { path: "0/2", orientation: On } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>
+      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Hyperlink)1/1 intr: ∅"`
+    );
+  });
+
+  it(`on an in-between insertion point in a Paragraph`, () => {
+    const editor = new Editor({
+      document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <hyperlink url=test2.com>EF</hyperlink> </p>`,
+    });
+    editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> </p>
+      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <p> <hyperlink url=test2.com>EF</hyperlink> </p>"
+    `);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ BEFORE (Hyperlink)2/0 intr: ∅"`
+    );
+  });
+
+  it(`on an empty Document`, () => {
+    const editor = new Editor({ document: testDoc`` });
+    editor.execute(Commands.insert({ node: testHeaderNode }));
+
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
+      `"<p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"`
+    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ∅ AFTER (Hyperlink)0/1 intr: ∅"`
+    );
+  });
+});

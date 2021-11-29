@@ -147,11 +147,20 @@ function insertBlockPrime(
   const tip = blockNode.pathPartFromParent!;
   state.insertNode(blockContainerNode, content, insertionIndex, tip.facet);
 
-  if (needToSplit || (isAtTrailingEdge && blockNode.children.length !== 0)) {
+  if (needToSplit) {
     target.mainAnchorNavigator.navigateFreelyTo(state.getNodePath(blockNode), CursorOrientation.On);
     target.mainAnchorNavigator.navigateFreelyToNextSibling();
     target.mainAnchorNavigator.navigateFreelyToNextSibling();
     target.mainAnchorNavigator.navigateToNextCursorPosition();
+    state.updateInteractor(target.interactor.id, {
+      mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
+      lineMovementHorizontalVisualPosition: undefined,
+    });
+  } else if (isAtTrailingEdge && blockNode.children.length !== 0) {
+    target.mainAnchorNavigator.navigateFreelyTo(state.getNodePath(blockNode), CursorOrientation.On);
+    target.mainAnchorNavigator.navigateFreelyToNextSibling();
+    target.mainAnchorNavigator.navigateFreelyToNextSibling();
+    target.mainAnchorNavigator.navigateToLastDescendantCursorPosition();
     state.updateInteractor(target.interactor.id, {
       mainAnchor: state.getAnchorParametersFromCursorNavigator(target.mainAnchorNavigator),
       lineMovementHorizontalVisualPosition: undefined,
