@@ -7,7 +7,7 @@ import {
   FacetDictionary,
   Floater,
   Header,
-  Hyperlink,
+  Link,
   Node,
   NodeCategory,
   NodeChildrenType,
@@ -43,7 +43,9 @@ const tagToNodeTypes: Record<string, NodeType> = {
   h: Header,
   p: Paragraph,
   s: Span,
-  hyperlink: Hyperlink,
+  // Note don't change this to "link"... if it is that then the parser assumes
+  // these nodes cannot have text contents and will ignore them.
+  lnk: Link,
   floater: Floater,
 };
 

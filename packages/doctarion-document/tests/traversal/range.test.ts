@@ -6,7 +6,7 @@ const testDoc1 = testDoc`
 <h level=ONE> <s>H12</s> </h>
 <p> <s>MM</s> <s></s> <s>NN</s> </p>
 <p> </p>
-<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> </p>
+<p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> </p>
 `;
 
 test("getChainsCoveringRange", () => {

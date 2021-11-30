@@ -4,7 +4,7 @@ import { testDoc } from "../test-utils";
 const testDoc1 = testDoc`
 <h level=ONE> <s>Header1</s> </h>
 <p> <s>Here is some text</s> <s>MORE</s> <s>last</s> </p>
-<p> <s>Paragraph 2</s> <hyperlink url=g.com>GOOG</hyperlink> <s>final sentence</s> </p>
+<p> <s>Paragraph 2</s> <lnk url=g.com>GOOG</lnk> <s>final sentence</s> </p>
 `;
 
 test("navigateTo", () => {

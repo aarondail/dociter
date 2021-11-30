@@ -7,13 +7,13 @@ import { CommandsTestUtils } from "./commands.testUtils";
 const { After, Before, On } = CursorOrientation;
 
 describe("deleting backwards (solo selection)", () => {
-  it("will delete covered Hyperlink", () => {
+  it("will delete covered Link", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
     editor.execute(Commands.jump({ to: { path: "3/1/5", orientation: After }, select: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN AFTER (Hyperlink:E)3/1⁙5 intr: ᯼ 
-      Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "
+      "Anchor: ᯼-MAIN AFTER (Link:E)3/1⁙5 intr: ᯼ 
+      Anchor: ᯼-SELECTION BEFORE (Link:G)3/1⁙0 intr: ᯼ "
     `);
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
@@ -28,11 +28,11 @@ describe("deleting backwards (solo selection)", () => {
     editor.execute(Commands.jump({ to: { path: "3/1/2", orientation: After }, select: true }));
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:G)1/0⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:G)1/0⁙0 intr: ᯼ "`
     );
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>H</s> </h>
-      <p> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"
+      <p> <lnk url=g.com>GLE</lnk> <s>DD</s> </p>"
     `);
   });
 
@@ -47,7 +47,7 @@ describe("deleting backwards (solo selection)", () => {
     );
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hea</s> </h>
-      <p> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"
+      <p> <lnk url=g.com>GLE</lnk> <s>DD</s> </p>"
     `);
   });
 
@@ -75,13 +75,13 @@ describe("deleting backwards (solo selection)", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`"<h level=ONE> <s>H</s> </h>"`);
   });
 
-  it("will delete covered and slightly beyond Hyperlink", () => {
+  it("will delete covered and slightly beyond Link", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: After }, select: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: ᯼-MAIN BEFORE (Span:D)3/2⁙0 intr: ᯼ 
-      Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "
+      Anchor: ᯼-SELECTION BEFORE (Link:G)3/1⁙0 intr: ᯼ "
     `);
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(

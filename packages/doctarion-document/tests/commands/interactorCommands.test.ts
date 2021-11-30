@@ -86,7 +86,7 @@ describe("addInteractor", () => {
     editor.execute(Commands.addInteractor({ at: cursorBefore("3/1/2"), name: "β" }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: α-MAIN BEFORE (Span:H)0/0⁙0 intr: α 
-      Anchor: β-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: β "
+      Anchor: β-MAIN AFTER (Link:O)3/1⁙1 intr: β "
     `);
   });
 
@@ -94,8 +94,8 @@ describe("addInteractor", () => {
     editor.execute(Commands.addInteractor({ at: cursorAfter("3/1/1"), selectTo: cursorBefore("3/1/3"), name: "β" }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: α-MAIN BEFORE (Span:H)0/0⁙0 intr: α 
-      Anchor: β-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: β 
-      Anchor: β-SELECTION AFTER (Hyperlink:O)3/1⁙2 intr: β "
+      Anchor: β-MAIN AFTER (Link:O)3/1⁙1 intr: β 
+      Anchor: β-SELECTION AFTER (Link:O)3/1⁙2 intr: β "
     `);
   });
 });
@@ -205,7 +205,7 @@ describe("updateInteractor", () => {
     // An "after" position is preferable to a before position at this spot in text
     editor.execute(Commands.updateInteractor({ id: editor.state.focusedInteractor!.id, to: cursorBefore("3/1/2") }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: α-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: α "`
+      `"Anchor: α-MAIN AFTER (Link:O)3/1⁙1 intr: α "`
     );
   });
 
@@ -216,7 +216,7 @@ describe("updateInteractor", () => {
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: α-MAIN BEFORE (Span:H)0/0⁙0 intr: α 
-      Anchor: α-SELECTION AFTER (Hyperlink:O)3/1⁙1 intr: α "
+      Anchor: α-SELECTION AFTER (Link:O)3/1⁙1 intr: α "
     `);
   });
 });

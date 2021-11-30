@@ -17,7 +17,7 @@ describe("insertNode", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=9:+B,11:-B>xyzMMNNAABBzyx</s> </p>
       <p> <s>xyz</s> </p>
-      <p> <s>xyzCCzyx</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>xyzCCzyx</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 });

@@ -20,12 +20,12 @@ describe("delete with multiple interactors", () => {
       "<h level=ONE> <s>Hader1</s> </h>
       <p> <s styles=6:+B>MMNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>OOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>OOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: ∅ AFTER (Span:H)0/0⁙0 intr: ∅
       Anchor: ∅ AFTER (Span:N)1/0⁙2 intr: ∅
-      Anchor: ∅ BEFORE (Hyperlink:O)3/1⁙0 intr: ∅"
+      Anchor: ∅ BEFORE (Link:O)3/1⁙0 intr: ∅"
     `);
 
     editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
@@ -36,12 +36,12 @@ describe("delete with multiple interactors", () => {
       "<h level=ONE> <s>ader1</s> </h>
       <p> <s styles=6:+B>AABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>OOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>OOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
       "Anchor: ∅ BEFORE (Span:a)0/0⁙0 intr: ∅
       Anchor: ∅ BEFORE (Span:A)1/0⁙0 intr: ∅
-      Anchor: ∅ BEFORE (Hyperlink:O)3/1⁙0 intr: ∅"
+      Anchor: ∅ BEFORE (Link:O)3/1⁙0 intr: ∅"
     `);
   });
 
@@ -56,19 +56,19 @@ describe("delete with multiple interactors", () => {
 
     editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOL</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOL</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ∅ AFTER (Hyperlink:G)3/1⁙0 intr: ∅
-      Anchor: ∅ AFTER (Hyperlink:O)3/1⁙1 intr: ∅
-      Anchor: ∅ AFTER (Hyperlink:L)3/1⁙2 intr: ∅"
+      "Anchor: ∅ AFTER (Link:G)3/1⁙0 intr: ∅
+      Anchor: ∅ AFTER (Link:O)3/1⁙1 intr: ∅
+      Anchor: ∅ AFTER (Link:L)3/1⁙2 intr: ∅"
     `);
 
     editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com></hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com></lnk> <s>DD</s> </p>"`
     );
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ ON (Hyperlink)3/1 intr: ∅"`);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ ON (Link)3/1 intr: ∅"`);
 
     editor.execute(Commands.delete({ target: InteractorTargets.All, direction: FlowDirection.Backward }));
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(`"<p> <s>CCDD</s> </p>"`);

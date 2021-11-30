@@ -14,7 +14,7 @@ describe("deleteNodeAtPath", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
       <p> <s styles=6:+B>MNNAB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 

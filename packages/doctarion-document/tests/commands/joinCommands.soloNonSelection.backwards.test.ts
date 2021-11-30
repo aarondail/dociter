@@ -16,7 +16,7 @@ describe("join blocks backwards (solo non selection)", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s styles=13:+B>Header1MMNNAABB</s> </h>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:N)0/0⁙9 intr: ᯼ "`
@@ -31,7 +31,7 @@ describe("join blocks backwards (solo non selection)", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:a)0/0⁙2 intr: ᯼ "`
@@ -46,7 +46,7 @@ describe("join blocks backwards (solo non selection)", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:B)1/0⁙7 intr: ᯼ "`

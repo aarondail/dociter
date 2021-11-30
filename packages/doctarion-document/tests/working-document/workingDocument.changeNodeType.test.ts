@@ -15,7 +15,7 @@ describe("changeNodeType", () => {
       "<p> <s>Header1</s> </p>
       <h level=ONE> <s styles=6:+B>MMNNAABB</s> </h>
       <h level=TWO> </h>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 });

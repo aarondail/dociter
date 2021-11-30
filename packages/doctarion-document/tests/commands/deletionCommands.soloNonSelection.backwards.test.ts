@@ -13,10 +13,10 @@ describe("deleting backwards (solo non selection)", () => {
     editor.execute(Commands.jump({ to: { path: "3/1/3", orientation: After } }));
     editor.execute(Commands.delete({ direction: FlowDirection.Backward }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙2 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:O)3/1⁙2 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOOLE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOOLE</lnk> <s>DD</s> </p>"`
     );
 
     editor.execute(Commands.delete({ direction: FlowDirection.Backward }));
@@ -24,20 +24,20 @@ describe("deleting backwards (solo non selection)", () => {
     editor.execute(Commands.delete({ direction: FlowDirection.Backward }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:L)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:L)3/1⁙0 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>LE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>LE</lnk> <s>DD</s> </p>"`
     );
 
     // Note this is a no-op (because movement is disallowed by default)
     editor.execute(Commands.delete({ direction: FlowDirection.Backward }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:L)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:L)3/1⁙0 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>LE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>LE</lnk> <s>DD</s> </p>"`
     );
 
     // This will move teh cursor but not change the doc
@@ -47,7 +47,7 @@ describe("deleting backwards (solo non selection)", () => {
       `"Anchor: ᯼-MAIN AFTER (Span:C)3/0⁙1 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>LE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>LE</lnk> <s>DD</s> </p>"`
     );
   });
 
@@ -71,7 +71,7 @@ describe("deleting backwards (solo non selection)", () => {
       `"Anchor: ᯼-MAIN AFTER (Span:B)1/0⁙7 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[2])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"`
     );
   });
 
@@ -80,28 +80,28 @@ describe("deleting backwards (solo non selection)", () => {
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));
     editor.execute(Commands.jump({ to: { path: "3/1/4", orientation: After }, select: true }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: ᯼ 
-      Anchor: ᯼-SELECTION BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "
+      "Anchor: ᯼-MAIN AFTER (Link:L)3/1⁙4 intr: ᯼ 
+      Anchor: ᯼-SELECTION BEFORE (Link:G)3/1⁙0 intr: ᯼ "
     `);
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:E)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:E)3/1⁙0 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>E</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>E</lnk> <s>DD</s> </p>"`
     );
 
-    // Now delete the last character, should leave cursor ON the Hyperlink
+    // Now delete the last character, should leave cursor ON the Link
     editor.execute(Commands.moveForward({}));
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN ON (Hyperlink)3/1 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN ON (Link)3/1 intr: ᯼ "`
     );
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com></hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com></lnk> <s>DD</s> </p>"`
     );
 
-    // And this should delete the Hyperlink (and join the Spans)
+    // And this should delete the Link (and join the Spans)
     editor.execute(Commands.delete({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:C)3/0⁙1 intr: ᯼ "`
@@ -127,7 +127,7 @@ describe("deleting backwards (solo non selection)", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
 
     editor.execute(Commands.delete({ direction: FlowDirection.Backward, allowJoiningBlocksInBoundaryCases: true }));
@@ -136,7 +136,7 @@ describe("deleting backwards (solo non selection)", () => {
     );
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 });

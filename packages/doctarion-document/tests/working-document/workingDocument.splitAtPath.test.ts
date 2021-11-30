@@ -11,22 +11,22 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 
-  it("works on an Hyperlink (middle)", () => {
+  it("works on an Link (middle)", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
     wd.splitAtPath("3/1", [3]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOO</hyperlink> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOO</lnk> <lnk url=g.com>GLE</lnk> <s>DD</s> </p>"
     `);
   });
 
-  it("no-op on Hyperlink first character", () => {
+  it("no-op on Link first character", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
     wd.splitAtPath("3/1", [0]);
     // wd.splitNodeAtPath("3/1", [5]);
@@ -34,27 +34,27 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 
-  it("works on Hyperlink last character", () => {
+  it("works on Link last character", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
     wd.splitAtPath("3/1", [5]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGL</hyperlink> <hyperlink url=g.com>E</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGL</lnk> <lnk url=g.com>E</lnk> <s>DD</s> </p>"
     `);
   });
 
-  it("works on an Paragraph, targeting an empty Hyperlink", () => {
-    const wd = new WorkingDocument(testDoc`<p> <s>A</s> <hyperlink url=test.com /> <s>B</s> </p>`);
+  it("works on an Paragraph, targeting an empty Link", () => {
+    const wd = new WorkingDocument(testDoc`<p> <s>A</s> <lnk url=test.com /> <s>B</s> </p>`);
     wd.splitAtPath("0", [1]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>A</s> </p>
-      <p> <hyperlink url=test.com></hyperlink> <s>B</s> </p>"
+      <p> <lnk url=test.com></lnk> <s>B</s> </p>"
     `);
   });
 
@@ -66,7 +66,7 @@ describe("splitNodeAtPath", () => {
       <p> <s>MMN</s> </p>
       <p> <s styles=3:+B>NAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 
@@ -77,7 +77,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> </p>
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> </p>
       <p> <s>DD</s> </p>"
     `);
   });
@@ -89,7 +89,7 @@ describe("splitNodeAtPath", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> </p>
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> </p>
       <p> <s>DD</s> </p>"
     `);
   });
@@ -109,7 +109,7 @@ describe("splitNodeAtPath", () => {
       <p> </p>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     // Note to future self, we should also be able to do this from the
     // later/right side of the paragraph...
@@ -120,10 +120,10 @@ describe("splitNodeAtPath", () => {
     wd.splitAtPath("0", [0, 1]);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>H</s> </h>
-      <h level=ONE> <s styles=undefined>eader1</s> </h>
+      <h level=ONE> <s>eader1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 

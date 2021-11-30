@@ -4,8 +4,8 @@ import {
   Editor,
   Header,
   HeaderLevel,
-  Hyperlink,
   InteractorTargets,
+  Link,
   Node,
   Paragraph,
   Span,
@@ -118,17 +118,15 @@ describe("insert should insert text", () => {
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(`"<p> <s>Q</s> </p>"`);
   });
 
-  it("into an empty Hyperlink successfully", () => {
-    const editor = new Editor({ document: testDoc`<p> <hyperlink url=g.com></hyperlink> </p>` });
+  it("into an empty Link successfully", () => {
+    const editor = new Editor({ document: testDoc`<p> <lnk url=g.com></lnk> </p>` });
     editor.execute(Commands.jump({ to: { path: "0/0", orientation: On } }));
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ ON (Hyperlink)0/0 intr: ∅"`);
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ ON (Link)0/0 intr: ∅"`);
     editor.execute(Commands.insert({ text: "Q", target: InteractorTargets.Focused }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Hyperlink:Q)0/0⁙0 intr: ∅"`
+      `"Anchor: ∅ AFTER (Link:Q)0/0⁙0 intr: ∅"`
     );
-    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <hyperlink url=g.com>Q</hyperlink> </p>"`
-    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(`"<p> <lnk url=g.com>Q</lnk> </p>"`);
   });
 
   it("into an empty Document successfully", () => {
@@ -154,8 +152,8 @@ describe("insert should insert text", () => {
     );
   });
 
-  it("around Hyperlinks successfully", () => {
-    const document = testDoc`<p> <hyperlink url=a.com>AA</hyperlink> <hyperlink url=b.com>BB</hyperlink> </p>`;
+  it("around Links successfully", () => {
+    const document = testDoc`<p> <lnk url=a.com>AA</lnk> <lnk url=b.com>BB</lnk> </p>`;
     let editor = new Editor({ document });
     editor.execute(Commands.jump({ to: { path: "0/0", orientation: Before } }));
     editor.execute(Commands.insert({ text: "QST" }));
@@ -163,7 +161,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/0⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>QST</s> <hyperlink url=a.com>AA</hyperlink> <hyperlink url=b.com>BB</hyperlink> </p>"`
+      `"<p> <s>QST</s> <lnk url=a.com>AA</lnk> <lnk url=b.com>BB</lnk> </p>"`
     );
 
     editor = new Editor({ document });
@@ -173,7 +171,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/1⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <hyperlink url=a.com>AA</hyperlink> <s>QST</s> <hyperlink url=b.com>BB</hyperlink> </p>"`
+      `"<p> <lnk url=a.com>AA</lnk> <s>QST</s> <lnk url=b.com>BB</lnk> </p>"`
     );
 
     editor = new Editor({ document });
@@ -183,7 +181,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/1⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <hyperlink url=a.com>AA</hyperlink> <s>QST</s> <hyperlink url=b.com>BB</hyperlink> </p>"`
+      `"<p> <lnk url=a.com>AA</lnk> <s>QST</s> <lnk url=b.com>BB</lnk> </p>"`
     );
 
     editor = new Editor({ document });
@@ -193,12 +191,12 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/2⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <hyperlink url=a.com>AA</hyperlink> <hyperlink url=b.com>BB</hyperlink> <s>QST</s> </p>"`
+      `"<p> <lnk url=a.com>AA</lnk> <lnk url=b.com>BB</lnk> <s>QST</s> </p>"`
     );
   });
 
-  it("between Hyperlink and Paragraph successfully", () => {
-    const document = testDoc`<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>`;
+  it("between Link and Paragraph successfully", () => {
+    const document = testDoc`<p> <s>AA</s> <lnk url=a.com>BB</lnk> <s>CC</s> </p>`;
     let editor = new Editor({ document });
     editor.execute(Commands.jump({ to: { path: "0/0/1", orientation: After } }));
     editor.execute(Commands.insert({ text: "QST" }));
@@ -206,7 +204,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
+      `"<p> <s>AAQST</s> <lnk url=a.com>BB</lnk> <s>CC</s> </p>"`
     );
 
     editor = new Editor({ document });
@@ -216,7 +214,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/0⁙4 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>AAQST</s> <hyperlink url=a.com>BB</hyperlink> <s>CC</s> </p>"`
+      `"<p> <s>AAQST</s> <lnk url=a.com>BB</lnk> <s>CC</s> </p>"`
     );
 
     editor = new Editor({ document });
@@ -229,7 +227,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/2⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
+      `"<p> <s>AA</s> <lnk url=a.com>BB</lnk> <s>QSTCC</s> </p>"`
     );
 
     editor = new Editor({ document });
@@ -239,7 +237,7 @@ describe("insert should insert text", () => {
       `"Anchor: ∅ AFTER (Span:T)0/2⁙2 intr: ∅"`
     );
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>AA</s> <hyperlink url=a.com>BB</hyperlink> <s>QSTCC</s> </p>"`
+      `"<p> <s>AA</s> <lnk url=a.com>BB</lnk> <s>QSTCC</s> </p>"`
     );
   });
 
@@ -269,57 +267,55 @@ describe("insert should insert text", () => {
   });
 });
 
-describe("insert should insert a Hyperlink", () => {
+describe("insert should insert a Link", () => {
   it("into an empty paragraph", () => {
     const editor = new Editor({ document: testDoc`<p> </p>` });
     editor.execute(Commands.jump({ to: { path: "0", orientation: On } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <hyperlink url=test.com>ABC</hyperlink> </p>"`
+      `"<p> <lnk url=test.com>ABC</lnk> </p>"`
     );
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Hyperlink)0/0 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ AFTER (Link)0/0 intr: ∅"`);
   });
 
-  it("before an Hyperlink", () => {
+  it("before an Link", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: Before } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=test.com>ABC</hyperlink> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=test.com>ABC</lnk> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink)3/1 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link)3/1 intr: ᯼ "`
     );
   });
 
-  it("between Hyperlinks", () => {
+  it("between Links", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: Before } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("DEF"), { url: "other.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("DEF"), { url: "other.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=test.com>ABC</hyperlink> <hyperlink url=other.com>DEF</hyperlink> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=test.com>ABC</lnk> <lnk url=other.com>DEF</lnk> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink)3/2 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link)3/2 intr: ᯼ "`
     );
   });
 
-  it("after Hyperlinks", () => {
+  it("after Links", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:D)3/2⁙0 intr: ᯼ "`
     );
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <hyperlink url=test.com>ABC</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <lnk url=test.com>ABC</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:D)3/3⁙0 intr: ᯼ "`
@@ -329,10 +325,10 @@ describe("insert should insert a Hyperlink", () => {
   it("into the middle of a Span with before orientation", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: Before } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
-      `"<p> <s>MMN</s> <hyperlink url=test.com>ABC</hyperlink> <s styles=3:+B>NAABB</s> </p>"`
+      `"<p> <s>MMN</s> <lnk url=test.com>ABC</lnk> <s styles=3:+B>NAABB</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:N)1/2⁙0 intr: ᯼ "`
@@ -342,10 +338,10 @@ describe("insert should insert a Hyperlink", () => {
   it("into the middle of a Span with after orientation", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "1/0/3", orientation: After } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
 
     expect(nodeToXmlish(editor.state.document.children[1])).toMatchInlineSnapshot(
-      `"<p> <s>MMNN</s> <hyperlink url=test.com>ABC</hyperlink> <s styles=2:+B>AABB</s> </p>"`
+      `"<p> <s>MMNN</s> <lnk url=test.com>ABC</lnk> <s styles=2:+B>AABB</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:A)1/2⁙0 intr: ᯼ "`
@@ -396,20 +392,20 @@ describe("insert should insert a Span", () => {
     );
   });
 
-  it(`in the middle of a Hyperlink`, () => {
+  it(`in the middle of a Link`, () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/2", orientation: After } }));
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("ABC"), {}) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOO</hyperlink> <s>ABC</s> <hyperlink url=g.com>GLE</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOO</lnk> <s>ABC</s> <lnk url=g.com>GLE</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:C)3/2⁙2 intr: ᯼ "`
     );
   });
 
-  it(`at the beginning and end of a Hyperlink`, () => {
+  it(`at the beginning and end of a Link`, () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/5", orientation: After } }));
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("ABC"), {}) }));
@@ -421,14 +417,14 @@ describe("insert should insert a Span", () => {
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("DEF"), {}) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CCDEF</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>ABCDD</s> </p>"`
+      `"<p> <s>CCDEF</s> <lnk url=g.com>GOOGLE</lnk> <s>ABCDD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:F)3/0⁙4 intr: ᯼ "`
     );
   });
 
-  it(`right before and after a Hyperlink`, () => {
+  it(`right before and after a Link`, () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("ABC"), {}) }));
@@ -440,35 +436,35 @@ describe("insert should insert a Span", () => {
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("DEF"), {}) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CCDEF</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>ABCDD</s> </p>"`
+      `"<p> <s>CCDEF</s> <lnk url=g.com>GOOGLE</lnk> <s>ABCDD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:F)3/0⁙4 intr: ᯼ "`
     );
   });
 
-  it(`between Hyperlinks`, () => {
+  it(`between Links`, () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
-    editor.execute(Commands.insert({ node: new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }) }));
+    editor.execute(Commands.insert({ node: new Node(Link, Text.fromString("ABC"), { url: "test.com" }) }));
     editor.execute(Commands.jump({ to: { path: "3/1", orientation: After } }));
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("DEF"), {}) }));
 
     expect(nodeToXmlish(editor.state.document.children[3])).toMatchInlineSnapshot(
-      `"<p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DEF</s> <hyperlink url=test.com>ABC</hyperlink> <s>DD</s> </p>"`
+      `"<p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DEF</s> <lnk url=test.com>ABC</lnk> <s>DD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:F)3/2⁙2 intr: ᯼ "`
     );
   });
 
-  it(`into an empty Hyperlinks`, () => {
-    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <hyperlink url=test.com></hyperlink> <s>CD</s> </p>` });
+  it(`into an empty Links`, () => {
+    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <lnk url=test.com></lnk> <s>CD</s> </p>` });
     editor.execute(Commands.jump({ to: { path: "0/2", orientation: On } }));
     editor.execute(Commands.insert({ node: new Node(Span, Text.fromString("XYZ"), {}) }));
 
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<p> <s>ABXYZ</s> <hyperlink url=test.com></hyperlink> <s>CD</s> </p>"`
+      `"<p> <s>ABXYZ</s> <lnk url=test.com></lnk> <s>CD</s> </p>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ∅ AFTER (Span:Z)0/0⁙4 intr: ∅"`
@@ -479,7 +475,7 @@ describe("insert should insert a Span", () => {
 describe("insert should insert a Header", () => {
   const testHeaderNode = new Node(
     Header,
-    [new Node(Hyperlink, Text.fromString("ABC"), { url: "test.com" }), new Node(Span, Text.fromString("ABC"), {})],
+    [new Node(Link, Text.fromString("ABC"), { url: "test.com" }), new Node(Span, Text.fromString("ABC"), {})],
     { level: HeaderLevel.One }
   );
 
@@ -491,10 +487,10 @@ describe("insert should insert a Header", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s>MMNN</s> </p>
-      <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>
+      <h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>
       <p> <s styles=2:+B>AABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:A)3/0⁙0 intr: ᯼ "`
@@ -509,9 +505,9 @@ describe("insert should insert a Header", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>
+      <h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN ON (Paragraph)3 intr: ᯼ "`
@@ -524,11 +520,11 @@ describe("insert should insert a Header", () => {
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>
+      "<h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>
       <h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:H)1/0⁙0 intr: ᯼ "`
@@ -544,8 +540,8 @@ describe("insert should insert a Header", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>
+      <h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN AFTER (Span:C)4/1⁙2 intr: ᯼ "`
@@ -553,13 +549,13 @@ describe("insert should insert a Header", () => {
   });
 
   it(`on an empty inline in a Paragraph`, () => {
-    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>` });
+    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <lnk url=test.com>CD</lnk> <s></s> </p>` });
     editor.execute(Commands.jump({ to: { path: "0/2", orientation: On } }));
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>
-      <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>"
+      "<p> <s>AB</s> <lnk url=test.com>CD</lnk> <s></s> </p>
+      <h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ∅ AFTER (Span:C)1/1⁙2 intr: ∅"`
@@ -568,19 +564,17 @@ describe("insert should insert a Header", () => {
 
   it(`on an in-between insertion point in a Paragraph`, () => {
     const editor = new Editor({
-      document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <hyperlink url=test2.com>EF</hyperlink> </p>`,
+      document: testDoc`<p> <s>AB</s> <lnk url=test.com>CD</lnk> <lnk url=test2.com>EF</lnk> </p>`,
     });
     editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> </p>
-      <h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>
-      <p> <hyperlink url=test2.com>EF</hyperlink> </p>"
+      "<p> <s>AB</s> <lnk url=test.com>CD</lnk> </p>
+      <h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>
+      <p> <lnk url=test2.com>EF</lnk> </p>"
     `);
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ BEFORE (Hyperlink)2/0 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ BEFORE (Link)2/0 intr: ∅"`);
   });
 
   it(`on an empty Document`, () => {
@@ -588,7 +582,7 @@ describe("insert should insert a Header", () => {
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
-      `"<h level=ONE> <hyperlink url=test.com>ABC</hyperlink> <s>ABC</s> </h>"`
+      `"<h level=ONE> <lnk url=test.com>ABC</lnk> <s>ABC</s> </h>"`
     );
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ∅ AFTER (Span:C)0/1⁙2 intr: ∅"`
@@ -599,7 +593,7 @@ describe("insert should insert a Header", () => {
 describe("insert should insert a Paragraph", () => {
   const testHeaderNode = new Node(
     Paragraph,
-    [new Node(Span, Text.fromString("XYZ"), {}), new Node(Hyperlink, Text.fromString("XYZ"), { url: "test.com" })],
+    [new Node(Span, Text.fromString("XYZ"), {}), new Node(Link, Text.fromString("XYZ"), { url: "test.com" })],
     {}
   );
 
@@ -611,10 +605,10 @@ describe("insert should insert a Paragraph", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s>MMNN</s> </p>
-      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>
       <p> <s styles=2:+B>AABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:A)3/0⁙0 intr: ᯼ "`
@@ -629,9 +623,9 @@ describe("insert should insert a Paragraph", () => {
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      <p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN ON (Paragraph)3 intr: ᯼ "`
@@ -644,11 +638,11 @@ describe("insert should insert a Paragraph", () => {
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
+      "<p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>
       <h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:H)1/0⁙0 intr: ᯼ "`
@@ -664,43 +658,39 @@ describe("insert should insert a Paragraph", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>
-      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>
+      <p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink)4/1 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link)4/1 intr: ᯼ "`
     );
   });
 
   it(`on an empty inline in a Paragraph`, () => {
-    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>` });
+    const editor = new Editor({ document: testDoc`<p> <s>AB</s> <lnk url=test.com>CD</lnk> <s></s> </p>` });
     editor.execute(Commands.jump({ to: { path: "0/2", orientation: On } }));
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <s></s> </p>
-      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"
+      "<p> <s>AB</s> <lnk url=test.com>CD</lnk> <s></s> </p>
+      <p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>"
     `);
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Hyperlink)1/1 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ AFTER (Link)1/1 intr: ∅"`);
   });
 
   it(`on an in-between insertion point in a Paragraph`, () => {
     const editor = new Editor({
-      document: testDoc`<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> <hyperlink url=test2.com>EF</hyperlink> </p>`,
+      document: testDoc`<p> <s>AB</s> <lnk url=test.com>CD</lnk> <lnk url=test2.com>EF</lnk> </p>`,
     });
     editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>AB</s> <hyperlink url=test.com>CD</hyperlink> </p>
-      <p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>
-      <p> <hyperlink url=test2.com>EF</hyperlink> </p>"
+      "<p> <s>AB</s> <lnk url=test.com>CD</lnk> </p>
+      <p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>
+      <p> <lnk url=test2.com>EF</lnk> </p>"
     `);
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ BEFORE (Hyperlink)2/0 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ BEFORE (Link)2/0 intr: ∅"`);
   });
 
   it(`on an empty Document`, () => {
@@ -708,10 +698,8 @@ describe("insert should insert a Paragraph", () => {
     editor.execute(Commands.insert({ node: testHeaderNode }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
-      `"<p> <s>XYZ</s> <hyperlink url=test.com>XYZ</hyperlink> </p>"`
+      `"<p> <s>XYZ</s> <lnk url=test.com>XYZ</lnk> </p>"`
     );
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ AFTER (Hyperlink)0/1 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ AFTER (Link)0/1 intr: ∅"`);
   });
 });

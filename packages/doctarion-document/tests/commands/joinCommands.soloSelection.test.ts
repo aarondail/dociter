@@ -21,7 +21,7 @@ describe("join blocks with a selection interactor", () => {
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s>Header1</s> </h>
-        <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+        <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
       `);
 
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
@@ -45,7 +45,7 @@ describe("join blocks with a selection interactor", () => {
       );
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
-        `"<h level=ONE> <s styles=13:+B,15:-B>Header1MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </h>"`
+        `"<h level=ONE> <s styles=13:+B,15:-B>Header1MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </h>"`
       );
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
         "Anchor: ∅ AFTER (Span:d)0/0⁙3 intr: ∅
@@ -68,7 +68,7 @@ describe("join blocks with a selection interactor", () => {
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s>Header1</s> </h>
-        <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+        <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
       `);
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
         "Anchor: ∅ AFTER (Span:N)1/0⁙3 intr: ∅
@@ -91,7 +91,7 @@ describe("join blocks with a selection interactor", () => {
       );
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
-        `"<p> <s styles=13:+B,15:-B>Header1MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"`
+        `"<p> <s styles=13:+B,15:-B>Header1MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"`
       );
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
         "Anchor: ∅ AFTER (Span:d)0/0⁙3 intr: ∅

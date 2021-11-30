@@ -7,7 +7,7 @@ export const CursorNavigatorTestUtils = {
     basicDoc: testDoc`
 <h level=ONE> <s>Header1</s> </h>
 <p> <s>Here is some text</s> <s>MORE</s> <s>last</s> </p>
-<p> <s>Paragraph 2</s> <hyperlink url=g.com>GOOG</hyperlink> <s>final sentence</s> </p>
+<p> <s>Paragraph 2</s> <lnk url=g.com>GOOG</lnk> <s>final sentence</s> </p>
 `,
 
     basicDocWithEmptyInsertionPoints: testDoc`
@@ -18,8 +18,8 @@ export const CursorNavigatorTestUtils = {
 `,
 
     basicDocWithBetweenInsertionPoints: testDoc`
-<p> <hyperlink url=g.com></hyperlink> <hyperlink url=h.com>abc</hyperlink> <hyperlink url=i.com>d</hyperlink> </p>
-<p> <s>A</s> <hyperlink url=j.com>B</hyperlink> <s>C</s> </p>
+<p> <lnk url=g.com></lnk> <lnk url=h.com>abc</lnk> <lnk url=i.com>d</lnk> </p>
+<p> <s>A</s> <lnk url=j.com>B</lnk> <s>C</s> </p>
 <p> <s>D</s> </p>
 `,
   },
@@ -38,14 +38,14 @@ export const CursorNavigatorTestUtils = {
       ["A,C", "00<,00>,10<,10>,1>"],
       ["C,B", "0<,00<,00>,1N"],
       ["B,C", "0N,10<,10>,1>"],
-      ["C,C", "0<,00<,00>,0>,10<,10>,1>"], // Dont just flip cursor orientation between Hyperlinks
+      ["C,C", "0<,00<,00>,0>,10<,10>,1>"], // Dont just flip cursor orientation between Links
       ["D,A", "0<,0N,10<,10>"],
       ["A,D", "00<,00>,1N,1>"],
       ["D,B", "0<,0N,1N"],
       ["B,D", "0N,1N,1>"],
       ["D,C", "0<,0N,0>,10<,10>,1>"],
-      ["C,D", "0<,00<,00>,0>,1N,1>"], // Navigate ON empty Hyperlink after a regular one
-      ["D,D", "0<,0N,0>,1N,1>"], // Navigate ON empty Hyperlink after an empty one
+      ["C,D", "0<,00<,00>,0>,1N,1>"], // Navigate ON empty Link after a regular one
+      ["D,D", "0<,0N,0>,1N,1>"], // Navigate ON empty Link after an empty one
     ],
 
     get forPreceding(): any[] {
@@ -64,9 +64,9 @@ export const CursorNavigatorTestUtils = {
           } else if (c === "B") {
             return "<s></s>";
           } else if (c === "C") {
-            return "<hyperlink url=c.com>C</hyperlink>";
+            return "<lnk url=c.com>C</lnk>";
           } else if (c === "D") {
-            return "<hyperlink url=d.com></hyperlink>";
+            return "<lnk url=d.com></lnk>";
           } else {
             throw new Error("Bad concise test description");
           }

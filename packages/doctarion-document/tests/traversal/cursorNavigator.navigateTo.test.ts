@@ -27,7 +27,7 @@ describe("navigateTo", () => {
     expect(nav.cursor.toString()).toEqual("BEFORE 2/2/0");
     expect(nav.tip.node).toEqual("f");
 
-    const nav2 = new CursorNavigator(testDoc`<p> <s>A</s> <hyperlink url=a.com></hyperlink> <s>B</s> </p>`);
+    const nav2 = new CursorNavigator(testDoc`<p> <s>A</s> <lnk url=a.com></lnk> <s>B</s> </p>`);
     nav2.navigateTo("0/2/0", CursorOrientation.Before);
     expect(nav2.tip.node).toEqual("B");
   });
@@ -74,7 +74,7 @@ describe("navigateTo", () => {
   });
 
   it("auto-corrects navigation in some cases", () => {
-    const nav = new CursorNavigator(testDoc`<p> <s>ASD</s> <hyperlink url=a.com></hyperlink> </p>`);
+    const nav = new CursorNavigator(testDoc`<p> <s>ASD</s> <lnk url=a.com></lnk> </p>`);
     nav.navigateTo("0/1", CursorOrientation.Before);
     expect(nav.cursor.toString()).toEqual("AFTER 0/0/2");
   });

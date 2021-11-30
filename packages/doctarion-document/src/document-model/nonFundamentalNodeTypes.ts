@@ -89,19 +89,15 @@ export const Header = new NodeType({
 
 //#region INLINES
 
-export const Hyperlink = new NodeType({
-  name: "Hyperlink",
+export const Link = new NodeType({
+  name: "Link",
   category: NodeCategory.Inline,
+  // TODO Should this be some kind of FancyText TEMPLATE thing?
   childrenType: NodeChildrenType.FancyText,
-  facets: { url: FacetValueType.String },
-});
-
-export const EntityReference = new NodeType({
-  name: "EntityRef",
-  category: NodeCategory.Inline,
-  childrenType: NodeChildrenType.None,
   facets: {
-    entityId: FacetValueType.EntityId,
+    url: { valueType: FacetValueType.String, optional: true },
+    entityId: { valueType: FacetValueType.EntityId, optional: true },
+    // TODO document id? other ids?
   },
 });
 

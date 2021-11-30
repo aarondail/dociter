@@ -179,7 +179,9 @@ export function cloneWorkingNodeAsEmptyRegularNode(root: WorkingNode): Node {
     if (node.nodeType.facets) {
       for (const [name] of Object.entries(node.nodeType.facets)) {
         const value = node.getFacet(name);
-        facets[name] = mapFacet(value);
+        if (value !== undefined) {
+          facets[name] = mapFacet(value);
+        }
       }
     }
 

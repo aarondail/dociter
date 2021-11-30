@@ -7,16 +7,16 @@ describe("moveForward", () => {
   it("behaves correctly at the end of the doc", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
 
-    // Jump to L in the "GOOGLE" text of the Hyperlink
+    // Jump to L in the "GOOGLE" text of the Link
     editor.execute(Commands.jump({ to: { path: "3/1/4", orientation: CursorOrientation.Before } }));
     editor.execute(Commands.moveForward({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:L)3/1⁙4 intr: ᯼ "`
     );
 
     editor.execute(Commands.moveForward({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:E)3/1⁙5 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:E)3/1⁙5 intr: ᯼ "`
     );
 
     editor.execute(Commands.moveForward({}));
@@ -44,39 +44,39 @@ describe("moveForward", () => {
   it("handles multiple cursors", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
 
-    // Jump to "GOOGLE" text of the Hyperlink
+    // Jump to "GOOGLE" text of the Link
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: CursorOrientation.Before } }));
     editor.execute(Commands.addInteractor({ at: { path: "3/1/1", orientation: CursorOrientation.After }, name: "β" }));
     editor.execute(Commands.addInteractor({ at: { path: "3/1/2", orientation: CursorOrientation.After }, name: "γ" }));
 
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ 
-      Anchor: β-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: β 
-      Anchor: γ-MAIN AFTER (Hyperlink:O)3/1⁙2 intr: γ "
+      "Anchor: ᯼-MAIN BEFORE (Link:G)3/1⁙0 intr: ᯼ 
+      Anchor: β-MAIN AFTER (Link:O)3/1⁙1 intr: β 
+      Anchor: γ-MAIN AFTER (Link:O)3/1⁙2 intr: γ "
     `);
     editor.execute(Commands.moveForward({ target: InteractorTargets.All }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN AFTER (Hyperlink:G)3/1⁙0 intr: ᯼ 
-      Anchor: β-MAIN AFTER (Hyperlink:O)3/1⁙2 intr: β 
-      Anchor: γ-MAIN AFTER (Hyperlink:G)3/1⁙3 intr: γ "
+      "Anchor: ᯼-MAIN AFTER (Link:G)3/1⁙0 intr: ᯼ 
+      Anchor: β-MAIN AFTER (Link:O)3/1⁙2 intr: β 
+      Anchor: γ-MAIN AFTER (Link:G)3/1⁙3 intr: γ "
     `);
     editor.execute(Commands.moveForward({ target: InteractorTargets.AllActive }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: ᯼ 
-      Anchor: β-MAIN AFTER (Hyperlink:G)3/1⁙3 intr: β 
-      Anchor: γ-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: γ "
+      "Anchor: ᯼-MAIN AFTER (Link:O)3/1⁙1 intr: ᯼ 
+      Anchor: β-MAIN AFTER (Link:G)3/1⁙3 intr: β 
+      Anchor: γ-MAIN AFTER (Link:L)3/1⁙4 intr: γ "
     `);
     // Should dedupe
     editor.execute(Commands.moveForward({ target: InteractorTargets.Focused }));
     editor.execute(Commands.moveForward({ target: InteractorTargets.Focused }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
-      "Anchor: ᯼-MAIN AFTER (Hyperlink:G)3/1⁙3 intr: ᯼ 
-      Anchor: γ-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: γ "
+      "Anchor: ᯼-MAIN AFTER (Link:G)3/1⁙3 intr: ᯼ 
+      Anchor: γ-MAIN AFTER (Link:L)3/1⁙4 intr: γ "
     `);
     // Should dedupe again
     editor.execute(Commands.moveForward({ target: InteractorTargets.Focused }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:L)3/1⁙4 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:L)3/1⁙4 intr: ᯼ "`
     );
   });
 });
@@ -85,16 +85,16 @@ describe("moveBack", () => {
   it("behaves correctly at the end of the doc", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
 
-    // Jump to the first O in the "GOOGLE" text of the Hyperlink
+    // Jump to the first O in the "GOOGLE" text of the Link
     editor.execute(Commands.jump({ to: { path: "3/1/2", orientation: CursorOrientation.Before } }));
     editor.execute(Commands.moveBack({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:G)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:G)3/1⁙0 intr: ᯼ "`
     );
 
     editor.execute(Commands.moveBack({}));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:G)3/1⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:G)3/1⁙0 intr: ᯼ "`
     );
 
     editor.execute(Commands.moveBack({}));
@@ -150,7 +150,7 @@ describe("jump", () => {
     editor.execute(Commands.addInteractor({ at: { path: "3/1/1", orientation: CursorOrientation.After } }));
     editor.execute(Commands.jump({ to: { path: "3/1/1", orientation: CursorOrientation.After } }));
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN AFTER (Hyperlink:O)3/1⁙1 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN AFTER (Link:O)3/1⁙1 intr: ᯼ "`
     );
   });
 });

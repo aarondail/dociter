@@ -95,7 +95,7 @@ export const split = coreCommand<SplitPayload>("split", (state, services, payloa
     navigator.navigateFreelyToChild(blockIndex + 1);
     navigator.navigateToFirstDescendantCursorPosition();
 
-    // This is to handle the case where we split a non-Span inline (e.g. Hyperlink)
+    // This is to handle the case where we split a non-Span inline (e.g. Link)
     if (
       isNavigatorOnGrapheme &&
       !PseudoNode.isGrapheme(navigator.tip.node) &&

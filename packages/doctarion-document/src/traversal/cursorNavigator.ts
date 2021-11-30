@@ -242,9 +242,9 @@ export class CursorNavigator<NodeClass extends Node = Node> implements ReadonlyC
         }
       }
       // We set this to true because if the current node HAS children, e.g.
-      // this is an Hyperlink w/ text then the navigateForwardsInDfs below
+      // this is an Link w/ text then the navigateForwardsInDfs below
       // will move INTO the children instead of PAST this entire node.  This is
-      // because the NodeNavigator just thinks we are on an Hyperlink node
+      // because the NodeNavigator just thinks we are on an Link node
       // in its DFS and the next step of the DFS is normally to dive into
       // any children.
       skipDescendants = true;

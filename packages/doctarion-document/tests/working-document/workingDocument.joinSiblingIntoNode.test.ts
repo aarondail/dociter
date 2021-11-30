@@ -10,12 +10,12 @@ describe("joinSiblingIntoNode", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     wd.joinSiblingIntoNode(wd.document.children[2], FlowDirection.Backward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 
@@ -25,12 +25,12 @@ describe("joinSiblingIntoNode", () => {
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     wd.joinSiblingIntoNode(wd.document.children[1], FlowDirection.Forward);
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });
 
@@ -48,7 +48,7 @@ describe("joinSiblingIntoNode", () => {
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Header1</s> </h>
-      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s styles=6:+B,8:-B>MMNNAABBCC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(wd)).toMatchInlineSnapshot(`
       "Anchor: H BEFORE (Span:e)0/0⁙1 
@@ -57,11 +57,4 @@ describe("joinSiblingIntoNode", () => {
       Anchor: D BEFORE (Span:D)1/2⁙0 "
     `);
   });
-
-  // This doesn't make sense since Spans shouldn't be adjacent anyways
-  // _ it("works on Spans", () => {});
-  // These don't make sense because we disallow joining nodes of different types:
-  // _ it("works on Headers", () => {});
-  // _ it("works on Hyperlinks", () => {});
-  // _ it("when targeting inlines, can merge newly adjacent Spans", () => {});
 });

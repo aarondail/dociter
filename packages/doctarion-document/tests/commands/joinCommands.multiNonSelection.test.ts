@@ -41,7 +41,7 @@ describe("join blocks with multiple interactors", () => {
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s styles=13:+B>Header1MMNNAABB</s> </h>
         <p> </p>
-        <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+        <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
       `);
       // Note the δ interactor is de-duped (in favor of γ)
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
@@ -51,7 +51,7 @@ describe("join blocks with multiple interactors", () => {
         Anchor: ε-MAIN AFTER (Span:B)0/0⁙14 intr: ε 
         Anchor: ζ-MAIN ON (Paragraph)1 intr: ζ 
         Anchor: η-MAIN ON (Paragraph)1 intr: η 
-        Anchor: η-SELECTION AFTER (Hyperlink:L)2/1⁙4 intr: η "
+        Anchor: η-SELECTION AFTER (Link:L)2/1⁙4 intr: η "
       `);
     });
 
@@ -92,7 +92,7 @@ describe("join blocks with multiple interactors", () => {
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<h level=ONE> <s styles=13:+B>Header1MMNNAABB</s> </h>
-        <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+        <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
       `);
       // Note the δ interactor is NOT de-duped in this test (unlike the previous
       // one) because it has a different status than γ.
@@ -104,7 +104,7 @@ describe("join blocks with multiple interactors", () => {
         Anchor: ε-MAIN AFTER (Span:B)0/0⁙14 intr: ε 
         Anchor: ζ-MAIN AFTER (Span:C)1/0⁙1 intr: ζ 
         Anchor: η-MAIN BEFORE (Span:C)1/0⁙0 intr: η 
-        Anchor: η-SELECTION AFTER (Hyperlink:L)1/1⁙4 intr: η "
+        Anchor: η-SELECTION AFTER (Link:L)1/1⁙4 intr: η "
       `);
     });
   });
@@ -148,7 +148,7 @@ describe("join blocks with multiple interactors", () => {
 
       expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
         "<p> <s styles=13:+B>Header1MMNNAABB</s> </p>
-        <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+        <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
       `);
       expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
         "Anchor: α-MAIN AFTER (Span:r)0/0⁙5 intr: α 
@@ -158,7 +158,7 @@ describe("join blocks with multiple interactors", () => {
         Anchor: ε-MAIN AFTER (Span:B)0/0⁙14 intr: ε 
         Anchor: ζ-MAIN BEFORE (Span:C)1/0⁙0 intr: ζ 
         Anchor: η-MAIN BEFORE (Span:C)1/0⁙0 intr: η 
-        Anchor: η-SELECTION AFTER (Hyperlink:L)1/1⁙4 intr: η "
+        Anchor: η-SELECTION AFTER (Link:L)1/1⁙4 intr: η "
       `);
     });
   });

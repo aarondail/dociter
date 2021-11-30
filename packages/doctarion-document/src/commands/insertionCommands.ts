@@ -206,7 +206,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
           target.mainAnchorNavigator.navigateToNextCursorPosition();
         } else {
           const offset = targetPathPart?.index;
-          // This is like when we insert a Span to the edge of a Hyperlink (that got joined to a sibling span)
+          // This is like when we insert a Span to the edge of a Link (that got joined to a sibling span)
           target.mainAnchorNavigator.navigateFreelyToParent();
           target.mainAnchorNavigator.navigateFreelyToParent();
           if (offset === 0) {

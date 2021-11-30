@@ -16,7 +16,7 @@ describe("split should split", () => {
       <p> <s>MM</s> </p>
       <p> <s styles=4:+B>NNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:N)2/0⁙0 intr: ᯼ "`
@@ -33,7 +33,7 @@ describe("split should split", () => {
       <p> </p>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:M)2/0⁙0 intr: ᯼ "`
@@ -50,7 +50,7 @@ describe("split should split", () => {
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> <s styles=0:+B></s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN ON (Span)2/0 intr: ᯼ "`
@@ -66,28 +66,26 @@ describe("split should split", () => {
       "<h level=ONE> <s>Header1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>G</hyperlink> </p>
-      <p> <hyperlink url=g.com>OOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>G</lnk> </p>
+      <p> <lnk url=g.com>OOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ᯼-MAIN BEFORE (Hyperlink:O)4/0⁙0 intr: ᯼ "`
+      `"Anchor: ᯼-MAIN BEFORE (Link:O)4/0⁙0 intr: ᯼ "`
     );
   });
 
   it("between a url link", () => {
     const editor = new Editor({
-      document: testDoc`<p> <s>ABC</s> <hyperlink url=A.com>DEF</hyperlink> <hyperlink url=B.com>GHI</hyperlink> <s>JKL</s> </p>`,
+      document: testDoc`<p> <s>ABC</s> <lnk url=A.com>DEF</lnk> <lnk url=B.com>GHI</lnk> <s>JKL</s> </p>`,
     });
     editor.execute(Commands.jump({ to: { path: "0/1", orientation: After } }));
     editor.execute(Commands.split({}));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
-      "<p> <s>ABC</s> <hyperlink url=A.com>DEF</hyperlink> </p>
-      <p> <hyperlink url=B.com>GHI</hyperlink> <s>JKL</s> </p>"
+      "<p> <s>ABC</s> <lnk url=A.com>DEF</lnk> </p>
+      <p> <lnk url=B.com>GHI</lnk> <s>JKL</s> </p>"
     `);
-    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
-      `"Anchor: ∅ BEFORE (Hyperlink)1/0 intr: ∅"`
-    );
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`"Anchor: ∅ BEFORE (Link)1/0 intr: ∅"`);
   });
 
   it("in a empty inline", () => {
@@ -123,10 +121,10 @@ describe("split should split", () => {
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>H</s> </h>
-      <h level=ONE> <s styles=undefined>eader1</s> </h>
+      <h level=ONE> <s>eader1</s> </h>
       <p> <s styles=6:+B>MMNNAABB</s> </p>
       <p> </p>
-      <p> <s>CC</s> <hyperlink url=g.com>GOOGLE</hyperlink> <s>DD</s> </p>"
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
     expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
       `"Anchor: ᯼-MAIN BEFORE (Span:e)1/0⁙0 intr: ᯼ "`
