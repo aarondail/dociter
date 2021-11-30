@@ -1,6 +1,6 @@
 import { AnchorOrientation, Node, Span } from "../document-model";
 import { FlowDirection } from "../shared-utils";
-import { PseudoNode } from "../traversal";
+import { CursorOrientation, PseudoNode } from "../traversal";
 
 import { AnchorId, AnchorParameters, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorType } from "./anchor";
 import { WorkingDocumentError } from "./error";
@@ -98,7 +98,7 @@ export class AnchorUpdateAssistantForNodeDeletion {
           this.accommodateSpansThatMayHaveBeenJoined &&
           this.direction === FlowDirection.Forward &&
           PseudoNode.isGrapheme(c.tip.node) &&
-          c.cursor.orientation === AnchorOrientation.After &&
+          c.cursor.orientation === CursorOrientation.After &&
           c.tip.pathPart?.index === 0 &&
           (c.parent?.node as Node).nodeType === Span &&
           (c.toNodeNavigator().precedingParentSiblingNode as Node).nodeType === Span

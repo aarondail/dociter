@@ -1,4 +1,3 @@
-import { AnchorOrientation } from "../document-model";
 import { SimpleComparison } from "../shared-utils";
 
 import {
@@ -9,8 +8,17 @@ import {
   PathComparison,
 } from "./path";
 
-export type CursorOrientation = AnchorOrientation;
-export const CursorOrientation = AnchorOrientation;
+/**
+ * This is an exact copy of AnchorOrientation. The reason we do this (rather
+ * than alias the type) is because typescript will report the underlying type in
+ * type hints, error messages, and whatever.  It will type-check fine, but
+ * doesn't really use the alias name.
+ */
+export enum CursorOrientation {
+  Before = "BEFORE",
+  After = "AFTER",
+  On = "ON",
+}
 
 /**
  * Cursors can be placed on nodes, but also before and after them. Before and
