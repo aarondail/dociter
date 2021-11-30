@@ -57,14 +57,9 @@ import {
 import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
 
-export enum InsertOrJoin {
-  Insert = "INSERT",
-  Join = "JOIN",
-}
-
 export interface InsertNodeResult {
   readonly workingNode: ReadonlyWorkingNode;
-  readonly insertionHandledBy: InsertOrJoin;
+  readonly insertionHandledByJoin: boolean;
 }
 
 export enum AnchorPullDirection {
@@ -1202,11 +1197,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (joinNodeToAdjacentSpansIfPossible) {
       const joinedNode = this.joinSpanToAdjacentSiblingsAndRemoveItIfPossible(workingNode);
       if (joinedNode) {
-        return { workingNode: joinedNode, insertionHandledBy: InsertOrJoin.Join };
+        return { workingNode: joinedNode, insertionHandledByJoin: true };
       }
     }
 
-    return { workingNode: workingNode, insertionHandledBy: InsertOrJoin.Insert };
+    return { workingNode: workingNode, insertionHandledByJoin: false };
   }
 
   private joinSpanToAdjacentSiblingsAndRemoveItIfPossible(node: WorkingNode): WorkingNode | undefined {

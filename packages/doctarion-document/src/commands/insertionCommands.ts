@@ -2,7 +2,7 @@ import { Node, NodeCategory, NodeChildrenType, Paragraph, Span } from "../docume
 import { FlowDirection } from "../shared-utils";
 import { Text, TextStyleStrip } from "../text-model";
 import { CursorOrientation, PseudoNode } from "../traversal";
-import { InsertOrJoin, ReadonlyWorkingNode, WorkingDocument } from "../working-document";
+import { ReadonlyWorkingNode, WorkingDocument } from "../working-document";
 
 import { deleteImplementation } from "./deletionCommands";
 import { CommandError } from "./error";
@@ -194,7 +194,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
 
       const insertResult = state.insertNode(grandParentNode, content, parentIndexFromGrandParent);
 
-      if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
+      if (insertResult.insertionHandledByJoin) {
         // SCENARIO 1.a - Target position is a Grapheme, but at the edge of the inline and the insertion resulted in a Join
         if (parentNode.nodeType === Span) {
           // This only happens when inserting Spans that get auto-joined to other Spans
@@ -247,7 +247,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
 
       const insertResult = state.splitNodeAndInsertBetween(parentNode, [insertionIndex], content);
 
-      if (insertResult.insertionHandledBy === InsertOrJoin.Join) {
+      if (insertResult.insertionHandledByJoin) {
         let offset = target.mainAnchorNavigator.tip.pathPart!.index!;
         offset += content.children.length;
         target.mainAnchorNavigator.navigateFreelyToParent();
@@ -290,7 +290,7 @@ function insertInlinePrime(state: WorkingDocument, target: SelectTargetsResult, 
 
       target.mainAnchorNavigator.navigateFreelyToParent();
       target.mainAnchorNavigator.navigateFreelyToChild(
-        insertionResult.insertionHandledBy === InsertOrJoin.Insert ? insertionIndex : insertionIndex - 1
+        insertionResult.insertionHandledByJoin ? insertionIndex - 1 : insertionIndex
       );
 
       if (content.nodeType === Span) {
@@ -400,7 +400,7 @@ function insertTextPrime(state: WorkingDocument, target: SelectTargetsResult, co
 
         target.mainAnchorNavigator.navigateFreelyToParent();
         target.mainAnchorNavigator.navigateFreelyToChild(
-          insertionResult.insertionHandledBy === InsertOrJoin.Insert ? insertionIndex : insertionIndex - 1
+          insertionResult.insertionHandledByJoin ? insertionIndex - 1 : insertionIndex
         );
         target.mainAnchorNavigator.navigateToLastDescendantCursorPosition(); // Move to the last Grapheme
         state.updateInteractor(target.interactor.id, {

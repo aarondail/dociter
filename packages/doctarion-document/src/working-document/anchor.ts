@@ -13,9 +13,25 @@ export interface AnchorParameters {
 }
 
 export enum WorkingAnchorType {
+  /**
+   * This is an Anchor owned by a Node (i.e., originating from a Node).
+   */
   Node = "NODE",
+  /**
+   * This is an Anchor from an Interactor. Because this represents a cursor, and
+   * certain cursor positions are preferred or invalid this will be updated a
+   * little differently in case of node joins or deletions, sometimes.
+   */
   Interactor = "INTERACTOR",
+  /**
+   * This is a Anchor created by the WorkingDocument to complete some operation.
+   * It should be very short-lived.
+   */
   Transient = "TRANSIENT",
+  /**
+   * This is a Anchor that does not fit into any of the above types and is
+   * created by calling `WorkingDocument.addAnchor`.
+   */
   Free = "FREE",
 }
 
