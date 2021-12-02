@@ -1,9 +1,7 @@
 
-Interactors are an editor concept (so: not part of the document directly), and
-they points to a part of a document that may be interacted with (hence the
-name). A particular interactor may be a cursor (pointing to a single cursor
-position or node the document) or a selection (which is basically two cursors: a
-main cursor and an anchor).
+A particular interactor may be a cursor (pointing to a single cursor position or
+node the document) or a selection (which is basically two cursors: a main cursor
+and an anchor).
 
 ## MERGING
 
