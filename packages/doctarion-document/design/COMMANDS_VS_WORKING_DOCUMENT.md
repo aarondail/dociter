@@ -31,3 +31,6 @@ Anchors on nodes that are deleted or joined together. That logic could arguably
 be in the Commands, but it wouldn't totally make sense for a few reasons
 including the fact that some Anchors are _not_ related to Interactors and thus
 DON'T represent a cursor to a user.
+
+Commands also generally map to actions directly issued by the UI, and
+understandable by a user.
