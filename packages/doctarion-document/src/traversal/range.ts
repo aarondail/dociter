@@ -1,4 +1,4 @@
-import { DocumentNode, Node } from "../document-model";
+import { DocumentNode, Node, NodeCategory, NodeChildrenType } from "../document-model";
 
 import { Chain } from "./chain";
 import { NodeNavigator } from "./nodeNavigator";
@@ -242,12 +242,81 @@ export class Range {
       }
     }
   }
-  private walkChains<NodeClass extends Node>(
+
+  /**
+   * This is a special case of walk that walks through all nodes in the range
+   * and calls the callback for each inline that can have graphemes, and with
+   * the indices of the graphemes in this `Range`.
+   */
+  public walkInlineGraphemeRanges<NodeClass extends Node>(
     document: DocumentNode & NodeClass,
-    callback: (chain: Chain<NodeClass>) => void,
-    filter?: (node: PseudoNode<NodeClass>) => boolean,
-    skipDescendants?: (node: PseudoNode<NodeClass>) => boolean
+    callback: (
+      inlineNodeChain: Chain<NodeClass>,
+      graphemeRangeInclusive: [number, number] | undefined,
+      graphemeFacet: string | undefined
+    ) => void
   ): void {
-    return this.walk(document, (n) => callback(n.chain), filter, skipDescendants);
+    const nav = new NodeNavigator<NodeClass>(document);
+    if (!nav.navigateTo(this.from)) {
+      return;
+    }
+
+    if (this.from.equalTo(this.to)) {
+      return;
+    }
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const tipNode = nav.tip.node;
+      const tipPathPart = nav.tip.pathPart!;
+      if (PseudoNode.isGrapheme(tipNode)) {
+        const parent = nav.parent!.node as NodeClass;
+        // We actually only expect to hit this case, if at all, at the start or
+        // end of the range.,..
+        const indices: [number, number] = [tipPathPart.index!, tipPathPart.index!];
+        if (nav.path.compareTo(this.to) === PathComparison.EarlierSibling) {
+          indices[1] = this.to.tip.index!;
+          callback(nav.chain.dropTipIfPossible()!, indices, tipPathPart.facet);
+          break;
+        } else {
+          indices[1] = parent.children.length - 1;
+          callback(nav.chain.dropTipIfPossible()!, indices, tipPathPart.facet);
+          if (!nav.navigateToLastSibling()) {
+            return;
+          }
+        }
+      } else if (
+        PseudoNode.isNode(tipNode) &&
+        tipNode.nodeType.category === NodeCategory.Inline &&
+        (tipNode.nodeType.childrenType === NodeChildrenType.Text ||
+          tipNode.nodeType.childrenType === NodeChildrenType.FancyText)
+      ) {
+        // Process graphemes
+        if (tipNode.children.length === 0) {
+          callback(nav.chain, undefined, tipPathPart.facet);
+        } else {
+          const indices: [number, number] = [0, 0];
+          if (nav.path.compareTo(this.to) === PathComparison.Ancestor) {
+            indices[1] = this.to.tip.index!;
+            callback(nav.chain, indices, tipPathPart.facet);
+            break;
+          } else {
+            indices[1] = tipNode.children.length - 1;
+            callback(nav.chain, indices, tipPathPart.facet);
+            if (!nav.navigateToLastChild()) {
+              return;
+            }
+          }
+        }
+      }
+
+      if (!nav.navigateForwardsByDfs()) {
+        return;
+      }
+
+      const cmp = nav.path.compareTo(this.to);
+      if (cmp === PathComparison.Equal) {
+        return;
+      }
+    }
   }
 }
