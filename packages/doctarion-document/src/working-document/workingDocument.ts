@@ -524,7 +524,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       } else if (!isFancy && Utils.doesNodeTypeHaveTextOrFancyText(resolvedNode.nodeType)) {
         throw new WorkingDocumentError("Node cannot have grapheme children");
       }
-    } else if (resolvedFacet && (resolvedFacet.valueType !== FacetValueType.String || isFancy)) {
+    } else if (resolvedFacet && (resolvedFacet.valueType !== FacetValueType.Text || isFancy)) {
       throw new WorkingDocumentError("Node cannot have text or fancy text in the given facet");
     }
 
@@ -651,7 +651,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
   public setNodeFacet(
     node: NodeId | ReadonlyWorkingNode,
     facet: string,
-    value: boolean | string | AnchorParameters | [AnchorParameters, AnchorParameters] | readonly Node[]
+    value: boolean | string | Text | AnchorParameters | [AnchorParameters, AnchorParameters] | readonly Node[]
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
@@ -677,8 +677,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);
         }
         break;
-      case FacetValueType.String:
-        if (typeof value === "string" || (valueType === "undefined" && resolvedFacet.optional)) {
+      case FacetValueType.Text:
+        if (typeof value === "string") {
+          resolvedNode.setFacet(facet, Text.fromString(value));
+        } else if (Array.isArray(value) || (valueType === "undefined" && resolvedFacet.optional)) {
           resolvedNode.setFacet(facet, value);
         } else {
           throw new WorkingDocumentError(`Can not set facet ${facet} to value of type ${valueType}`);

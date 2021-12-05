@@ -5,6 +5,7 @@ import {
   Document,
   DocumentNode,
   FacetDictionary,
+  FacetValueType,
   Floater,
   Header,
   Link,
@@ -118,6 +119,16 @@ function docFromXmlish(xmlish: string): DocumentNode {
             }
             f.anchor = new Anchor(nodeAtPath!, orientation, graphemeIndex);
           }
+          if (n.type.facets) {
+            for (const [name, facet] of Object.entries(n.type.facets)) {
+              if (facet.valueType === FacetValueType.Text) {
+                // We need to convert this!
+                if (f[name]) {
+                  f[name] = Text.fromString(f[name]);
+                }
+              }
+            }
+          }
 
           const newNode = new Node(
             n.type,
@@ -158,7 +169,8 @@ export function nodeToXmlish(node: Node, { includeIds }: { includeIds?: boolean 
       throw new Error(`Could not find tag for NodeType ${n.nodeType.name}`);
     }
 
-    const attributes = n.facets as any;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const attributes = { ...n.facets } as any;
 
     if (includeIds && (n as any).id) {
       attributes.id = (n as any).id;
@@ -167,12 +179,15 @@ export function nodeToXmlish(node: Node, { includeIds }: { includeIds?: boolean 
     let attributesString = "";
     if (Object.values(attributes).length > 0) {
       for (const key of Object.keys(attributes).sort()) {
+        const facetType = n.nodeType.facets?.[key];
         let value = attributes[key];
         if (value instanceof TextStyleStrip) {
           if (value.entries.length === 0) {
             continue;
           }
           value = textStyleStripToXmlish(value);
+        } else if (facetType?.valueType === FacetValueType.Text && Array.isArray(value)) {
+          value = Text.toString(value);
         }
 
         attributesString += ` ${key}=${value}`;

@@ -71,7 +71,7 @@ export const CodeBlock = new NodeType({
   category: NodeCategory.Block,
   childrenType: NodeChildrenType.Inlines,
   facets: {
-    language: FacetValueType.String,
+    language: FacetValueType.Text,
   },
 });
 
@@ -97,7 +97,7 @@ export const Link = new NodeType({
   // TODO Should this be some kind of FancyText TEMPLATE thing?
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    url: { valueType: FacetValueType.String, optional: true },
+    url: { valueType: FacetValueType.Text, optional: true },
     entityId: { valueType: FacetValueType.EntityId, optional: true },
     // TODO document id? other ids?
   },

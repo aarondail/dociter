@@ -1,4 +1,4 @@
-import { CursorNavigator, Header, Link, Node, Paragraph, Span } from "../../src";
+import { CursorNavigator, Header, Link, Node, Paragraph, Span, Text } from "../../src";
 
 import { CursorNavigatorTestUtils } from "./cursorNavigator.testUtils";
 
@@ -117,15 +117,15 @@ describe("navigateToNextCursorPosition", () => {
     const next = nextPrime.bind(undefined, nav);
     next(1);
     expect((nav.tip.node as Node).nodeType).toEqual(Link);
-    expect((nav.tip.node as Node).getFacet("url")).toEqual("g.com");
+    expect(Text.toString((nav.tip.node as Node).getFacet("url") as Text)).toEqual("g.com");
     expect(nav.cursor.toString()).toEqual("BEFORE 0/0");
     next(1);
     expect((nav.tip.node as Node).nodeType).toEqual(Link);
-    expect((nav.tip.node as Node).getFacet("url")).toEqual("g.com");
+    expect(Text.toString((nav.tip.node as Node).getFacet("url") as Text)).toEqual("g.com");
     expect(nav.cursor.toString()).toEqual("ON 0/0");
     next(1);
     expect((nav.tip.node as Node).nodeType).toEqual(Link);
-    expect((nav.tip.node as Node).getFacet("url")).toEqual("g.com");
+    expect(Text.toString((nav.tip.node as Node).getFacet("url") as Text)).toEqual("g.com");
     expect(nav.cursor.toString()).toEqual("AFTER 0/0");
     next(1);
     expect(nav.tip.node).toEqual("a");
@@ -135,7 +135,7 @@ describe("navigateToNextCursorPosition", () => {
     expect(nav.cursor.toString()).toEqual("AFTER 0/1/2");
     next(1);
     expect((nav.tip.node as Node).nodeType).toEqual(Link);
-    expect((nav.tip.node as Node).getFacet("url")).toEqual("h.com");
+    expect(Text.toString((nav.tip.node as Node).getFacet("url") as Text)).toEqual("h.com");
     expect(nav.cursor.toString()).toEqual("AFTER 0/1");
     next(1);
     expect(nav.tip.node).toEqual("d");
@@ -145,7 +145,7 @@ describe("navigateToNextCursorPosition", () => {
     expect(nav.cursor.toString()).toEqual("AFTER 0/2/0");
     next(1);
     expect((nav.tip.node as Node).nodeType).toEqual(Link);
-    expect((nav.tip.node as Node).getFacet("url")).toEqual("i.com");
+    expect(Text.toString((nav.tip.node as Node).getFacet("url") as Text)).toEqual("i.com");
     next(1);
     expect(nav.tip.node).toEqual("A");
     expect(nav.cursor.toString()).toEqual("BEFORE 1/0/0");

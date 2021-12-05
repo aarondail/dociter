@@ -71,8 +71,8 @@ type FacetValueTypeToActualTypeForWorkingNode<T extends FacetValueType> = T exte
   ? string
   : T extends FacetValueType.NodeArray
   ? WorkingNode[]
-  : T extends FacetValueType.String
-  ? string
+  : T extends FacetValueType.Text
+  ? Text
   : T extends FacetValueType.TextStyleStrip
   ? WorkingTextStyleStrip
   : never;

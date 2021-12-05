@@ -1,7 +1,7 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
-import { Anchor, AnchorRange, Node, Span } from "../document-model";
+import { Anchor, AnchorRange, FacetType, FacetValueType, Node, Span } from "../document-model";
 import { TextStyleStrip } from "../text-model";
 import { PathPart } from "../traversal";
 
@@ -155,7 +155,7 @@ export function createWorkingNode(
 }
 
 export function cloneWorkingNodeAsEmptyRegularNode(root: WorkingNode): Node {
-  const mapFacet = (value: any): any => {
+  const mapFacet = (value: any, facetType: FacetType): any => {
     if (value instanceof Anchor) {
       throw new WorkingDocumentError("Cannot create an empty clone of a WorkingNode that has an Anchor");
     } else if (value instanceof AnchorRange) {
@@ -167,6 +167,9 @@ export function cloneWorkingNodeAsEmptyRegularNode(root: WorkingNode): Node {
     } else if (value instanceof TextStyleStrip) {
       return new TextStyleStrip();
     } else if (Array.isArray(value)) {
+      if (facetType.valueType === FacetValueType.Text) {
+        return lodash.clone(value);
+      }
       return [];
     } else {
       // This could DEFINITELY do the wrong thing but hopefully does not.
@@ -177,10 +180,10 @@ export function cloneWorkingNodeAsEmptyRegularNode(root: WorkingNode): Node {
   const mapNode = (node: WorkingNode): Node => {
     const facets = {} as any;
     if (node.nodeType.facets) {
-      for (const [name] of Object.entries(node.nodeType.facets)) {
+      for (const [name, type] of Object.entries(node.nodeType.facets)) {
         const value = node.getFacet(name);
         if (value !== undefined) {
-          facets[name] = mapFacet(value);
+          facets[name] = mapFacet(value, type);
         }
       }
     }

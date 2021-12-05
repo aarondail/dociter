@@ -15,8 +15,7 @@ export enum FacetValueType {
   Enum,
   EntityId,
   NodeArray,
-  // TODO Should this be changed to FancyText or Text?
-  String,
+  Text,
   /**
    * There should only be one facet of this type in a given NodeType, and if it
    * exists it must be named `styles` (see `FacetTextStyleStripName`).
@@ -49,8 +48,8 @@ type FacetValueTypeToActualType<T extends FacetValueType> = T extends FacetValue
   ? string
   : T extends FacetValueType.NodeArray
   ? readonly Node[]
-  : T extends FacetValueType.String
-  ? string
+  : T extends FacetValueType.Text
+  ? Text
   : T extends FacetValueType.TextStyleStrip
   ? TextStyleStrip
   : never;
