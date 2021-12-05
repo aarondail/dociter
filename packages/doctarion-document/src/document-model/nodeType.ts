@@ -1,6 +1,12 @@
 import lodash from "lodash";
 
-import { FacetTypeConvenienceDictionary, FacetTypeDictionary, FacetTypeWithName, FacetValueType } from "./facets";
+import {
+  FacetTextStyleStripName,
+  FacetTypeConvenienceDictionary,
+  FacetTypeDictionary,
+  FacetTypeWithName,
+  FacetValueType,
+} from "./facets";
 
 export enum NodeCategory {
   Block = "BLOCK",
@@ -50,7 +56,7 @@ export class NodeType<SpecificNodeTypeDescription extends NodeTypeDescription = 
     // eslint-disable @typescript-eslint/unbound-method
     this.getFacetsThatAreAnchors = lodash.once(this.getFacetsThatAreAnchors);
     this.getFacetsThatAreNodeArrays = lodash.once(this.getFacetsThatAreNodeArrays);
-    this.getFacetsThatAreTextStyleStrips = lodash.once(this.getFacetsThatAreTextStyleStrips);
+    this.getTextStyleStripFacet = lodash.once(this.getTextStyleStripFacet);
     // eslint-enable @typescript-eslint/unbound-method
   }
 
@@ -84,17 +90,10 @@ export class NodeType<SpecificNodeTypeDescription extends NodeTypeDescription = 
     return result;
   };
 
-  public getFacetsThatAreTextStyleStrips = (): FacetTypeWithName[] => {
-    if (!this.facets) {
-      return [];
+  public getTextStyleStripFacet = (): FacetTypeWithName | undefined => {
+    if (this.facets && this.facets[FacetTextStyleStripName]) {
+      return { name: FacetTextStyleStripName, type: this.facets[FacetTextStyleStripName] };
     }
-    const result: FacetTypeWithName[] = [];
-    for (const [name, facet] of Object.entries(this.facets)) {
-      switch (facet.valueType) {
-        case FacetValueType.TextStyleStrip:
-          result.push({ name, type: facet });
-      }
-    }
-    return result;
+    return undefined;
   };
 }

@@ -284,6 +284,24 @@ export class NodeNavigator<NodeClass extends Node = Node> implements ReadonlyNod
     return true;
   }
 
+  public navigateToLastSibling(): boolean {
+    const result = this.currentChain.getParentAndTipIfPossible();
+    if (!result) {
+      return false;
+    }
+    const [parent, tip] = result;
+
+    const sibling = navigateToSiblingHelpers.lastRelativeLink(parent, tip.pathPart!);
+    if (sibling) {
+      const newChain = this.currentChain.replaceTipIfPossible(sibling);
+      if (newChain) {
+        this.currentChain = newChain;
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * This navigates to a sibling after the current node, if there is one.
    * This will not jump to a different parent node.
@@ -427,6 +445,35 @@ const navigateToSiblingHelpers = (() => {
     return undefined;
   };
 
+  const lastRelativeLink = <NodeType extends Node>(
+    parent: PseudoNode<NodeType> | ChainLink<NodeType>,
+    childPath: PathPart
+  ): ChainLink<NodeType> | undefined => {
+    const parentNode = nodeOrLinkToNode(parent);
+    if (!PseudoNode.isNode(parentNode)) {
+      return undefined;
+    }
+    let newPathPart;
+    if (childPath.facet) {
+      const facetValue = parentNode.getFacet(childPath.facet);
+      if (Array.isArray(facetValue)) {
+        newPathPart = childPath.adjustIndex(facetValue.length - 1);
+      } else {
+        return undefined;
+      }
+    } else {
+      if (parentNode.children.length === 0) {
+        return undefined;
+      }
+      newPathPart = childPath.adjustIndex(parentNode.children.length - 1);
+    }
+    const childNode = newPathPart.resolve(parentNode);
+    if (childNode) {
+      return new ChainLink<NodeType>(childNode, newPathPart);
+    }
+    return undefined;
+  };
+
   const precedingLink = <NodeType extends Node>(
     parent: PseudoNode<NodeType> | ChainLink<NodeType>,
     childPath: PathPart
@@ -437,5 +484,5 @@ const navigateToSiblingHelpers = (() => {
     childPath: PathPart
   ): ChainLink<NodeType> | undefined => relativeLink(parent, childPath, 1);
 
-  return { preceding, next, precedingLink, nextLink, relativeLink };
+  return { preceding, next, precedingLink, nextLink, relativeLink, lastRelativeLink };
 })();

@@ -71,12 +71,12 @@ test("walkInlineGraphemeRanges", () => {
 
   const check = (s1: string, s2: string) => {
     const p = Path.parse;
-    const f = (inlineChain: Chain, graphemeRangeInclusive: [number, number] | undefined) =>
+    const f = (inlineChain: Chain, facet: string | undefined, graphemeRangeInclusive: [number, number] | undefined) =>
       `${inlineChain.path.toString()}${
         graphemeRangeInclusive ? `::[${graphemeRangeInclusive[0]},${graphemeRangeInclusive[1]}]` : ""
       }`;
     const r: string[] = [];
-    new Range(p(s1), p(s2)).walkInlineGraphemeRanges(testDocForThisTest, (a, b) => r.push(f(a, b)));
+    new Range(p(s1), p(s2)).walkInlineGraphemeRanges(testDocForThisTest, (a, b, c) => r.push(f(a, b, c)));
     return r;
   };
 

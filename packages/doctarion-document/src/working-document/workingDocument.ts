@@ -539,8 +539,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
       resolvedNode.children.splice(index, 0, ...text);
     }
 
-    for (const [, strip] of resolvedNode.getAllFacetTextStyleStrips()) {
-      (strip as WorkingTextStyleStrip).updateDueToGraphemeInsertion(index, text.length);
+    const textStyleStripFacet = resolvedNode.getTextStyleStripFacet();
+    if (textStyleStripFacet && textStyleStripFacet[1]) {
+      (textStyleStripFacet[1] as WorkingTextStyleStrip).updateDueToGraphemeInsertion(index, text.length);
     }
 
     for (const [, anchor] of resolvedNode.attachedAnchors) {
@@ -800,7 +801,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
   public setNodeTextStyleModifier(
     node: NodeId | ReadonlyWorkingNode,
-    facet: string,
     modifier: TextStyleModifier,
     graphemeIndex: number
   ): void {
@@ -808,13 +808,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedNode) {
       throw new WorkingDocumentError("Unknown node");
     }
-    const resolvedFacet = resolvedNode.nodeType.facets?.[facet];
+    const resolvedFacet = resolvedNode.getTextStyleStripFacet();
     if (!resolvedFacet) {
-      throw new WorkingDocumentError("Unknown facet");
+      throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
     }
-    const value = resolvedNode.getFacet(facet);
-    if (value instanceof WorkingTextStyleStrip) {
-      value.setModifier(graphemeIndex, modifier);
+    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
+      resolvedFacet[1].setModifier(graphemeIndex, modifier);
     } else {
       throw new WorkingDocumentError("Facet value is not a text style strip");
     }
@@ -1107,8 +1106,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
           assistant.recordOrUpdateAnchorsOriginatingFromNodeGrapheme(node, graphemeIndex);
 
-          for (const [, strip] of node.getAllFacetTextStyleStrips()) {
-            (strip as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
+          const textStyleStripFacet = node.getTextStyleStripFacet();
+          if (textStyleStripFacet && textStyleStripFacet[1]) {
+            (textStyleStripFacet[1] as WorkingTextStyleStrip).updateDueToGraphemeDeletion(graphemeIndex, 1);
           }
         }
       }
@@ -1258,36 +1258,40 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     );
 
     // Update text style strips if they exist
-    for (const { name: facetName } of destination.nodeType.getFacetsThatAreTextStyleStrips()) {
-      let destStrip = destination.getFacet(facetName) as WorkingTextStyleStrip | undefined;
-      const sourceStrip = source.getFacet(facetName) as WorkingTextStyleStrip | undefined;
+    const destinationTextStyleStripFacet = destination.getTextStyleStripFacet();
+    const sourceTextStyleStripFacet = source.getTextStyleStripFacet();
+
+    if (destinationTextStyleStripFacet) {
+      let destStrip = destinationTextStyleStripFacet[1] as WorkingTextStyleStrip | undefined;
+      const sourceStrip = sourceTextStyleStripFacet?.[1] as WorkingTextStyleStrip | undefined;
 
       if (!destStrip && !sourceStrip) {
-        continue;
-      }
-      if (!destStrip) {
-        destStrip = new WorkingTextStyleStrip([]);
-        destination.setFacet(facetName, destStrip);
-      }
-
-      if (prepend) {
-        destStrip.updateForPrepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+        // no-op
       } else {
-        destStrip.updateForAppend(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
-      }
+        if (!destStrip) {
+          destStrip = new WorkingTextStyleStrip([]);
+          destination.setFacet(destinationTextStyleStripFacet[0].name, destStrip);
+        }
 
-      if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
-        const boundaryIndex = prepend ? sourceArrayOriginalLength : destArrayOriginalLength;
-        const resolvedStyle = destStrip.resolveStyleAt(boundaryIndex - 1);
-        const modifierAtBoundary = destStrip.getModifierAtExactly(boundaryIndex);
-        const revertStyleModifier = TextStyle.createModifierToResetStyleToDefaults(resolvedStyle);
+        if (prepend) {
+          destStrip.updateForPrepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+        } else {
+          destStrip.updateForAppend(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+        }
 
-        destStrip.setModifier(boundaryIndex, { ...revertStyleModifier, ...modifierAtBoundary });
+        if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
+          const boundaryIndex = prepend ? sourceArrayOriginalLength : destArrayOriginalLength;
+          const resolvedStyle = destStrip.resolveStyleAt(boundaryIndex - 1);
+          const modifierAtBoundary = destStrip.getModifierAtExactly(boundaryIndex);
+          const revertStyleModifier = TextStyle.createModifierToResetStyleToDefaults(resolvedStyle);
+
+          destStrip.setModifier(boundaryIndex, { ...revertStyleModifier, ...modifierAtBoundary });
+        }
       }
     }
 
-    for (const [, strip] of source.getAllFacetTextStyleStrips()) {
-      (strip as WorkingTextStyleStrip).clear();
+    if (sourceTextStyleStripFacet && sourceTextStyleStripFacet[1]) {
+      (sourceTextStyleStripFacet[1] as WorkingTextStyleStrip).clear();
     }
 
     sourceArray.splice(0, sourceArrayOriginalLength);
@@ -1510,9 +1514,12 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
         }
 
-        for (const [{ name: facetName }, strip] of currentSplitSource.getAllFacetTextStyleStrips()) {
-          const newStrip: WorkingTextStyleStrip = (strip as WorkingTextStyleStrip).updateAndSplitAt(childIndex);
-          currentSplitDest.setFacet(facetName, newStrip);
+        const textStyleStripFacet = currentSplitSource.getTextStyleStripFacet();
+        if (textStyleStripFacet && textStyleStripFacet[1]) {
+          const newStrip: WorkingTextStyleStrip = (textStyleStripFacet[1] as WorkingTextStyleStrip).updateAndSplitAt(
+            childIndex
+          );
+          currentSplitDest.setFacet(textStyleStripFacet[0].name, newStrip);
         }
       }
     }

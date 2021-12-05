@@ -2,6 +2,8 @@ import { FacetValueType } from "./facets";
 import { NodeOfType } from "./misc";
 import { NodeCategory, NodeChildrenType, NodeType } from "./nodeType";
 
+import { FacetTextStyleStripName } from ".";
+
 export const Document = new NodeType({
   name: "Document",
   category: NodeCategory.SuperBlock,
@@ -32,7 +34,7 @@ export const Span = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    styles: {
+    [FacetTextStyleStripName]: {
       valueType: FacetValueType.TextStyleStrip,
       optional: true,
     },

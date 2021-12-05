@@ -2,6 +2,8 @@ import { FacetValueType } from "./facets";
 import { FloaterPlacement, HeaderLevel } from "./misc";
 import { NodeCategory, NodeChildrenType, NodeType } from "./nodeType";
 
+import { FacetTextStyleStripName } from ".";
+
 //#region ANNOTATIONS
 //
 // Annotations appear sorta in place with content in blocks (and such), rather
@@ -106,7 +108,7 @@ export const Todo = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    styles: FacetValueType.TextStyleStrip,
+    [FacetTextStyleStripName]: FacetValueType.TextStyleStrip,
   },
 });
 

@@ -44,22 +44,19 @@ export class Node<SpecificNodeTypeDescription extends NodeTypeDescription = Node
     return result;
   }
 
-  getAllFacetTextStyleStrips(): readonly [FacetTypeWithName, TextStyleStrip][] {
-    const result: [FacetTypeWithName, TextStyleStrip][] = [];
-    for (const f of this.nodeType.getFacetsThatAreTextStyleStrips()) {
-      const value = this.getFacet(f.name) as TextStyleStrip;
-      if (value) {
-        result.push([f, value]);
-      }
-    }
-    return result;
-  }
-
   /**
    * This is a convenience function for typescript since `facets` often tye type
    * `{}`. This is the same as doing `node.facets[facetName]`.
    */
   getFacet(facetName: string): unknown | undefined {
     return (this.facets as any)[facetName];
+  }
+
+  getTextStyleStripFacet(): [FacetTypeWithName, TextStyleStrip | undefined] | undefined {
+    const f = this.nodeType.getTextStyleStripFacet();
+    if (f) {
+      return [f, this.getFacet(f.name) as TextStyleStrip];
+    }
+    return undefined;
   }
 }

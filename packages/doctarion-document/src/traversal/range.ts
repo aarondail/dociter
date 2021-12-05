@@ -205,6 +205,10 @@ export class Range {
   /**
    * This walks through all nodes in the range. The callback is called with a
    * NodeNavigator, which (note!) is reused not cloned between calls.
+   *
+   * Note that the walk may end earlier than you expect in some cases. The
+   * Range's to property determines the end but because the walk is done via DFS
+   * the children of the to property won't be visited.
    */
   public walk<NodeClass extends Node>(
     document: DocumentNode & NodeClass,
@@ -247,13 +251,20 @@ export class Range {
    * This is a special case of walk that walks through all nodes in the range
    * and calls the callback for each inline that can have graphemes, and with
    * the indices of the graphemes in this `Range`.
+   *
+   * Note that the walk may end earlier than you expect in some cases. The
+   * Range's to property determines the end but because the walk is done via DFS
+   * the children of the to property won't be visited.
    */
   public walkInlineGraphemeRanges<NodeClass extends Node>(
     document: DocumentNode & NodeClass,
     callback: (
       inlineNodeChain: Chain<NodeClass>,
-      graphemeRangeInclusive: [number, number] | undefined,
-      graphemeFacet: string | undefined
+      /**
+       * Undefined means the graphemes are children of the inline node.
+       */
+      facet: string | undefined,
+      graphemeRangeInclusive: [number, number] | undefined
     ) => void
   ): void {
     const nav = new NodeNavigator<NodeClass>(document);
@@ -275,11 +286,11 @@ export class Range {
         const indices: [number, number] = [tipPathPart.index!, tipPathPart.index!];
         if (nav.path.compareTo(this.to) === PathComparison.EarlierSibling) {
           indices[1] = this.to.tip.index!;
-          callback(nav.chain.dropTipIfPossible()!, indices, tipPathPart.facet);
+          callback(nav.chain.dropTipIfPossible()!, tipPathPart.facet, indices);
           break;
         } else {
           indices[1] = parent.children.length - 1;
-          callback(nav.chain.dropTipIfPossible()!, indices, tipPathPart.facet);
+          callback(nav.chain.dropTipIfPossible()!, tipPathPart.facet, indices);
           if (!nav.navigateToLastSibling()) {
             return;
           }
@@ -292,16 +303,16 @@ export class Range {
       ) {
         // Process graphemes
         if (tipNode.children.length === 0) {
-          callback(nav.chain, undefined, tipPathPart.facet);
+          callback(nav.chain, tipPathPart.facet, undefined);
         } else {
           const indices: [number, number] = [0, 0];
           if (nav.path.compareTo(this.to) === PathComparison.Ancestor) {
             indices[1] = this.to.tip.index!;
-            callback(nav.chain, indices, tipPathPart.facet);
+            callback(nav.chain, tipPathPart.facet, indices);
             break;
           } else {
             indices[1] = tipNode.children.length - 1;
-            callback(nav.chain, indices, tipPathPart.facet);
+            callback(nav.chain, tipPathPart.facet, indices);
             if (!nav.navigateToLastChild()) {
               return;
             }

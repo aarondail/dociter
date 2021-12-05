@@ -5,6 +5,8 @@ import { Anchor, AnchorRange } from "./anchor";
 import { Node } from "./node";
 import { NodeCategory } from "./nodeType";
 
+export const FacetTextStyleStripName = "styles";
+
 export enum FacetValueType {
   Anchor,
   AnchorRange,
@@ -13,7 +15,12 @@ export enum FacetValueType {
   Enum,
   EntityId,
   NodeArray,
+  // TODO Should this be changed to FancyText or Text?
   String,
+  /**
+   * There should only be one facet of this type in a given NodeType, and if it
+   * exists it must be named `styles` (see `FacetTextStyleStripName`).
+   */
   TextStyleStrip,
 }
 
