@@ -79,7 +79,7 @@ export function createWorkingNode(
       if (priorSpan.facets.styles === undefined) {
         priorSpan.facets.styles = new WorkingTextStyleStrip([]);
       }
-      priorSpan.facets.styles.updateForAppend(oldLength, newSpan.getFacet("styles") as TextStyleStrip);
+      priorSpan.facets.styles.append(oldLength, newSpan.getFacet("styles") as TextStyleStrip);
     }
     // Set this so later we can update anchors on the node (we merged from) properly
     nodeToWorkingNodeMap.set(newSpan, {

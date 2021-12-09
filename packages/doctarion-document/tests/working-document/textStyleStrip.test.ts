@@ -58,18 +58,18 @@ describe("resolveStyleAt", () => {
   });
 });
 
-test("updateForAppend", () => {
+test("append", () => {
   const strip = new WorkingTextStyleStrip([{ graphemeIndex: 5, modifier: { bold: true } }]);
-  strip.updateForAppend(6, new TextStyleStrip({ graphemeIndex: 0, modifier: { italic: true } }));
+  strip.append(6, new TextStyleStrip({ graphemeIndex: 0, modifier: { italic: true } }));
   expect(dumpEntries(strip)).toMatchInlineSnapshot(`
     "5: {bold:true}
     6: {italic:true,bold:null}"
   `);
 });
 
-test("updateForPrepend", () => {
+test("prepend", () => {
   const strip = new WorkingTextStyleStrip([{ graphemeIndex: 5, modifier: { bold: true } }]);
-  strip.updateForPrepend(3, new TextStyleStrip({ graphemeIndex: 0, modifier: { italic: true } }));
+  strip.prepend(3, new TextStyleStrip({ graphemeIndex: 0, modifier: { italic: true } }));
   expect(dumpEntries(strip)).toMatchInlineSnapshot(`
     "0: {italic:true}
     3: {italic:null}

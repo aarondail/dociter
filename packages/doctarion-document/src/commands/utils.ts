@@ -2,6 +2,7 @@
 import { Node, NodeCategory, NodeChildrenType, NodeType } from "../document-model";
 import { FlowDirection, SimpleComparison } from "../shared-utils";
 import {
+  Chain,
   CursorNavigator,
   CursorOrientation,
   CursorPath,
@@ -331,6 +332,29 @@ export const CommandUtils = {
       pickThese,
       PseudoNode.isGrapheme
     );
+  },
+
+  walkInlineGraphemeRangesInSelectionTarget(
+    state: WorkingDocument,
+    target: SelectTargetsResult,
+    callback: (
+      inlineNodeChain: Chain<ReadonlyWorkingNode>,
+      /**
+       * This is undefined if the grapheme range is in the children of the node.
+       */
+      facet: string | undefined,
+      graphemeRangeInclusive: [number, number] | undefined
+    ) => void
+  ): void {
+    if (target.selectionAnchorNavigator === undefined) {
+      return undefined;
+    }
+
+    const [startNav, endNav] = target.isMainCursorFirst
+      ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
+      : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
+
+    new Range(startNav.path, endNav.path).walkInlineGraphemeRanges<ReadonlyWorkingNode>(state.document, callback);
   },
 };
 

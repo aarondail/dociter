@@ -20,7 +20,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         const current = this.entries[j];
         if (current.graphemeIndex === prior.graphemeIndex) {
           // This mutates current.style
-          applyStyleModifiers(prior.modifier, current.modifier);
+          applyStyleModifiersToMutableModifier(prior.modifier, current.modifier);
           // Delete prior
           this.mutableEntries.splice(j + 1, 1);
         }
@@ -31,10 +31,63 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     this.entries = this.mutableEntries;
   }
 
+  public append(currentGraphemeCount: number, strip: TextStyleStrip): void {
+    const styleAtFinalCurrentGrapheme = this.resolveStyleAt(currentGraphemeCount - 1);
+
+    // Append entries (using setModifier since that will keep them sorted)
+    for (const entry of strip.entries) {
+      // Note this (importantly!) will clone the entries
+      this.setModifierPrime(entry.graphemeIndex + currentGraphemeCount, entry.modifier, true);
+    }
+
+    const modifierAtBeginningOfAppend = this.getModifierAtExactly(currentGraphemeCount);
+    if (modifierAtBeginningOfAppend) {
+      for (const key of Object.keys(modifierAtBeginningOfAppend)) {
+        delete (styleAtFinalCurrentGrapheme as any)[key];
+      }
+    }
+
+    // Make the style we are going to apply undo the styling from the current (pre-append) strip
+    for (const key of Object.keys(styleAtFinalCurrentGrapheme)) {
+      (styleAtFinalCurrentGrapheme as any)[key] = null;
+    }
+
+    this.setModifier(currentGraphemeCount, styleAtFinalCurrentGrapheme);
+  }
+
   public clear(): void {
     this.mutableEntries.splice(0, this.entries.length);
     this.entries = this.mutableEntries;
   }
+
+  // public clearRange(fromGraphemeIndex: number, toGraphemeIndex: number, currentGraphemeCount: number): void {
+  //   // These should be the same after applying the modifier
+  //   const beforeStyle = fromGraphemeIndex > 0 ? this.resolveStyleAt(fromGraphemeIndex - 1) : undefined;
+  //   const afterStyle =
+  //     toGraphemeIndex < currentGraphemeCount - 1 ? this.resolveStyleAt(toGraphemeIndex + 1) : undefined;
+
+  //   let removedEntryCount = 0;
+  //   const r = this.searchForEntryAtOrAfterGraphemeIndex(fromGraphemeIndex);
+  //   if (r && r.entryIndex <= toGraphemeIndex) {
+  //     let i = r.entryIndex;
+  //     while (i < this.mutableEntries.length) {
+  //       const e = this.mutableEntries[i];
+  //       if (e.graphemeIndex >= toGraphemeIndex) {
+  //         break;
+  //       }
+  //       i++;
+  //     }
+  //     removedEntryCount = i - r.entryIndex;
+  //     this.mutableEntries.splice(r.entryIndex, removedEntryCount);
+  //   }
+
+  //   if (beforeStyle) {
+  //     this.setModifierPrime(fromGraphemeIndex - 1, beforeStyle, false);
+  //   }
+  //   if (afterStyle) {
+  //     this.setModifierPrime(fromGraphemeIndex - 1, beforeStyle, false);
+  //   }
+  // }
 
   public getModifierAtExactly(graphemeIndex: number): TextStyleModifier | undefined {
     const r = this.searchForEntryAtOrBeforeGraphemeIndex(graphemeIndex);
@@ -42,6 +95,35 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
       return this.entries[r.entryIndex].modifier;
     }
     return undefined;
+  }
+
+  public prepend(prependedGraphemeCount: number, strip: TextStyleStrip): void {
+    if (prependedGraphemeCount === 0) {
+      return;
+    }
+
+    const styleAtFinalCurrentGrapheme = this.getModifierAtExactly(0) || {};
+
+    this.updateDueToGraphemeInsertion(0, prependedGraphemeCount);
+
+    // Prepend entries (using setModifier since that will keep them sorted)
+    for (const entry of strip.entries) {
+      // Note this (importantly!) will clone the entries
+      this.setModifierPrime(entry.graphemeIndex, entry.modifier, true);
+    }
+
+    const modifierAtEndOfPrepend = this.resolveStyleAt(prependedGraphemeCount - 1);
+    for (const key of Object.keys(modifierAtEndOfPrepend)) {
+      if (
+        (styleAtFinalCurrentGrapheme as any)[key] !== undefined &&
+        (styleAtFinalCurrentGrapheme as any)[key] !== null
+      ) {
+        continue;
+      }
+      (styleAtFinalCurrentGrapheme as any)[key] = null;
+    }
+
+    this.setModifier(prependedGraphemeCount, styleAtFinalCurrentGrapheme);
   }
 
   public resolveStyleAt(graphemeIndex: number): TextStyle {
@@ -60,6 +142,12 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
   public setModifier(graphemeIndex: number, modifier: TextStyleModifier): void {
     this.setModifierPrime(graphemeIndex, modifier, true);
   }
+
+  // public styleRange(modifier: TextStyleModifier, fromGraphemeIndex: number, toGraphemeIndex: number): void {
+  //   // These should be the same after applying the modifier
+  //   const beforeStyle = this.resolveStyleAt(fromGraphemeIndex - 1);
+  //   const afterStyle = this.resolveStyleAt(toGraphemeIndex + 1);
+  // }
 
   public updateAndSplitAt(splitAtGraphemeIndex: number): WorkingTextStyleStrip {
     const r = this.searchForEntryAtOrAfterGraphemeIndex(splitAtGraphemeIndex);
@@ -122,7 +210,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         deletionEndIndex = j;
         if (modifiedStyle) {
           // Note this mutates e.style
-          applyStyleModifiers(modifiedStyle, e.modifier);
+          applyStyleModifiersToMutableModifier(modifiedStyle, e.modifier);
           modifiedStyle = e.modifier;
         } else {
           modifiedStyle = e.modifier;
@@ -147,7 +235,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
         firstNonDeletionIndex !== undefined &&
         this.mutableEntries[firstNonDeletionIndex].graphemeIndex === graphemeIndex
       ) {
-        applyStyleModifiers(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
+        applyStyleModifiersToMutableModifier(modifiedStyle, this.mutableEntries[firstNonDeletionIndex].modifier);
         // Then delete
         this.mutableEntries.splice(deletionStartIndex, firstNonDeletionIndex - deletionStartIndex);
         this.entries = this.mutableEntries;
@@ -177,59 +265,6 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     }
   }
 
-  public updateForAppend(currentGraphemeCount: number, strip: TextStyleStrip): void {
-    const styleAtFinalCurrentGrapheme = this.resolveStyleAt(currentGraphemeCount - 1);
-
-    // Append entries (using setModifier since that will keep them sorted)
-    for (const entry of strip.entries) {
-      // Note this (importantly!) will clone the entries
-      this.setModifierPrime(entry.graphemeIndex + currentGraphemeCount, entry.modifier, true);
-    }
-
-    const modifierAtBeginningOfAppend = this.getModifierAtExactly(currentGraphemeCount);
-    if (modifierAtBeginningOfAppend) {
-      for (const key of Object.keys(modifierAtBeginningOfAppend)) {
-        delete (styleAtFinalCurrentGrapheme as any)[key];
-      }
-    }
-
-    // Make the style we are going to apply undo the styling from the current (pre-append) strip
-    for (const key of Object.keys(styleAtFinalCurrentGrapheme)) {
-      (styleAtFinalCurrentGrapheme as any)[key] = null;
-    }
-
-    this.setModifier(currentGraphemeCount, styleAtFinalCurrentGrapheme);
-  }
-
-  public updateForPrepend(prependedGraphemeCount: number, strip: TextStyleStrip): void {
-    if (prependedGraphemeCount === 0) {
-      return;
-    }
-
-    const styleAtFinalCurrentGrapheme = this.getModifierAtExactly(0) || {};
-
-    this.updateDueToGraphemeInsertion(0, prependedGraphemeCount);
-
-    // Prepend entries (using setModifier since that will keep them sorted)
-    for (const entry of strip.entries) {
-      // Note this (importantly!) will clone the entries
-      this.setModifierPrime(entry.graphemeIndex, entry.modifier, true);
-    }
-
-    const modifierAtEndOfPrepend = this.resolveStyleAt(prependedGraphemeCount - 1);
-    for (const key of Object.keys(modifierAtEndOfPrepend)) {
-      if (
-        (styleAtFinalCurrentGrapheme as any)[key] !== undefined &&
-        (styleAtFinalCurrentGrapheme as any)[key] !== null
-      ) {
-        continue;
-      }
-      (styleAtFinalCurrentGrapheme as any)[key] = null;
-    }
-
-    this.setModifier(prependedGraphemeCount, styleAtFinalCurrentGrapheme);
-  }
-
   private binarySearchComparator = (entry: TextStyleStripEntry, graphemeIndexAsNeedle: number): number => {
     return entry.graphemeIndex - graphemeIndexAsNeedle;
   };
@@ -254,6 +289,11 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     }
   }
 
+  /**
+   * This either creates a new modifier entry (potentially cloning the passed
+   * object depending on if `cloneNeeded` is true) or updates an existing
+   * modifier if one already exists at the given `graphemeIndex`.
+   */
   private setModifierPrime(graphemeIndex: number, modifier: TextStyleModifier, cloneNeeded: boolean): void {
     if (Object.keys(modifier).length === 0) {
       return;
@@ -267,7 +307,7 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     const { entryIndex: i, exactMatch } = r;
 
     if (exactMatch) {
-      applyStyleModifiers(modifier, this.mutableEntries[i].modifier);
+      applyStyleModifiersToMutableModifier(modifier, this.mutableEntries[i].modifier);
     } else {
       this.mutableEntries.splice(i + 1, 0, {
         modifier: cloneNeeded ? lodash.clone(modifier) : modifier,
@@ -283,7 +323,16 @@ export interface ReadonlyWorkingTextStyleStrip extends TextStyleStrip {
   // Actually, as of right now there are no differences... maybe there won't be any at all?
 }
 
-function applyStyleModifiers(source: TextStyleModifier, destination: TextStyleModifier): void {
+/**
+ * This isn't a problem right now, but it is important that this never copy a
+ * complex object as is from the source to the destination. It can't happen
+ * right now but if it is possible in the future then the complex object should
+ * be cloned.
+ */
+function applyStyleModifiersToMutableModifier(
+  source: Readonly<TextStyleModifier>,
+  destination: TextStyleModifier
+): void {
   for (const key of Object.keys(source)) {
     const left = (source as any)[key];
     const right = (destination as any)[key];

@@ -1276,9 +1276,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         }
 
         if (prepend) {
-          destStrip.updateForPrepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+          destStrip.prepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
         } else {
-          destStrip.updateForAppend(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+          destStrip.append(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
         }
 
         if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
