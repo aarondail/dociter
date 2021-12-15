@@ -13,7 +13,7 @@ import { FancyGrapheme, FancyText, Grapheme, Text } from "../text-model";
 import { PathPart } from "../traversal";
 
 import { AnchorId, ReadonlyWorkingAnchor, WorkingAnchor, WorkingAnchorRange } from "./anchor";
-import { WorkingTextStyleStrip } from "./textStyleStrip";
+import { WorkingTextStyleStrip } from "./workingTextStyleStrip";
 
 export type NodeId = string;
 

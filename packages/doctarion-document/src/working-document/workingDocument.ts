@@ -15,7 +15,7 @@ import {
   Span,
 } from "../document-model";
 import { FlowDirection } from "../shared-utils";
-import { FancyGrapheme, FancyText, Grapheme, Text, TextStyle, TextStyleModifier, TextStyleStrip } from "../text-model";
+import { FancyGrapheme, FancyText, Grapheme, Text, TextStyleModifier, TextStyleStrip } from "../text-model";
 import {
   CursorNavigator,
   CursorOrientation,
@@ -54,8 +54,8 @@ import {
   WorkingNode,
   WorkingNodeOfType,
 } from "./nodes";
-import { WorkingTextStyleStrip } from "./textStyleStrip";
 import { Utils } from "./utils";
+import { WorkingTextStyleStrip } from "./workingTextStyleStrip";
 
 export interface InsertNodeResult {
   readonly workingNode: ReadonlyWorkingNode;
@@ -205,6 +205,27 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     return newInteractor;
   }
 
+  public applyTextStyle(
+    node: NodeId | ReadonlyWorkingNode,
+    modifier: TextStyleModifier,
+    fromGraphemeIndex: number,
+    toGraphemeIndex: number
+  ): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const resolvedFacet = resolvedNode.getTextStyleStripFacet();
+    if (!resolvedFacet) {
+      throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
+    }
+    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
+      resolvedFacet[1].styleRange(fromGraphemeIndex, toGraphemeIndex, modifier);
+    } else {
+      throw new WorkingDocumentError("Facet value is not a text style strip");
+    }
+  }
+
   public changeNodeType<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>(
     node: NodeId | ReadonlyWorkingNode,
     nodeType: NodeType<SpecificNodeTypeDescription>,
@@ -270,6 +291,22 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
     if (nodeType === Span) {
       this.joinSpanToAdjacentSiblingsAndRemoveItIfPossible(resolvedNode);
+    }
+  }
+
+  public clearTextStyle(node: NodeId | ReadonlyWorkingNode, fromGraphemeIndex: number, toGraphemeIndex: number): void {
+    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
+    if (!resolvedNode) {
+      throw new WorkingDocumentError("Unknown node");
+    }
+    const resolvedFacet = resolvedNode.getTextStyleStripFacet();
+    if (!resolvedFacet) {
+      throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
+    }
+    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
+      resolvedFacet[1].clearRange(fromGraphemeIndex, toGraphemeIndex);
+    } else {
+      throw new WorkingDocumentError("Facet value is not a text style strip");
     }
   }
 
@@ -701,7 +738,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         break;
       case FacetValueType.TextStyleStrip:
         if (value instanceof TextStyleStrip) {
-          resolvedNode.setFacet(facet, createWorkingTextStyleStrip(value));
+          resolvedNode.setFacet(facet, createWorkingTextStyleStrip(value, resolvedNode.children.length));
         } else if (valueType === "undefined" && resolvedFacet.optional) {
           resolvedNode.setFacet(facet, value);
         } else {
@@ -798,26 +835,6 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
           }
         }
         break;
-    }
-  }
-
-  public setNodeTextStyleModifier(
-    node: NodeId | ReadonlyWorkingNode,
-    modifier: TextStyleModifier,
-    graphemeIndex: number
-  ): void {
-    const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
-    if (!resolvedNode) {
-      throw new WorkingDocumentError("Unknown node");
-    }
-    const resolvedFacet = resolvedNode.getTextStyleStripFacet();
-    if (!resolvedFacet) {
-      throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
-    }
-    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
-      resolvedFacet[1].setModifier(graphemeIndex, modifier);
-    } else {
-      throw new WorkingDocumentError("Facet value is not a text style strip");
     }
   }
 
@@ -1271,23 +1288,14 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
         // no-op
       } else {
         if (!destStrip) {
-          destStrip = new WorkingTextStyleStrip([]);
+          destStrip = new WorkingTextStyleStrip([], destArrayOriginalLength);
           destination.setFacet(destinationTextStyleStripFacet[0].name, destStrip);
         }
 
         if (prepend) {
-          destStrip.prepend(sourceArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
+          destStrip.joinPrepend(sourceStrip ?? new WorkingTextStyleStrip([], sourceArrayOriginalLength));
         } else {
-          destStrip.append(destArrayOriginalLength, sourceStrip ?? new WorkingTextStyleStrip([]));
-        }
-
-        if (sourceArrayOriginalLength > 0 && destArrayOriginalLength > 0) {
-          const boundaryIndex = prepend ? sourceArrayOriginalLength : destArrayOriginalLength;
-          const resolvedStyle = destStrip.resolveStyleAt(boundaryIndex - 1);
-          const modifierAtBoundary = destStrip.getModifierAtExactly(boundaryIndex);
-          const revertStyleModifier = TextStyle.createModifierToResetStyleToDefaults(resolvedStyle);
-
-          destStrip.setModifier(boundaryIndex, { ...revertStyleModifier, ...modifierAtBoundary });
+          destStrip.joinAppend(sourceStrip ?? new WorkingTextStyleStrip([], sourceArrayOriginalLength));
         }
       }
     }
@@ -1518,9 +1526,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
 
         const textStyleStripFacet = currentSplitSource.getTextStyleStripFacet();
         if (textStyleStripFacet && textStyleStripFacet[1]) {
-          const newStrip: WorkingTextStyleStrip = (textStyleStripFacet[1] as WorkingTextStyleStrip).updateAndSplitAt(
-            childIndex
-          );
+          const newStrip: WorkingTextStyleStrip = (textStyleStripFacet[1] as WorkingTextStyleStrip).splitAt(childIndex);
           currentSplitDest.setFacet(textStyleStripFacet[0].name, newStrip);
         }
       }

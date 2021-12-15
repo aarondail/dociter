@@ -18,7 +18,7 @@ describe("delete with multiple interactors", () => {
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
-      <p> <s styles=6:+B>MMNAABB</s> </p>
+      <p> <s styles=5:+B>MMNAABB</s> </p>
       <p> </p>
       <p> <s>CC</s> <lnk url=g.com>OOGLE</lnk> <s>DD</s> </p>"
     `);
@@ -34,7 +34,7 @@ describe("delete with multiple interactors", () => {
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>ader1</s> </h>
-      <p> <s styles=6:+B>AABB</s> </p>
+      <p> <s styles=2:+B>AABB</s> </p>
       <p> </p>
       <p> <s>CC</s> <lnk url=g.com>OOGLE</lnk> <s>DD</s> </p>"
     `);

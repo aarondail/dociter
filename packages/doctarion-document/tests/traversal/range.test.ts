@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Chain, NodeCategory, Path, PseudoNode, Range, ReadonlyWorkingNode } from "../../src";
+import { Chain, NodeCategory, Path, PseudoNode, Range } from "../../src";
 import { testDoc } from "../test-utils";
 
 const testDoc1 = testDoc`

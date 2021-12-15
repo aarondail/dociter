@@ -3,17 +3,29 @@ import { docToXmlish } from "../test-utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
 
-describe("deleteNodeAtPath", () => {
+describe("deleteAtPath", () => {
   it("basically works", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
     wd.deleteAtPath("0/0/1");
     wd.deleteAtPath("1/0/0");
+    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Hader1</s> </h>
+      <p> <s styles=5:+B>MNNAABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
+    `);
     wd.deleteAtPath("1/0/3");
+    expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Hader1</s> </h>
+      <p> <s styles=4:+B>MNNABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
+    `);
     wd.deleteAtPath("1/0/5");
     wd.deleteAtPath("2");
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<h level=ONE> <s>Hader1</s> </h>
-      <p> <s styles=6:+B>MNNAB</s> </p>
+      <p> <s styles=4:+B>MNNAB</s> </p>
       <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
     `);
   });

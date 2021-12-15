@@ -17,8 +17,8 @@ import {
   Span,
   Text,
   TextStyleModifier,
+  TextStyleModifierAtGrapheme,
   TextStyleStrip,
-  TextStyleStripEntry,
 } from "../../src";
 import { Mutable } from "../../src/shared-utils";
 
@@ -182,7 +182,7 @@ export function nodeToXmlish(node: Node, { includeIds }: { includeIds?: boolean 
         const facetType = n.nodeType.facets?.[key];
         let value = attributes[key];
         if (value instanceof TextStyleStrip) {
-          if (value.entries.length === 0) {
+          if (value.modifiers.length === 0) {
             continue;
           }
           value = textStyleStripToXmlish(value);
@@ -255,7 +255,7 @@ function modifierStringFromModifiers(m: TextStyleModifier): string {
 }
 
 function textStyleStripFromXmlish(s: string): TextStyleStrip {
-  const entries: TextStyleStripEntry[] = [];
+  const entries: TextStyleModifierAtGrapheme[] = [];
 
   for (const e of s.split(",")) {
     const [charIndex, modifiers] = e.split(":");
@@ -271,7 +271,7 @@ function textStyleStripFromXmlish(s: string): TextStyleStrip {
 
 function textStyleStripToXmlish(strip: TextStyleStrip): string {
   const s = [];
-  for (const e of strip.entries) {
+  for (const e of strip.modifiers) {
     s.push(`${e.graphemeIndex}:${modifierStringFromModifiers(e.modifier)}`);
   }
   return s.join(",");

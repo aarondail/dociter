@@ -1,14 +1,14 @@
 import { FriendlyIdGenerator } from "doctarion-utils";
 import lodash from "lodash";
 
-import { Anchor, AnchorRange, FacetType, FacetValueType, Node, Span } from "../document-model";
+import { Anchor, AnchorRange, FacetTextStyleStripName, FacetType, FacetValueType, Node, Span } from "../document-model";
 import { TextStyleStrip } from "../text-model";
 import { PathPart } from "../traversal";
 
 import { AnchorId, WorkingAnchor, WorkingAnchorRange, WorkingAnchorType } from "./anchor";
 import { WorkingDocumentError } from "./error";
 import { NodeId, WorkingDocumentNode, WorkingNode, WorkingNodeOfType } from "./nodes";
-import { WorkingTextStyleStrip } from "./textStyleStrip";
+import { WorkingTextStyleStrip } from "./workingTextStyleStrip";
 
 export function createWorkingNode(
   idGenerator: FriendlyIdGenerator,
@@ -60,7 +60,7 @@ export function createWorkingNode(
           : new PathPart(propertyName, index);
       return n;
     } else if (value instanceof TextStyleStrip) {
-      return createWorkingTextStyleStrip(value);
+      return createWorkingTextStyleStrip(value, container.children.length);
     } else if (Array.isArray(value)) {
       return value.map((v, idx) => mapPropertyValue(v, container, propertyName, idx));
     } else {
@@ -75,11 +75,11 @@ export function createWorkingNode(
     const oldLength = priorSpan.children.length;
     priorSpan.children.push(...(newSpan.children as any[]));
     // Merge the styles if any
-    if (newSpan.getFacet("styles")) {
+    if (newSpan.getFacet(FacetTextStyleStripName)) {
       if (priorSpan.facets.styles === undefined) {
-        priorSpan.facets.styles = new WorkingTextStyleStrip([]);
+        priorSpan.facets.styles = new WorkingTextStyleStrip([], oldLength);
       }
-      priorSpan.facets.styles.append(oldLength, newSpan.getFacet("styles") as TextStyleStrip);
+      priorSpan.facets.styles.joinAppend(newSpan.getFacet(FacetTextStyleStripName) as WorkingTextStyleStrip);
     }
     // Set this so later we can update anchors on the node (we merged from) properly
     nodeToWorkingNodeMap.set(newSpan, {
@@ -225,6 +225,6 @@ function anchorRangeToWorkingAnchors(
   );
 }
 
-export function createWorkingTextStyleStrip(strip: TextStyleStrip): WorkingTextStyleStrip {
-  return new WorkingTextStyleStrip(strip.entries);
+export function createWorkingTextStyleStrip(strip: TextStyleStrip, graphemeCount: number): WorkingTextStyleStrip {
+  return new WorkingTextStyleStrip(strip.modifiers, graphemeCount);
 }
