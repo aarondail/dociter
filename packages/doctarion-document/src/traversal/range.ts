@@ -273,6 +273,10 @@ export class Range {
     }
 
     if (this.from.equalTo(this.to)) {
+      if (PseudoNode.isGrapheme(nav.tip.node)) {
+        const index = nav.tip.pathPart!.index!;
+        callback(nav.chain.dropTipIfPossible()!, nav.tip.pathPart?.facet, [index, index]);
+      }
       return;
     }
     // eslint-disable-next-line no-constant-condition

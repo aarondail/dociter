@@ -14,7 +14,7 @@ interface StyleOptions {
 
 export type StylePayload = TargetPayload & StyleOptions;
 
-export const style = coreCommand<StylePayload>("style", (state, services, payload) => {
+export const styleText = coreCommand<StylePayload>("styleText", (state, services, payload) => {
   const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Forward);
   for (const target of targets) {
     if (!target.selectionRange) {
@@ -24,12 +24,15 @@ export const style = coreCommand<StylePayload>("style", (state, services, payloa
       state,
       target,
       (inlineNodeChain, facet, graphemeRangeInclusive) => {
-        if (PseudoNode.isNode(inlineNodeChain.tipNode) && graphemeRangeInclusive) {
+        if (!facet && PseudoNode.isNode(inlineNodeChain.tipNode) && graphemeRangeInclusive) {
           const textStyleStripFacet = inlineNodeChain.tipNode.getTextStyleStripFacet();
           if (textStyleStripFacet) {
-            const [{ name }, strip] = textStyleStripFacet;
-            // TODO this is not finished
-            // state.setNodeTextStyle(inlineNodeChain.tipNode, payload.style, graphemeRangeInclusive);
+            state.applyTextStyle(
+              inlineNodeChain.tipNode,
+              payload.style,
+              graphemeRangeInclusive[0],
+              graphemeRangeInclusive[1]
+            );
           }
         }
       }
@@ -37,7 +40,7 @@ export const style = coreCommand<StylePayload>("style", (state, services, payloa
   }
 });
 
-export const clearStyles = coreCommand<TargetPayload>("clearStyles", (state, services, payload) => {
+export const clearTextStyle = coreCommand<TargetPayload>("clearTextStyle", (state, services, payload) => {
   const targets = CommandUtils.selectTargets(state, payload.target, SelectTargetsSort.Forward);
   for (const target of targets) {
     if (!target.selectionRange) {
@@ -50,9 +53,7 @@ export const clearStyles = coreCommand<TargetPayload>("clearStyles", (state, ser
         if (PseudoNode.isNode(inlineNodeChain.tipNode) && graphemeRangeInclusive) {
           const textStyleStripFacet = inlineNodeChain.tipNode.getTextStyleStripFacet();
           if (textStyleStripFacet) {
-            const [{ name }, strip] = textStyleStripFacet;
-            // TODO this is not finished
-            // state.clearNodeTextStyle(inlineNodeChain.tipNode, graphemeRangeInclusive);
+            state.clearTextStyle(inlineNodeChain.tipNode, graphemeRangeInclusive[0], graphemeRangeInclusive[1]);
           }
         }
       }

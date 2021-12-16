@@ -249,10 +249,12 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
     }
 
     let restyleEntryStartIndex = undefined;
+    let lastEntryPriorStyle = undefined;
     const r1 = this.searchForEntryAtOrBeforeGraphemeIndex(fromGraphemeIndex);
 
     if (r1) {
       const entry = this.actualEntries[r1.entryIndex];
+      lastEntryPriorStyle = { ...entry.style };
       if (r1.exactMatch) {
         this.applyModifierToMutableStyle(modifier, entry.style);
         restyleEntryStartIndex = r1.entryIndex + 1;
@@ -262,12 +264,14 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
           this.actualEntries.splice(r1.entryIndex + 1, 0, { graphemeIndex: fromGraphemeIndex, style });
           restyleEntryStartIndex = r1.entryIndex + 2;
         } else {
+          lastEntryPriorStyle = undefined;
           restyleEntryStartIndex = r1.entryIndex + 1;
         }
       }
     } else {
       // No entries before the given from index
       const style = {};
+      lastEntryPriorStyle = {};
       if (this.applyModifierToMutableStyle(modifier, style)) {
         this.actualEntries.splice(0, 0, { graphemeIndex: fromGraphemeIndex, style });
         restyleEntryStartIndex = 1;
@@ -278,7 +282,6 @@ export class WorkingTextStyleStrip extends TextStyleStrip {
 
     // Restyle intervening nodes
     let needInsert = true;
-    let lastEntryPriorStyle = undefined;
     for (let i = restyleEntryStartIndex; i < this.actualEntries.length; i++) {
       const entry = this.actualEntries[i];
       if (entry.graphemeIndex <= toGraphemeIndex) {

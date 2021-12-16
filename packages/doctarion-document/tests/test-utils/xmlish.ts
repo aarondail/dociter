@@ -19,6 +19,7 @@ import {
   TextStyleModifier,
   TextStyleModifierAtGrapheme,
   TextStyleStrip,
+  Todo,
 } from "../../src";
 import { Mutable } from "../../src/shared-utils";
 
@@ -48,6 +49,7 @@ const tagToNodeTypes: Record<string, NodeType> = {
   // these nodes cannot have text contents and will ignore them.
   lnk: Link,
   floater: Floater,
+  todo: Todo,
 };
 
 const nodeTypesToTag = new Map(Object.entries(tagToNodeTypes).map(([key, value]) => [value, key]));
@@ -247,6 +249,14 @@ function modifierStringFromModifiers(m: TextStyleModifier): string {
   for (const k of Object.keys(m)) {
     if (k === "bold") {
       s += (m[k] === null ? "-" : "+") + "B";
+    } else if (k === "italic") {
+      s += (m[k] === null ? "-" : "+") + "I";
+    } else if (k === "foregroundColor") {
+      if (m[k] === null) {
+        s += "-FC";
+      } else {
+        s += "+FC=" + m[k];
+      }
     } else {
       throw new Error(`Unknown TextStyleModifier ${k}`);
     }

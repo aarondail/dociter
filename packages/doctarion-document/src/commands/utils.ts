@@ -346,15 +346,10 @@ export const CommandUtils = {
       graphemeRangeInclusive: [number, number] | undefined
     ) => void
   ): void {
-    if (target.selectionAnchorNavigator === undefined) {
+    if (target.selectionRange === undefined) {
       return undefined;
     }
-
-    const [startNav, endNav] = target.isMainCursorFirst
-      ? [target.mainAnchorNavigator, target.selectionAnchorNavigator]
-      : [target.selectionAnchorNavigator, target.mainAnchorNavigator];
-
-    new Range(startNav.path, endNav.path).walkInlineGraphemeRanges<ReadonlyWorkingNode>(state.document, callback);
+    target.selectionRange.walkInlineGraphemeRanges<ReadonlyWorkingNode>(state.document, callback);
   },
 };
 

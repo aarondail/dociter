@@ -457,7 +457,7 @@ const navigateToSiblingHelpers = (() => {
     if (childPath.facet) {
       const facetValue = parentNode.getFacet(childPath.facet);
       if (Array.isArray(facetValue)) {
-        newPathPart = childPath.adjustIndex(facetValue.length - 1);
+        newPathPart = childPath.setIndex(facetValue.length - 1);
       } else {
         return undefined;
       }
@@ -465,7 +465,7 @@ const navigateToSiblingHelpers = (() => {
       if (parentNode.children.length === 0) {
         return undefined;
       }
-      newPathPart = childPath.adjustIndex(parentNode.children.length - 1);
+      newPathPart = childPath.setIndex(parentNode.children.length - 1);
     }
     const childNode = newPathPart.resolve(parentNode);
     if (childNode) {

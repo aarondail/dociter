@@ -6,6 +6,7 @@ import {
   Document,
   DocumentNode,
   FacetDictionary,
+  FacetTextStyleStripName,
   FacetTypeConvenienceDictionary,
   FacetValueType,
   Node,
@@ -219,7 +220,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedFacet) {
       throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
     }
-    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
+    if (resolvedFacet[1] === undefined) {
+      const newFacet = new WorkingTextStyleStrip([], resolvedNode.children.length);
+      newFacet.styleRange(fromGraphemeIndex, toGraphemeIndex, modifier);
+      resolvedNode.setFacet(FacetTextStyleStripName, newFacet);
+    } else if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
       resolvedFacet[1].styleRange(fromGraphemeIndex, toGraphemeIndex, modifier);
     } else {
       throw new WorkingDocumentError("Facet value is not a text style strip");
@@ -303,7 +308,11 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     if (!resolvedFacet) {
       throw new WorkingDocumentError("Node does not have a TextStyleFacet facet");
     }
-    if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
+    if (resolvedFacet[1] === undefined) {
+      const newFacet = new WorkingTextStyleStrip([], resolvedNode.children.length);
+      newFacet.clearRange(fromGraphemeIndex, toGraphemeIndex);
+      resolvedNode.setFacet(FacetTextStyleStripName, newFacet);
+    } else if (resolvedFacet[1] instanceof WorkingTextStyleStrip) {
       resolvedFacet[1].clearRange(fromGraphemeIndex, toGraphemeIndex);
     } else {
       throw new WorkingDocumentError("Facet value is not a text style strip");
