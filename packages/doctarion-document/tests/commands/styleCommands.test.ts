@@ -89,13 +89,18 @@ describe("styleText", () => {
   });
 });
 
-// describe("clearTextStyle", () => {
-//   it("is (currently at least) a no-op if the interactor is not a selection", () => {
-//   });
+describe("clearTextStyle", () => {
+  it("should be able to clear styles", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "1/0/2", orientation: After } }));
+    editor.execute(Commands.jump({ to: { path: "1/0", orientation: After }, select: true }));
+    editor.execute(Commands.clearTextStyle({}));
 
-//   it("should work on different Inline nodes", () => {
-//   });
-
-//   it("should work on a selection across nodes", () => {
-//   });
-// });
+    expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(`
+      "<h level=ONE> <s>Header1</s> </h>
+      <p> <s>MMNNAABB</s> </p>
+      <p> </p>
+      <p> <s>CC</s> <lnk url=g.com>GOOGLE</lnk> <s>DD</s> </p>"
+    `);
+  });
+});
