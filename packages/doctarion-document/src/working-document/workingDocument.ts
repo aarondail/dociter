@@ -5,13 +5,10 @@ import {
   AnchorOrientation,
   Document,
   DocumentNode,
-  FacetDictionary,
   FacetTextStyleStripName,
-  FacetTypeConvenienceDictionary,
   FacetValueType,
   Node,
   NodeChildrenType,
-  NodeType,
   NodeTypeDescription,
   Span,
 } from "../document-model";
@@ -47,6 +44,7 @@ import { WorkingDocumentError } from "./error";
 import { WorkingDocumentEventEmitter, WorkingDocumentEvents } from "./events";
 import { InteractorId, InteractorParameters, ReadonlyWorkingInteractor, WorkingInteractor } from "./interactor";
 import { cloneWorkingNodeAsEmptyRegularNode, createWorkingNode, createWorkingTextStyleStrip } from "./nodeCreation";
+import { NodeTemplate } from "./nodeTemplate";
 import {
   NodeId,
   ReadonlyWorkingDocumentNode,
@@ -231,13 +229,9 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
   }
 
-  public changeNodeType<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>(
+  public changeNodeTypeAndFacets<SpecificNodeTypeDescription extends NodeTypeDescription = NodeTypeDescription>(
     node: NodeId | ReadonlyWorkingNode,
-    nodeType: NodeType<SpecificNodeTypeDescription>,
-    newFacets: SpecificNodeTypeDescription["facets"] extends FacetTypeConvenienceDictionary
-      ? FacetDictionary<SpecificNodeTypeDescription["facets"]>
-      : // eslint-disable-next-line @typescript-eslint/ban-types
-        {}
+    template: NodeTemplate<SpecificNodeTypeDescription>
   ): void {
     const resolvedNode = this.nodeLookup.get(typeof node === "string" ? node : node.id);
     if (!resolvedNode) {
@@ -245,15 +239,15 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
     const currentNodeType = resolvedNode.nodeType;
     // We dont support changing node types that change the category
-    if (currentNodeType.category !== nodeType.category) {
+    if (currentNodeType.category !== template.nodeType.category) {
       throw new WorkingDocumentError(
-        `Cannot change node's type to be a new type with a different category (from: ${currentNodeType.category} to: ${nodeType.category})`
+        `Cannot change node's type to be a new type with a different category (from: ${currentNodeType.category} to: ${template.nodeType.category})`
       );
     }
     // We dont support changing node types that have incompatible children types
-    if (currentNodeType.childrenType !== nodeType.childrenType) {
+    if (currentNodeType.childrenType !== template.nodeType.childrenType) {
       throw new WorkingDocumentError(
-        `Cannot change node's type to be a new type with a different children type (from: ${currentNodeType.childrenType} to: ${nodeType.childrenType})`
+        `Cannot change node's type to be a new type with a different children type (from: ${currentNodeType.childrenType} to: ${template.nodeType.childrenType})`
       );
     }
 
@@ -270,7 +264,7 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     // node...
     const { root: rootToIgnore, newNodes, newAnchors } = createWorkingNode(
       this.idGenerator,
-      new Node(nodeType, [], newFacets),
+      template.instantiate([]),
       this.nodeLookup,
       { joinAdjacentSpans: true }
     );
@@ -291,10 +285,10 @@ export class WorkingDocument implements ReadonlyWorkingDocument {
     }
 
     // Do change
-    resolvedNode.nodeType = nodeType;
+    resolvedNode.nodeType = template.nodeType;
     resolvedNode.facets = rootToIgnore.facets;
 
-    if (nodeType === Span) {
+    if (template.nodeType === Span) {
       this.joinSpanToAdjacentSiblingsAndRemoveItIfPossible(resolvedNode);
     }
   }

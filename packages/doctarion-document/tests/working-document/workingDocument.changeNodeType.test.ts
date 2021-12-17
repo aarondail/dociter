@@ -1,4 +1,4 @@
-import { Header, HeaderLevel, Paragraph, WorkingDocument } from "../../src";
+import { Header, HeaderLevel, NodeTemplate, Paragraph, WorkingDocument } from "../../src";
 import { docToXmlish } from "../test-utils";
 
 import { WorkingDocumentTestUtils } from "./workingDocument.testUtils";
@@ -7,9 +7,9 @@ describe("changeNodeType", () => {
   it("changes block types", () => {
     const wd = new WorkingDocument(WorkingDocumentTestUtils.testDocs.basicDoc);
 
-    wd.changeNodeType(wd.getNodeAtPath("0"), Paragraph, {});
-    wd.changeNodeType(wd.getNodeAtPath("1"), Header, { level: HeaderLevel.One });
-    wd.changeNodeType(wd.getNodeAtPath("2"), Header, { level: HeaderLevel.Two });
+    wd.changeNodeTypeAndFacets(wd.getNodeAtPath("0"), new NodeTemplate(Paragraph, {}));
+    wd.changeNodeTypeAndFacets(wd.getNodeAtPath("1"), new NodeTemplate(Header, { level: HeaderLevel.One }));
+    wd.changeNodeTypeAndFacets(wd.getNodeAtPath("2"), new NodeTemplate(Header, { level: HeaderLevel.Two }));
 
     expect(docToXmlish(wd.document)).toMatchInlineSnapshot(`
       "<p> <s>Header1</s> </p>

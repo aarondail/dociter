@@ -13,7 +13,7 @@
 
 // interface AlterOptions {
 //   readonly type: AlterType;
-//   readonly template: Node;
+//   readonly template: NodeTemplate;
 // }
 
 // export type AlterPayload = TargetPayload & AlterOptions;

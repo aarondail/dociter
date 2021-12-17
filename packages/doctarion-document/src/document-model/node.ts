@@ -4,7 +4,7 @@ import { Anchor, AnchorRange } from "./anchor";
 import { FacetDictionary, FacetTypeConvenienceDictionary, FacetTypeWithName } from "./facets";
 import { NodeChildrenType, NodeType, NodeTypeDescription } from "./nodeType";
 
-type NodeChildrenTypeToActualType<T extends NodeChildrenType> = T extends NodeChildrenType.None
+export type NodeChildrenTypeToActualType<T extends NodeChildrenType> = T extends NodeChildrenType.None
   ? []
   : T extends NodeChildrenType.FancyText
   ? FancyText

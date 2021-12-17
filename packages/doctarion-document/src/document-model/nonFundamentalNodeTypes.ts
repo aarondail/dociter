@@ -108,7 +108,10 @@ export const Todo = new NodeType({
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {
-    [FacetTextStyleStripName]: FacetValueType.TextStyleStrip,
+    [FacetTextStyleStripName]: {
+      valueType: FacetValueType.TextStyleStrip,
+      optional: true,
+    },
   },
 });
 

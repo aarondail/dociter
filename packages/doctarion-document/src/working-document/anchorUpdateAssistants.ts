@@ -107,8 +107,8 @@ export class AnchorUpdateAssistantForNodeDeletion {
         }
       } else {
         this.direction === FlowDirection.Backward
-          ? Utils.navigateCursorNavigatorToLastCursorPositionOnTheSameNode(c)
-          : Utils.navigateCursorNavigatorToFirstCursorPositionOnTheSameNode(c);
+          ? c.navigateToNextCursorPosition()
+          : c.navigateToPrecedingCursorPosition();
       }
       orphanedAnchorRelocationNavUpdatedPosition = this.host.getAnchorParametersFromCursorNavigator(c);
     }

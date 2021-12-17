@@ -4,9 +4,25 @@ import { docToXmlish, dumpAnchorsFromWorkingDocument, nodeToXmlish } from "../te
 import { CommandsTestUtils } from "./commands.testUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { After, Before, On } = CursorOrientation;
+const { After, Before } = CursorOrientation;
 
 describe("deleting backwards (solo selection)", () => {
+  it("will delete a small set of graphemes", () => {
+    const editor = CommandsTestUtils.getEditorForBasicDoc();
+    editor.execute(Commands.jump({ to: { path: "0/0/2", orientation: Before } }));
+    editor.execute(Commands.moveForward({ select: true }));
+    editor.execute(Commands.moveForward({ select: true }));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(`
+      "Anchor: ᯼-MAIN AFTER (Span:d)0/0⁙3 intr: ᯼ 
+      Anchor: ᯼-SELECTION AFTER (Span:e)0/0⁙1 intr: ᯼ "
+    `);
+    editor.execute(Commands.delete({}));
+    expect(dumpAnchorsFromWorkingDocument(editor.state)).toMatchInlineSnapshot(
+      `"Anchor: ᯼-MAIN AFTER (Span:e)0/0⁙1 intr: ᯼ "`
+    );
+    expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(`"<h level=ONE> <s>Heer1</s> </h>"`);
+  });
+
   it("will delete covered Link", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "3/1/0", orientation: Before } }));

@@ -1,6 +1,6 @@
 import { FlowDirection } from "../shared-utils";
 import { LiftingPathMap } from "../traversal";
-import { ReadonlyWorkingNode } from "../working-document";
+import { NodeTemplate, ReadonlyWorkingNode } from "../working-document";
 
 import { TargetPayload } from "./payloads";
 import { coreCommand } from "./types";
@@ -78,7 +78,7 @@ export const joinInto = coreCommand<JoinPayload>("joinInto", (state, services, p
 
     if (sourceNode.nodeType !== destinationNode?.nodeType && payload.allowNodeTypeCoercion) {
       // If the sourceNode has any anchor or node facets this will definitely fail
-      state.changeNodeType(sourceNode, destinationNode.nodeType, destinationNode.facets);
+      state.changeNodeTypeAndFacets(sourceNode, new NodeTemplate(destinationNode.nodeType, destinationNode.facets));
     }
 
     const flippedDirection = direction === FlowDirection.Backward ? FlowDirection.Forward : FlowDirection.Backward;
