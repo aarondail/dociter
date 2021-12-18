@@ -2,6 +2,7 @@ import * as htmlparser from "htmlparser2";
 
 import {
   Anchor,
+  CodeBlock,
   Document,
   DocumentNode,
   FacetDictionary,
@@ -50,6 +51,7 @@ const tagToNodeTypes: Record<string, NodeType> = {
   lnk: Link,
   floater: Floater,
   todo: Todo,
+  code: CodeBlock,
 };
 
 const nodeTypesToTag = new Map(Object.entries(tagToNodeTypes).map(([key, value]) => [value, key]));
