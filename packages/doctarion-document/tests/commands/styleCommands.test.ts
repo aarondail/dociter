@@ -50,13 +50,13 @@ describe("styleText", () => {
   });
 
   it("should work on a non-Span", () => {
-    const editor = new Editor({ document: testDoc`<p> <todo>HERE</todo> </p>` });
+    const editor = new Editor({ document: testDoc`<p> <inlinenote>HERE</inlinenote> </p>` });
     editor.execute(Commands.jump({ to: { path: "0/0/0", orientation: After } }));
     editor.execute(Commands.moveBack({ select: true }));
     editor.execute(Commands.styleText({ style: { foregroundColor: "blue" } }));
 
     expect(docToXmlish(editor.state.document)).toMatchInlineSnapshot(
-      `"<p> <todo styles=0:+FC=blue,1:-FC>HERE</todo> </p>"`
+      `"<p> <inlinenote styles=0:+FC=blue,1:-FC>HERE</inlinenote> </p>"`
     );
   });
 

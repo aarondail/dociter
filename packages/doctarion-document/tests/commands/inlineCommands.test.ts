@@ -1,4 +1,4 @@
-import { Commands, CursorOrientation, Link, NodeTemplate, Span, Text, Todo } from "../../src";
+import { Commands, CursorOrientation, Link, NodeTemplate, Span, Tag, Text } from "../../src";
 import { docToXmlish, nodeToXmlish } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
@@ -6,14 +6,14 @@ import { CommandsTestUtils } from "./commands.testUtils";
 const { Before, After } = CursorOrientation;
 
 describe("reconstructInlines", () => {
-  it("should convert part of a span into a todo", () => {
+  it("should convert part of a span into a tag", () => {
     const editor = CommandsTestUtils.getEditorForBasicDoc();
     editor.execute(Commands.jump({ to: { path: "0/0/2", orientation: Before } }));
     editor.execute(Commands.moveForward({ select: true }));
     editor.execute(Commands.moveForward({ select: true }));
-    editor.execute(Commands.reconstructInlines({ template: new NodeTemplate(Todo, {}) }));
+    editor.execute(Commands.reconstructInlines({ template: new NodeTemplate(Tag, {}) }));
     expect(nodeToXmlish(editor.state.document.children[0])).toMatchInlineSnapshot(
-      `"<h level=ONE> <s>He</s> <todo>ad</todo> <s>er1</s> </h>"`
+      `"<h level=ONE> <s>He</s> <tag>ad</tag> <s>er1</s> </h>"`
     );
   });
 

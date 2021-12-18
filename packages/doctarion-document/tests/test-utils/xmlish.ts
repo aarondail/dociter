@@ -9,6 +9,7 @@ import {
   FacetValueType,
   Floater,
   Header,
+  InlineNote,
   Link,
   Node,
   NodeCategory,
@@ -16,11 +17,11 @@ import {
   NodeType,
   Paragraph,
   Span,
+  Tag,
   Text,
   TextStyleModifier,
   TextStyleModifierAtGrapheme,
   TextStyleStrip,
-  Todo,
 } from "../../src";
 import { Mutable } from "../../src/shared-utils";
 
@@ -50,7 +51,8 @@ const tagToNodeTypes: Record<string, NodeType> = {
   // these nodes cannot have text contents and will ignore them.
   lnk: Link,
   floater: Floater,
-  todo: Todo,
+  tag: Tag,
+  inlinenote: InlineNote,
   code: CodeBlock,
 };
 

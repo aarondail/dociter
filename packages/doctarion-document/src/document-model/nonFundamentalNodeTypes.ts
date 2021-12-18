@@ -103,8 +103,9 @@ export const Link = new NodeType({
   },
 });
 
-export const Todo = new NodeType({
-  name: "Todo",
+// TODO not really sure we want to keep this
+export const InlineNote = new NodeType({
+  name: "InlineNote",
   category: NodeCategory.Inline,
   childrenType: NodeChildrenType.FancyText,
   facets: {

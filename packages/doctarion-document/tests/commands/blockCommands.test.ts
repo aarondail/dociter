@@ -1,4 +1,4 @@
-import { CodeBlock, Commands, CursorOrientation, Header, HeaderLevel, NodeTemplate, Paragraph, Span } from "../../src";
+import { CodeBlock, Commands, CursorOrientation, Header, HeaderLevel, NodeTemplate, Paragraph } from "../../src";
 import { docToXmlish, nodeToXmlish } from "../test-utils";
 
 import { CommandsTestUtils } from "./commands.testUtils";
