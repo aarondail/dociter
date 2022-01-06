@@ -1,5 +1,5 @@
 {
-  "name": "dociter",
+  "name": "doctarion",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aarondail/dociter.git"
+    "url": "git+https://github.com/aarondail/doctarion.git"
   },
   "author": "Aaron Dail",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/aarondail/dociter/issues"
+    "url": "https://github.com/aarondail/doctarion/issues"
   },
-  "homepage": "https://github.com/aarondail/dociter#readme",
+  "homepage": "https://github.com/aarondail/doctarion#readme",
   "devDependencies": {
     "husky": "^5.1.3",
     "lerna": "^4.0.0"
